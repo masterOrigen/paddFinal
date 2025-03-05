@@ -143,3 +143,18 @@
     display: none;
   }
 }
+
+.MuiButtonGroup-root.MuiButtonGroup-contained.MuiButtonGroup-horizontal.MuiButtonGroup-colorPrimary.css-75uvui-MuiButtonGroup-root {
+  box-shadow: none;
+}
+.css-75uvui-MuiButtonGroup-root .MuiButtonGroup-firstButton{
+  border-color: #1565c0;
+  margin: 0px 5px;
+}
+.css-75uvui-MuiButtonGroup-root .MuiButtonGroup-middleButton {
+  border-color: #1565c0;
+  margin: 0px 5px;
+}
+.MuiButtonBase-root.MuiButton-root.MuiButton-contained.MuiButton-containedError.MuiButton-sizeMedium.MuiButton-containedSizeMedium.MuiButton-colorError.MuiButtonGroup-grouped.MuiButtonGroup-groupedHorizontal.MuiButtonGroup-groupedContained.MuiButtonGroup-groupedContainedHorizontal.MuiButtonGroup-groupedContainedPrimary.MuiButtonGroup-lastButton.css-1myc5fd-MuiButtonBase-root-MuiButton-root {
+	margin: 0px 5px;
+}
