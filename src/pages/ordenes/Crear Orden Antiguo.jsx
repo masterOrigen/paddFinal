@@ -101,17 +101,11 @@ const CrearOrden = () => {
           .from('alternativa')
             .select(`
             *,
-            Anios (id, years),
-            Meses (Id, Nombre),
-            Contratos (id, num_contrato, id_FormadePago, IdProveedor,
-              FormaDePago (id, NombreFormadePago),
-              Proveedores (id_proveedor, nombreProveedor, rutProveedor, direccionFacturacion, id_comuna)
-            ),
-            tipo_item,
-            Soportes (id_soporte, nombreIdentficiador),
-            Clasificacion (id, NombreClasificacion),
-            Temas (id_tema, NombreTema, Duracion, CodigoMegatime),
-            Programas (id, codigo_programa, hora_inicio, hora_fin, descripcion)
+            Programas (descripcion),
+            Temas (CodigoMegatime, NombreTema),
+            Contratos (NombreContrato),
+            Soportes (nombreIdentficiador),
+            Clasificacion (NombreClasificacion)
             `)
           .in('id', alternativaIds)
           .or('ordencreada.is.null,ordencreada.eq.false');

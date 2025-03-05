@@ -419,10 +419,10 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
 <View style={styles.totalsContainer2}>
 <View style={{ marginTop: 20, alignItems: 'center' }}>
     <Text style={{ fontSize: 10, marginBottom: 4 }}>
-        {order?.usuario_registro[0]?.nombre || 'No registrado'}
+        {order?.usuario_registro?.nombre || order?.usuario?.nombre || 'No registrado'}
     </Text>
     <Text style={{ fontSize: 8, color: '#666' }}>
-        {order?.usuario_registro[0]?.email || 'Sin email'}
+        {order?.usuario_registro?.email || order?.usuario?.email || 'Sin email'}
     </Text>
 </View>
 </View>

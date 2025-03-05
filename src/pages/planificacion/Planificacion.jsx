@@ -377,23 +377,7 @@ const Planificacion = () => {
         throw new Error('No hay una campaña seleccionada');
       }
 
-      // First get the last correlative number
-      const { data: lastPlan, error: lastPlanError } = await supabase
-        .from('plan')
-        .select('num_correlativo')
-        .order('num_correlativo', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (lastPlanError && lastPlanError.code !== 'PGRST116') { // PGRST116 means no rows returned
-        console.error('Error al obtener último correlativo:', lastPlanError);
-        throw lastPlanError;
-      }
-
-      // Calculate new correlative number (start from 32289 if no previous plans exist)
-      const newCorrelative = lastPlan ? lastPlan.num_correlativo + 1 : 32289;
-
-      // Create the plan with the new correlative
+      // Create the plan
       const { data: planData, error: planError } = await supabase
         .from('plan')
         .insert([{
@@ -402,8 +386,7 @@ const Planificacion = () => {
           mes: nuevoPlan.mes,
           estado: 'P',
           estado2: null,
-          id_campania: selectedCampana.id_campania,
-          num_correlativo: newCorrelative // Add the correlative number
+          id_campania: selectedCampana.id_campania
         }])
         .select()
         .single();
