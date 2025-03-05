@@ -155,7 +155,7 @@ const CrearOrden = () => {
           RUT,
           razonSocial,
           direccionEmpresa,
-          comuna (id_comuna)
+          Comunas!inner (id_comuna, nombreComuna)
         `)
         .order('nombreCliente');
 
