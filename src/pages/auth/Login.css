@@ -1,0 +1,172 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 20px;
+}
+
+.login-box {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 200px;
+  margin-bottom: 30px;
+}
+
+.login-form {
+  text-align: left;
+}
+
+h2 {
+  color: #333;
+  font-size: 20px;
+  margin-bottom: 25px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #666;
+  font-size: 14px;
+}
+
+.form-group input[type="email"],
+.form-group input[type="password"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  border-color: #EF4D36;
+  outline: none;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.checkbox label {
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.login-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #EF4D36;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.login-button:hover {
+  background-color: #d64430;
+}
+
+.login-button:disabled {
+  background-color: #ff8a7a;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background-color: #ffe6e6;
+  color: #dc3545;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .login-box {
+    padding: 20px;
+  }
+  
+  .login-logo {
+    width: 150px;
+  }
+}
+/* Agregar al final del archivo Login.css */
+
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.button-spinner {
+  width: 20px;
+  height: 20px;
+}
+
+.login-button.submitting {
+  background-color: #d64430;
+  cursor: not-allowed;
+}
+
+.form-group input:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+/* Agregar al final del archivo Login.css */
+
+/* Estilos para los toasts */
+.Toastify__toast {
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.Toastify__toast--error {
+  background: #fff;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.Toastify__progress-bar--error {
+  background: #dc3545;
+}
+
+.Toastify__close-button {
+  color: #666;
+}
+
+.Toastify__toast-icon {
+  color: #dc3545;
+}

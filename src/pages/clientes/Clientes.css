@@ -1,0 +1,655 @@
+.clientes-container {
+    padding: 20px;
+    margin-left: 240px;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    max-width: calc(100vw - 260px);
+    overflow-x: hidden;
+  }
+  
+  .header {
+    margin-bottom: 20px;
+  }
+  
+  .breadcrumb {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  
+  .breadcrumb a {
+    color: #EF4D36;
+    text-decoration: none;
+  }
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  
+  .header-content h1 {
+    font-size: 24px;
+    color: #333;
+    margin: 0;
+    font-weight: 600;
+  }
+  
+  .btn-agregar {
+    background-color: #6366F1 !important;
+    text-transform: none !important;
+    padding: 8px 16px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+  }
+  
+  .filtros-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .filtros-container .MuiTextField-root {
+    width: 340px;
+    background-color: white;
+    border-radius: 4px;
+  }
+
+  .filtros-container .MuiOutlinedInput-root {
+    background-color: white;
+  }
+
+  .filtros-container .MuiInputBase-root {
+    height: 40px;
+  }
+
+  .filtros-container .btn-exportar {
+    height: 40px;
+    min-width: 180px;
+    margin: 0 0 0 15px;
+    align-self: center;
+  }
+
+  /* Ajustes específicos para los campos de fecha */
+  .filtros-container .MuiTextField-root[type="date"] {
+    width: 340px;
+  }
+
+  @media (max-width: 1200px) {
+    .filtros-container {
+      flex-wrap: wrap;
+    }
+
+    .filtros-container .MuiTextField-root,
+    .filtros-container .MuiTextField-root[type="date"] {
+      width: 100%;
+    }
+
+    .filtros-container .btn-exportar {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+
+  .filtros-container > * {
+    margin-right: 16px;
+  }
+
+  .filtros-container > *:last-child {
+    margin-right: 0;
+  }
+
+  .filtros-container .MuiButton-root {
+    height: 40px;
+    margin-top: 0;
+    white-space: nowrap;
+  }
+
+  /* Estilo específico para el botón exportar */
+  .btn-exportar {
+    background-color: #22c55e !important;
+    color: white !important;
+    text-transform: none !important;
+  
+    height: 40px !important;
+    margin-left: 0px !important;
+    margin-top: -15px !important;
+  }
+
+  .btn-exportar:hover {
+    background-color: #16a34a !important;
+  }
+
+  /* Ajustes para los inputs de fecha */
+  .MuiInputBase-root {
+    height: 40px !important;
+  }
+
+  .MuiOutlinedInput-input {
+    padding: 8px 14px !important;
+  }
+  
+  .search-input {
+    background-color: white;
+    width: 450px !important;
+    min-width: unset !important;
+    flex: unset;
+  }
+  
+  .search-input .MuiOutlinedInput-root {
+    background-color: white;
+  }
+  
+  .date-input {
+    background-color: white;
+    width: 340px !important;
+  }
+  
+  .date-input .MuiOutlinedInput-root {
+    background-color: white;
+  }
+  
+  .btn-reportes {
+    background-color: #22C55E !important;
+    text-transform: none !important;
+    padding: 8px 16px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+  }
+  
+  .data-grid-container {
+    background-color: white;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 16px;
+  }
+  
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: #22C55E;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(16px);
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding-left: 0px;
+  }
+  
+  .action-buttons .MuiIconButton-root {
+    padding: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .action-buttons .fas {
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .view-button {
+    color: #6366F1 !important;
+  }
+  
+  .edit-button {
+    color: #9c27b0 !important;
+  }
+  
+  .data-grid-header {
+    background-color: #f8f9fa;
+    color: #333;
+    font-weight: 600;
+  }
+  
+  .MuiDataGrid-root {
+    border: none !important;
+  }
+  
+  .MuiDataGrid-columnHeaders {
+    border-bottom: 2px solid #f0f0f0 !important;
+    min-height: 48px !important;
+  }
+  
+  .MuiDataGrid-columnHeader {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 8px 16px !important;
+    min-height: 48px !important;
+  }
+  
+  .MuiDataGrid-cell {
+    border-bottom: 1px solid #f0f0f0 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 8px 16px !important;
+    min-height: 48px !important;
+  }
+  
+  .MuiDataGrid-row {
+    min-height: 48px !important;
+  }
+  
+  .MuiDataGrid-row:nth-of-type(even) {
+    background-color: #f8f9fa;
+  }
+  
+  .MuiDataGrid-footerContainer {
+    border-top: none !important;
+  }
+  
+  .MuiDataGrid-virtualScroller {
+    overflow-x: hidden !important;
+  }
+  
+  /* Estilos para los iconos en los botones */
+  .btn-agregar .fas,
+  .btn-reportes .fas {
+    margin-right: 8px;
+  }
+  
+  /* Ajustes para el responsive */
+  @media (max-width: 768px) {
+    .clientes-container {
+      margin-left: 0;
+      max-width: 100%;
+    }
+  
+    .filtros-container {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .search-input,
+    .date-input {
+      width: 100% !important;
+    }
+  }
+  
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .not-found {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 1.5rem;
+    color: #666;
+  }
+  
+  /* Estilos para el contenedor principal de ViewCliente */
+  .MuiContainer-root {
+    margin-left: 240px !important;
+    max-width: calc(100vw - 260px) !important;
+    padding: 24px !important;
+  }
+  
+  /* Estilos para los títulos de campos */
+  .MuiTypography-subtitle2 {
+    font-size: 0.875rem !important;
+    color: #666 !important;
+    margin-bottom: 4px !important;
+  }
+  
+  /* Estilos para los valores de los campos */
+  .MuiTypography-body1 {
+    font-size: 1rem !important;
+    color: #333 !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Estilos para los botones */
+  .MuiButton-contained {
+    text-transform: uppercase !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
+  }
+  
+  /* Estilos para ViewCliente */
+  .MuiTab-root {
+    text-transform: none !important;
+    font-weight: 500 !important;
+    color: #6B7280 !important;
+    padding: 12px 16px !important;
+    min-width: auto !important;
+  }
+  .MuiTab-root.Mui-selected {
+    color: red !important;
+    border-bottom: 2px solid red !important;
+  }
+  .MuiTabs-indicator {
+    background-color: red !important;
+  }
+  .detail-label {
+    color: #666;
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+  }
+  
+  .detail-value {
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .edit-button {
+    color: #9c27b0 !important;
+  }
+  
+  .delete-button {
+    color: #f44336 !important;
+  }
+  
+  .view-button {
+    color: #2196f3 !important;
+  }
+  
+  /* Estilos para las tablas */
+  .table-container {
+    margin-top: 16px;
+  }
+  
+  .table-header {
+    background-color: #f5f5f5;
+  }
+  
+  .table-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  /* Estilos para los modales */
+  .modal-content {
+    padding: 16px;
+  }
+  
+  .modal-actions {
+    padding: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  
+  /* Breadcrumbs */
+  .breadcrumbs {
+    margin-bottom: 24px;
+    color: #666;
+  }
+  
+  /* Cliente header */
+  .cliente-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  
+  .cliente-header h1 {
+    margin-bottom: 8px;
+  }
+  
+  .cliente-header .subtitle {
+    color: #666;
+  }
+  
+  /* Detalles del cliente */
+  .detalles-cliente {
+    margin-bottom: 24px;
+  }
+  
+  .detalles-cliente .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  /* Tabs personalizados */
+  .custom-tabs {
+    margin-bottom: 24px;
+  }
+  
+  .custom-tab {
+    padding: 12px 24px;
+    border-radius: 4px 4px 0 0;
+  }
+  
+  .custom-tab.active {
+    background-color: #f44336;
+    color: white;
+  }
+  
+  /* Contenido de las pestañas */
+  .tab-content {
+    padding: 24px;
+  }
+  
+  .datos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  
+  .dato-item label {
+    color: #666;
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .MuiTypography-root.MuiTypography-h4.css-1w6yvp3-MuiTypography-root {
+    font-size: 16px !important;
+    color: #6777ef !important;
+    font-weight: bold;
+  }
+  .MuiTab-root.Mui-selected {
+    color: red !important;
+    border-bottom: 2px solid red !important;
+  }
+ 
+  .MuiTabs-root {
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .MuiTab-root {
+    text-transform: none !important;
+    font-weight: 500 !important;
+    color: #6B7280 !important;
+    padding: 12px 16px !important;
+    min-width: auto !important;
+  }
+  .css-y2ff7i-MuiPaper-root-MuiTableContainer-root {
+    box-shadow: none !important;
+  }
+
+  /* Estilos para los detalles del cliente */
+  .detail-label {
+    color: #6B7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+
+  .detail-value {
+    color: #111827;
+    font-size: 1rem;
+  }
+
+  .detail-grid {
+    margin-top: 1rem;
+  }
+
+  .detail-item {
+    margin-bottom: 1.5rem;
+  }
+  #detalles-cliente {
+    display: none;
+  }
+  .header-cliente {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e2e2e2;
+    padding-bottom: 20px;
+  }
+
+  .titulo-cliente {
+    color: #333;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .btn-editar {
+    background-color: #f44336 !important;
+    color: white !important;
+    text-transform: none !important;
+    font-size: 14px !important;
+    padding: 6px 16px !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    font-weight: normal !important;
+  }
+
+  .btn-editar:hover {
+    background-color: #d32f2f !important;
+  }
+
+  .btn-editar .MuiButton-startIcon {
+    margin-right: 4px !important;
+  }
+
+  .MuiDialog-paper {
+    border-radius: 8px !important;
+  }
+
+  .MuiDialogTitle-root {
+    background-color: #fff !important;
+    color: #333 !important;
+    font-weight: 600 !important;
+    padding: 16px 24px !important;
+  }
+
+  .MuiDialogContent-root {
+    padding: 24px !important;
+  }
+
+  .MuiDialogActions-root {
+    padding: 16px 24px !important;
+    background-color: #f9fafb !important;
+  }
+
+  .MuiTextField-root {
+    margin-bottom: 16px !important;
+  }
+
+  /* Estilos para el botón de editar */
+  .edit-button {
+    background-color: #dc2626 !important;
+    color: white !important;
+    text-transform: none !important;
+    font-weight: 500 !important;
+    padding: 6px 16px !important;
+  }
+
+  .edit-button:hover {
+    background-color: #b91c1c !important;
+  }
+
+  /* Contenedor del título y botón */
+  .flex {
+    display: flex;
+  }
+
+  .justify-between {
+    justify-content: space-between;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .w-full {
+    width: 100%;
+  }
+  .MuiButtonBase-root.MuiIconButton-root.MuiIconButton-sizeSmall.edit-button.css-r363y4-MuiButtonBase-root-MuiIconButton-root {
+    background-color: transparent !important;
+    color: green !important;
+  }
+  .MuiSwitch-root.MuiSwitch-sizeSmall.css-1bxcm4x-MuiSwitch-root {
+    border-radius: 20px !important;
+  }
+  .css-16xl4zq-MuiTypography-root {
+    margin: 0;
+    font-family: "Roboto Condensed","Helvetica","Arial",sans-serif;
+    font-weight: 400;
+    font-size: 17px !important;
+    line-height: 1.334;
+    letter-spacing: 0em;
+  }
+  .css-1lt5qva-MuiCardContent-root .css-1kw3y0a {
+    border-bottom: 1px solid #e2e2e2 !important;
+    padding-bottom: 15px !important;
+  }

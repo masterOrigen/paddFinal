@@ -1,0 +1,178 @@
+.agencias-container {
+  margin-left: 240px;  
+  padding: 24px;
+  background-color: #f4f6f9;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 20px;
+}
+
+.breadcrumb {
+  color: #6e6e6e;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.breadcrumb a {
+  color: #EF4D36;
+  text-decoration: none;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-content h1 {
+  font-size: 1.5rem;
+  color: #495057;
+  margin: 0;
+}
+
+.filtros-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.filtros-container .MuiTextField-root {
+  background-color: white;
+  border-radius: 4px;
+}
+
+.btn-agregar {
+  background-color: #6366F1 !important;
+  text-transform: none !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+}
+
+.btn-exportar {
+  min-width: 180px;
+  margin: 0 0 0 15px;
+  align-self: center;
+  background-color: #206e43 !important;
+}
+
+.btn-exportar:hover {
+  background-color: #185735 !important;
+}
+
+.data-grid-container {
+  width: 100%;
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.MuiDataGrid-root {
+  border: none !important;
+}
+
+.MuiDataGrid-columnHeaders {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.MuiDataGrid-columnHeader {
+  padding: 16px !important;
+}
+
+.MuiDataGrid-columnHeaderTitle {
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.MuiDataGrid-cell {
+  padding: 16px !important;
+  color: #4B5563 !important;
+}
+
+.MuiDataGrid-row {
+  cursor: pointer;
+}
+
+.MuiDataGrid-row:hover {
+  background-color: #F9FAFB !important;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.action-buttons .MuiIconButton-root {
+  padding: 6px;
+}
+
+.action-buttons .fa-eye,
+.action-buttons .fa-edit,
+.action-buttons .fa-trash-alt {
+  font-size: 1rem;
+}
+
+.view-button {
+  color: #4F46E5 !important;
+}
+
+.view-button:hover {
+  color: #1976d2;
+}
+
+.edit-button {
+  color: #059669 !important;
+}
+
+.edit-button:hover {
+  color: #2196f3;
+}
+
+.delete-button {
+  color: #DC2626 !important;
+}
+
+.delete-button:hover {
+  color: #d32f2f;
+}
+
+/* Estilos para el modal */
+.MuiDialog-paper {
+  border-radius: 8px !important;
+}
+
+.MuiDialogTitle-root {
+  background-color: #f5f6fe;
+  color: #6777ef;
+}
+
+.MuiDialogContent-root {
+  padding: 20px !important;
+}
+
+.MuiDialogActions-root {
+  padding: 16px !important;
+  border-top: 1px solid #E5E7EB;
+}
+
+/* Estilo para el contenedor de SweetAlert2 */
+.swal-container-class {
+  z-index: 9999 !important; /* Asegura que el SweetAlert2 aparezca por encima del modal */
+}
+
+/* Ajusta el z-index del overlay de SweetAlert2 */
+.swal2-container {
+  z-index: 9999 !important;
+}
+
+.swal2-popup {
+  z-index: 10000 !important;
+}
