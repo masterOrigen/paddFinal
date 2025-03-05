@@ -13,74 +13,75 @@ const Sidebar = () => {
 
   const menuItems = [
     {
-      id: 'inicio',
-      icon: 'fas fa-desktop',
-      text: 'Panel de Inicio',
-      link: '/dashboard',
-      submenu: []
+    id: 'inicio',
+    icon: 'fas fa-desktop',
+    text: 'Panel de Inicio',
+    link: '/dashboard',
+    submenu: []
     },
     {
-      id: 'comercial',
-      icon: 'fas fa-briefcase',
-      text: 'Área Comercial',
-      submenu: [
-        { text: 'Clientes', link: '/clientes' },
-        //{ text: 'Productos', link: '/productos' },
-        { text: 'Medios', link: '/medios' },
-        { text: 'Grupos', link: '/grupos' },
-        { text: 'Agencias', link: '/agencias' },
-        { text: 'Proveedores', link: '/proveedores' },
-        { text: 'Soportes', link: '/soportes' }
-      ]
+    id: 'comercial',
+    icon: 'fas fa-briefcase',
+    text: 'Área Comercial',
+    submenu: [
+    { text: 'Clientes', link: '/clientes' },
+    //{ text: 'Productos', link: '/productos' },
+    { text: 'Medios', link: '/medios' },
+    { text: 'Grupos', link: '/grupos' },
+    { text: 'Agencias', link: '/agencias' },
+    { text: 'Proveedores', link: '/proveedores' },
+    { text: 'Soportes', link: '/soportes' }
+    ]
     },
     {
-      id: 'planificacion',
-      icon: 'fas fa-chart-pie',
-      text: 'Planificación de Medios',
-      submenu: [
-        { text: 'Contratos', link: '/contratos' },
-        { text: 'Campañas', link: '/campanas' },
-        { text: 'Planes de Medios', link: '/planificacion' },
-        { 
-          text: 'Órdenes de Publicidad', 
-          link: null, 
-          submenu: [
-            { text: 'Crear Orden', link: '/ordenes/crear' },
-            { text: 'Revisar Orden', link: '/ordenes/revisar' }
-          ] 
-        }
-      ]
+    id: 'planificacion',
+    icon: 'fas fa-chart-pie',
+    text: 'Planificación de Medios',
+    submenu: [
+    { text: 'Contratos', link: '/contratos' },
+    { text: 'Campañas', link: '/campanas' },
+    { text: 'Planes de Medios', link: '/planificacion' },
+    { 
+    id: 'ordenes',
+    text: 'Órdenes de Publicidad', 
+    link: null, 
+    submenu: [
+    { text: 'Crear Orden', link: '/ordenes/crear' },
+    { text: 'Revisar Orden', link: '/ordenes/revisar' }
+    ] 
+    }
+    ]
     },
     {
-      id: 'informaciones',
-      icon: 'fas fa-copy',
-      text: 'Informaciones',
-      submenu: [
-        { text: 'Mensajes', link: '/mensajes' }
-      ]
+    id: 'informaciones',
+    icon: 'fas fa-copy',
+    text: 'Informaciones',
+    submenu: [
+    { text: 'Mensajes', link: '/mensajes' }
+    ]
     },
     {
-      id: 'usuarios',
-      icon: 'fas fa-user-check',
-      text: 'Usuarios',
-      submenu: [
-        { text: 'Listado de Usuarios', link: '/usuarios' }
-      ]
+    id: 'usuarios',
+    icon: 'fas fa-user-check',
+    text: 'Usuarios',
+    submenu: [
+    { text: 'Listado de Usuarios', link: '/usuarios' }
+    ]
     },
     {
-      id: 'perfil',
-      icon: 'fas fa-image',
-      text: 'Mi Perfíl',
-      submenu: [
-        { text: 'Mis Datos', link: '/perfil' }
-      ]
+    id: 'perfil',
+    icon: 'fas fa-image',
+    text: 'Mi Perfíl',
+    submenu: [
+    { text: 'Mis Datos', link: '/perfil' }
+    ]
     }
   ];
 
   const toggleSubmenu = (menuId) => {
     setExpandedMenus(prev => ({
-      ...prev,
-      [menuId]: !prev[menuId]
+    ...prev,
+    [menuId]: !prev[menuId]
     }));
   };
 
@@ -109,8 +110,8 @@ const Sidebar = () => {
             {item.submenu.length === 0 ? (
               <Link to={item.link} className="menu-link">
                 <div className="menu-content">
-                  <i className={item.icon}></i>
-                  <span>{item.text}</span>
+                  <i className={`${item.icon} menu-icon`}></i>
+                  <span className="menu-text">{item.text}</span>
                 </div>
               </Link>
             ) : (
@@ -120,30 +121,29 @@ const Sidebar = () => {
                   onClick={() => toggleSubmenu(item.id)}
                 >
                   <div className="menu-content">
-                    <i className={item.icon}></i>
-                    <span>{item.text}</span>
+                    <i className={`${item.icon} menu-icon`}></i>
+                    <span className="menu-text">{item.text}</span>
                   </div>
                   <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[item.id] ? 'expanded' : ''}`}></i>
                 </div>
                 <div className={`submenu ${expandedMenus[item.id] ? 'expanded' : ''}`}>
                   {item.submenu.map((subItem, index) => (
                     subItem.submenu ? (
-                      <div key={index}>
+                      <div key={index} className="nested-submenu-container">
                         <div 
-                          className="submenu-link"
-                          onClick={() => toggleSubmenu(subItem.text)}
+                          className={`submenu-link nested-parent ${expandedMenus[subItem.id || subItem.text] ? 'active' : ''}`}
+                          onClick={() => toggleSubmenu(subItem.id || subItem.text)}
                           style={{ cursor: 'pointer' }}
                         >
                           {subItem.text}
-                          <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[subItem.text] ? 'expanded' : ''}`}></i>
+                          <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}></i>
                         </div>
-                        <div className={`submenu ${expandedMenus[subItem.text] ? 'expanded' : ''}`}>
+                        <div className={`nested-submenu ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}>
                           {subItem.submenu.map((subSubItem, subIndex) => (
                             <Link 
                               key={subIndex} 
                               to={subSubItem.link}
-                              className="submenu-link"
-                              style={{ paddingLeft: '60px' }}
+                              className="nested-submenu-link"
                             >
                               {subSubItem.text}
                             </Link>
@@ -165,7 +165,6 @@ const Sidebar = () => {
             )}
           </div>
         ))}
-     
       </nav>
     </div>
   );
