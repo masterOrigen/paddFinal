@@ -39,7 +39,6 @@ import {
 
 const CrearOrden = () => {
   const navigate = useNavigate();
-
   
   const handleClose = () => {
     navigate('/');
@@ -102,20 +101,17 @@ const CrearOrden = () => {
           .from('alternativa')
             .select(`
             *,
-            Programas (descripcion, hora_inicio, hora_fin, codigo_programa),
-            Temas (CodigoMegatime, NombreTema, Duracion, id_tema),
-            Contratos (NombreContrato, FormaDePago (NombreFormadePago), Proveedores (nombreProveedor, rutProveedor, direccionFacturacion, id_comuna)),
-            Soportes (nombreIdentficiador),
-            Clasificacion (NombreClasificacion),
+            Anios (id, years),
             Meses (Id, Nombre),
-            Anios (years),
-            calendar (dia, cantidad),
-            total_bruto,
-            descuento_pl,
-            valor_unitario,
-            total_neto,
-            num_contrato,
-            tipo_item
+            Contratos (id, num_contrato, id_FormadePago, IdProveedor,
+              FormaDePago (id, NombreFormadePago),
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor, direccionFacturacion, id_comuna)
+            ),
+            tipo_item,
+            Soportes (id_soporte, nombreIdentficiador),
+            Clasificacion (id, NombreClasificacion),
+            Temas (id_tema, NombreTema, Duracion, CodigoMegatime),
+            Programas (id, codigo_programa, hora_inicio, hora_fin, descripcion)
             `)
           .in('id', alternativaIds)
           .or('ordencreada.is.null,ordencreada.eq.false');
@@ -149,14 +145,7 @@ const CrearOrden = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('Clientes')
-        .select(`
-          id_cliente,
-          nombreCliente,
-          RUT,
-          razonSocial,
-          direccionEmpresa,
-          Comunas!inner (id_comuna, nombreComuna)
-        `)
+        .select('id_cliente, nombreCliente, RUT, razonSocial')
         .order('nombreCliente');
 
       if (error) throw error;
@@ -282,36 +271,19 @@ const CrearOrden = () => {
         });
         return;
       }
-  
-      // Obtener datos del usuario desde localStorage
-      const userData = localStorage.getItem('user');
-      let usuario_registro = [{ nombre: 'Usuario', email: 'no_email@example.com' }];
-  
-      if (userData) {
-        try {
-          const parsedUserData = JSON.parse(userData);
-          usuario_registro = [{
-            nombre: parsedUserData?.Nombre || 'Usuario', // Fallback a 'Usuario'
-            email: parsedUserData?.Email || 'no_email@example.com' // Fallback a un email por defecto
-          }];
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-        }
-      }
-  
-      // Crear la orden en la base de datos
+
+      // Crear el registro en OrdenesDePublicidad solo con los campos existentes
       const { data, error } = await supabase
         .from('OrdenesDePublicidad')
         .insert({
           id_campania: selectedCampana.id_campania,
           id_plan: selectedPlan.id,
           id_compania: selectedCampana.id_compania,
-          alternativas_plan_orden: selectedAlternativas,
-          usuario_registro: usuario_registro // Insertamos los datos del usuario
+          alternativas_plan_orden: selectedAlternativas
         })
         .select()
         .single();
-  
+
       if (error) {
         console.error('Error al crear la orden:', error);
         Swal.fire({
@@ -321,13 +293,13 @@ const CrearOrden = () => {
         });
         return;
       }
-  
-      // Actualizar alternativas seleccionadas
+
+      // Actualizar el campo ordencreada en las alternativas seleccionadas
       const { error: updateError } = await supabase
         .from('alternativa')
         .update({ ordencreada: true })
         .in('id', selectedAlternativas);
-  
+
       if (updateError) {
         console.error('Error al actualizar alternativas:', updateError);
         Swal.fire({
@@ -337,7 +309,7 @@ const CrearOrden = () => {
         });
         return;
       }
-  
+
       // Mostrar mensaje de éxito
       Swal.fire({
         icon: 'success',
@@ -346,17 +318,17 @@ const CrearOrden = () => {
         showConfirmButton: true,
         timer: 2000
       });
-  
-      // Generar PDF de la orden
+
+      // Generar el PDF
       const alternativasSeleccionadas = alternativas.filter(alt => selectedAlternativas.includes(alt.id));
       generateOrderPDF(data, alternativasSeleccionadas, selectedCliente, selectedCampana, selectedPlan);
-  
+
       // Refrescar la tabla de alternativas
       await fetchAlternativas();
-  
+
       // Limpiar selecciones
       setSelectedAlternativas([]);
-  
+      
     } catch (error) {
       console.error('Error al crear la orden:', error);
       Swal.fire({
@@ -366,7 +338,6 @@ const CrearOrden = () => {
       });
     }
   };
-  
 
   const filteredClientes = clientes.filter(cliente =>
     cliente.nombreCliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
