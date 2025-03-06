@@ -1744,30 +1744,18 @@ const Alternativas = () => {
   const handleGuardarAlternativa = async () => {
     try {
       setLoading(true);
-
+  
       if (!planData || !planData.id) {
         throw new Error('No hay un plan seleccionado');
       }
-
-      // Obtener el plan actual para usar su num_correlativo
-      const { data: planActual, error: errorPlan } = await supabase
-        .from('plan')
-        .select('num_correlativo')
-        .eq('id', planData.id)
-        .single();
-
-      if (errorPlan) throw errorPlan;
-      if (!planActual?.num_correlativo) {
-        throw new Error('El plan no tiene un número correlativo asignado');
-      }
-
+  
       // Función para convertir strings vacíos a null
       const cleanValue = (value) => {
         if (value === "") return null;
         if (typeof value === 'string' && !isNaN(value)) return Number(value);
         return value;
       };
-
+  
       // Filtrar cantidades para solo incluir días con valores
       const calendarData = nuevaAlternativa.cantidades
         .filter(item => item.cantidad && item.cantidad > 0)
@@ -1775,8 +1763,8 @@ const Alternativas = () => {
           dia: item.dia.toString().padStart(2, '0'),
           cantidad: parseInt(item.cantidad)
         }));
-
-      // Preparar los datos para la tabla alternativa según su estructura real
+  
+      // Preparar los datos para la tabla alternativa
       const alternativaData = {
         nlinea: nuevaAlternativa.nlinea || null,
         anio: nuevaAlternativa.anio,
