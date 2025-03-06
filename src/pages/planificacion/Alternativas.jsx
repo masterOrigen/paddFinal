@@ -51,7 +51,6 @@ import {
   Check as CheckIcon,
   Close as CloseIcon,
   AccessTime as AccessTimeIcon,
-  AddCircle as AddCircleIcon,
   Payment as PaymentIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -60,6 +59,8 @@ import ModalAgregarContrato from '../contratos/ModalAgregarContrato';
 import ModalEditarContrato from '../contratos/ModalEditarContrato';
 import ModalAgregarTema from '../campanas/ModalAgregarTema';
 import Swal from 'sweetalert2';
+
+import FileCopyIcon from '@mui/icons-material/FileCopy';
 
 const TIPO_ITEMS = [
   'PAUTA LIBRE',
@@ -76,7 +77,7 @@ const Alternativas = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  console.log('Componente Alternativas - ID del plan:', id);
+  // console.log('Componente Alternativas - ID del plan:', id);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -646,6 +647,69 @@ const Alternativas = () => {
     }
   };
 
+  const handleDuplicateAlternativa = async (alternativa) => {
+
+    console.log('Nueva alternativa insertada:', alternativa);
+
+
+    try {
+      // Create a new alternativa object with the same values but without the id
+      const duplicatedAlternativaData = {
+        ...alternativa,
+        // Handle nlinea properly - if it's null or not a number, generate a new one
+        // otherwise append a number to make it unique
+        nlinea: alternativa.nlinea ? (Number(alternativa.nlinea) + 1).toString() : '1',
+        numerorden: nextNumeroOrden
+      };
+      delete duplicatedAlternativaData.id;
+      delete duplicatedAlternativaData.Anios;
+      delete duplicatedAlternativaData.Meses;
+      delete duplicatedAlternativaData.Contratos;
+      delete duplicatedAlternativaData.Soportes;
+      delete duplicatedAlternativaData.Clasificacion;
+      delete duplicatedAlternativaData.Temas;
+      delete duplicatedAlternativaData.Medios;
+
+      // First insert the new alternativa
+      const { data: newAlternativa, error: alternativaError } = await supabase
+        .from('alternativa')
+        .insert([duplicatedAlternativaData])
+        .select();
+
+
+        
+      if (alternativaError) throw alternativaError;
+
+      // Then create the plan_alternativas relationship
+      const { error: planAltError } = await supabase
+        .from('plan_alternativas')
+        .insert([{
+          id_plan: id,
+          id_alternativa: newAlternativa[0].id
+        }]);
+
+      if (planAltError) throw planAltError;
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: 'Alternativa duplicada correctamente'
+      });
+
+      // Refresh the alternativas list
+      await fetchAlternativas();
+      setNextNumeroOrden(prev => prev + 1);
+
+    } catch (error) {
+      console.error('Error al duplicar la alternativa:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo duplicar la alternativa'
+      });
+    }
+  };
+
   const handleDeleteAlternativa = async (alternativaId) => {
     try {
       // Mostrar confirmación antes de eliminar
@@ -708,16 +772,41 @@ const Alternativas = () => {
       // Obtener los datos completos de la alternativa
       const { data: alternativa, error } = await supabase
         .from('alternativa')
-        .select('*')
+        .select('*, Medios(*), Clasificacion(*), Temas(*), Programas(*), Soportes(*)')
         .eq('id', alternativaId)
         .single();
 
       if (error) throw error;
 
-      // Preparar el objeto para edición
+      // Preparar el objeto para edición con todos los campos necesarios
       const alternativaParaEditar = {
         ...alternativa,
-        cantidades: alternativa.calendar || []
+        cantidades: alternativa.calendar || [],
+        nlinea: alternativa.nlinea || '',
+        numerorden: alternativa.numerorden || 1,
+        anio: alternativa.anio || '',
+        mes: alternativa.mes || '',
+        id_campania: alternativa.id_campania || '',
+        num_contrato: alternativa.num_contrato || '',
+        id_soporte: alternativa.id_soporte || '',
+        id_programa: alternativa.id_programa || '',
+        tipo_item: alternativa.tipo_item || '',
+        id_clasificacion: alternativa.id_clasificacion || '',
+        detalle: alternativa.detalle || '',
+        id_tema: alternativa.id_tema || '',
+        segundos: alternativa.segundos || '',
+        id_medio: alternativa.id_medio || '',
+        valor_unitario: alternativa.valor_unitario || '',
+        descuento_plan: alternativa.descuento_plan || '',
+        recargo_plan: alternativa.recargo_plan || '',
+        total_bruto: alternativa.total_bruto || '',
+        total_neto: alternativa.total_neto || '',
+        medio: alternativa.Medios?.NombredelMedio || '',
+        bonificacion_ano: alternativa.bonificacion_ano || '',
+        escala: alternativa.escala || '',
+        formaDePago: alternativa.formaDePago || '',
+        nombreFormaPago: alternativa.nombreFormaPago || '',
+        soporte: alternativa.Soportes?.nombre || ''
       };
 
       // Establecer los valores para edición
@@ -725,6 +814,20 @@ const Alternativas = () => {
       setEditandoAlternativa(alternativaId);
       setModoEdicion(true);
       setOpenModal(true);
+      
+      // Establecer valores relacionados si existen
+      if (alternativa.Soportes) {
+        setSelectedSoporte(alternativa.Soportes);
+      }
+      if (alternativa.Programas) {
+        setSelectedPrograma(alternativa.Programas);
+      }
+      if (alternativa.Clasificacion) {
+        setSelectedClasificacion(alternativa.Clasificacion);
+      }
+      if (alternativa.Temas) {
+        setTemaSeleccionado(alternativa.Temas);
+      }
     } catch (error) {
       console.error('Error al cargar alternativa para editar:', error);
       Swal.fire({
@@ -1652,12 +1755,14 @@ const Alternativas = () => {
     return item ? item.cantidad : '';
   };
 
-  const calcularTotal = () => {
-    return (cantidades || []).reduce((sum, item) => {
-      const cantidad = parseInt(item.cantidad) || 0;
-      return sum + cantidad;
-    }, 0);
-  };
+    const calcularTotal = () => {
+      if (!cantidades || !Array.isArray(cantidades)) return 0;
+      return cantidades.reduce((sum, item) => {
+        const cantidad = parseInt(item.cantidad) || 0;
+        return sum + cantidad;
+      }, 0);
+    };
+
     
     return (
       <Box sx={{ mt: 2 }}>
@@ -1766,6 +1871,7 @@ const Alternativas = () => {
   
       // Preparar los datos para la tabla alternativa
       const alternativaData = {
+        created_at: new Date().toISOString(),
         nlinea: nuevaAlternativa.nlinea || null,
         anio: nuevaAlternativa.anio,
         mes: nuevaAlternativa.mes,
@@ -1782,11 +1888,13 @@ const Alternativas = () => {
         total_neto: cleanValue(nuevaAlternativa.total_neto),
         descuento_pl: cleanValue(nuevaAlternativa.descuento_plan),
         id_programa: nuevaAlternativa.id_programa,
+        calendar: calendarData,
         recargo_plan: cleanValue(nuevaAlternativa.recargo_plan),
         valor_unitario: cleanValue(nuevaAlternativa.valor_unitario),
         medio: nuevaAlternativa.id_medio,
         total_bruto: cleanValue(nuevaAlternativa.total_bruto),
-        calendar: calendarData // Agregando el campo calendar
+        ordencreada: false,
+        copia: false
       };
 
       console.log('Datos para inserción en alternativa:', alternativaData);
@@ -2000,6 +2108,15 @@ const Alternativas = () => {
                         >
                           <DeleteIcon />
                         </IconButton>
+                        <Tooltip title="Duplicar">
+                          <IconButton
+                            onClick={() => handleDuplicateAlternativa(alternativa)}
+                            size="small"
+                            color="primary"
+                          >
+                            <FileCopyIcon />
+                          </IconButton>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
