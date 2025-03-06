@@ -162,8 +162,10 @@ const RevisarOrden = () => {
         });
         return;
     }
+
     setOpenReplaceModal(true);
 };
+
 
 
     useEffect(() => {
@@ -616,7 +618,9 @@ const RevisarOrden = () => {
             >
                 <DialogTitle sx={{ m: 0, p: 2 }}>
                     <Box display="flex" alignItems="center" justifyContent="space-between">
+
                         <Typography variant="h6">Estas anulando reemplazando los datos de la orden</Typography>
+
                         <IconButton
                             aria-label="close"
                             onClick={() => setOpenReplaceModal(false)}
@@ -628,7 +632,9 @@ const RevisarOrden = () => {
                 </DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2}>
+
                         <Grid item xs={4.8}>
+
                             <Paper sx={{ p: 2, height: '100%' }}>
                                 <Typography variant="h6" gutterBottom>
                                     Alternativas de la Orden
@@ -673,13 +679,16 @@ const RevisarOrden = () => {
                                 </TableContainer>
                             </Paper>
                         </Grid>
+
                         <Grid item xs={7.2}>
+
                             <Paper sx={{ p: 2, height: '100%' }}>
                                 {selectedAlternativeToReplace ? (
                                     <>
                                         <Typography variant="h6" gutterBottom>
                                             Editar Alternativa
                                         </Typography>
+
                                         <EditarAlternativa 
                                             alternativaId={selectedAlternativeToReplace.id}
                                             onSave={() => {
@@ -702,6 +711,7 @@ const RevisarOrden = () => {
                                                 setSelectedAlternativeToReplace(null);
                                             }}
                                         />
+
                                     </>
                                 ) : (
                                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
@@ -721,10 +731,12 @@ const RevisarOrden = () => {
                     <Button 
                         variant="contained" 
                         color="primary"
+
                         onClick={() => setOpenReplaceModal(false)}
                         disabled={!selectedAlternativeToReplace}
                     >
                         Guardar y reemplazar orden
+
                     </Button>
                 </DialogActions>
             </Dialog>
