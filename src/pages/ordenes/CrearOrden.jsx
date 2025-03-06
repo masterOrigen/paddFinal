@@ -271,50 +271,59 @@ const CrearOrden = () => {
         });
         return;
       }
-
-      // Crear el registro en OrdenesDePublicidad solo con los campos existentes
+  
+      // Obtener el último número correlativo válido (no nulo)
+      const { data: ultimaOrden, error: errorCorrelativo } = await supabase
+        .from('OrdenesDePublicidad')
+        .select('numero_correlativo')
+        .not('numero_correlativo', 'is', null)
+        .order('numero_correlativo', { ascending: false })
+        .limit(1)
+        .single();
+  
+      if (errorCorrelativo && errorCorrelativo.code !== 'PGRST116') {
+        throw errorCorrelativo;
+      }
+  
+      const nuevoCorrelativo = (ultimaOrden?.numero_correlativo || 33992) + 1;
+  
+      // Crear el registro en OrdenesDePublicidad
       const { data, error } = await supabase
         .from('OrdenesDePublicidad')
         .insert({
           id_campania: selectedCampana.id_campania,
           id_plan: selectedPlan.id,
           id_compania: selectedCampana.id_compania,
-          alternativas_plan_orden: selectedAlternativas
+          alternativas_plan_orden: selectedAlternativas,
+          numero_correlativo: nuevoCorrelativo
         })
         .select()
         .single();
-
+  
       if (error) {
         console.error('Error al crear la orden:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo crear la orden. Por favor, intente nuevamente.',
-        });
-        return;
+        throw error;
       }
-
-      // Actualizar el campo ordencreada en las alternativas seleccionadas
+  
+      // Actualizar las alternativas seleccionadas
       const { error: updateError } = await supabase
         .from('alternativa')
-        .update({ ordencreada: true })
+        .update({ 
+          ordencreada: true,
+          numerorden: nuevoCorrelativo
+        })
         .in('id', selectedAlternativas);
-
+  
       if (updateError) {
         console.error('Error al actualizar alternativas:', updateError);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'La orden se creó pero hubo un error al actualizar las alternativas.',
-        });
-        return;
+        throw updateError;
       }
-
-      // Mostrar mensaje de éxito
+  
+      // Resto del código existente...
       Swal.fire({
         icon: 'success',
         title: '¡Éxito!',
-        text: 'La orden ha sido creada correctamente',
+        text: `La orden N°${nuevoCorrelativo} ha sido creada correctamente`,
         showConfirmButton: true,
         timer: 2000
       });
