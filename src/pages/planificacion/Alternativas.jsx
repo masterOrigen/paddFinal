@@ -193,6 +193,47 @@ const Alternativas = () => {
     handleSearchContrato(); // Actualizar la lista después de agregar
   };
 
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setModoEdicion(false);
+    setEditandoAlternativa(null);
+    // Reset nueva alternativa to initial state with empty array for cantidades
+    setNuevaAlternativa({
+      nlinea: '',
+      numerorden: nextNumeroOrden,
+      anio: '',
+      mes: '',
+      id_campania: '',
+      num_contrato: '',
+      id_soporte: '',
+      id_programa: '',
+      tipo_item: '',
+      id_clasificacion: '',
+      detalle: '',
+      id_tema: '',
+      segundos: '',
+      id_medio: '',
+      cantidades: [], // Ensure this is always an array
+      valor_unitario: '',
+      descuento_plan: '',
+      recargo_plan: '',
+      total_bruto: '',
+      total_neto: '',
+      medio: '',
+      bonificacion_ano: '',
+      escala: '',
+      formaDePago: '',
+      nombreFormaPago: '',
+      soporte: ''
+    });
+    // Reset selected items
+    setContratoSeleccionado(null);
+    setSelectedSoporte(null);
+    setSelectedPrograma(null);
+    setTemaSeleccionado(null);
+    setSelectedClasificacion(null);
+  };
+
   const handleOpenEditContratoModal = () => {
     if (!contratoSeleccionado) {
       Swal.fire({
@@ -460,8 +501,8 @@ const Alternativas = () => {
         setCampaniaId(plan.Campania?.id_campania);
 
         setPlanInfo({
-          anio: plan.anio,
-          mes: plan.mes,
+          anio: plan.Anios?.years,
+          mes: plan.Meses?.Nombre,
           campana: plan.Campania?.NombreCampania || '',
           cliente: plan.Campania?.Clientes?.nombreCliente || '',
           producto: plan.Campania?.Productos?.NombreDelProducto || ''
@@ -1518,17 +1559,32 @@ const Alternativas = () => {
 
   const handleMontoChange = (campo, valor) => {
     setNuevaAlternativa(prev => {
-      const valorUnitario = campo === 'valor_unitario' ? valor : prev.valor_unitario;
+      const valorUnitarioBase = campo === 'valor_unitario' ? valor : prev.valor_unitario;
       const descuento = campo === 'descuento_plan' ? valor : prev.descuento_plan;
       const recargo = campo === 'recargo_plan' ? valor : prev.recargo_plan;
-
-      const valorBase = Number(valorUnitario) || 0;
+      
+      // Obtener el total de cantidades
+      const totalCantidades = prev.cantidades.reduce((sum, item) => {
+        return sum + (Number(item.cantidad) || 0);
+      }, 0);
+  
+      // Verificar si el medio es TV CABLE o RADIO
+      const medioId = temaSeleccionado?.id_medio;
+      const esMediacionEspecial = medioId === 38 || medioId === 35; // TV CABLE o RADIO
+  
+      // Calcular valor unitario ajustado
+      let valorUnitarioAjustado = Number(valorUnitarioBase) || 0;
+      if (esMediacionEspecial && totalCantidades > 0) {
+        valorUnitarioAjustado *= totalCantidades;
+      }
+  
+      const valorBase = valorUnitarioAjustado;
       const descuentoValor = valorBase * (Number(descuento) / 100) || 0;
       const recargoValor = valorBase * (Number(recargo) / 100) || 0;
-
+  
       const totalBruto = valorBase;
       const totalNeto = (totalBruto - descuentoValor + recargoValor) * 1.19;
-
+  
       return {
         ...prev,
         [campo]: valor,
@@ -1554,30 +1610,54 @@ const Alternativas = () => {
           nuevasCantidades.splice(index, 1);
         }
       }
-
+  
       nuevasCantidades.sort((a, b) => a.dia - b.dia);
-
+  
+      // Recalcular los montos después de actualizar las cantidades
+      const totalCantidades = nuevasCantidades.reduce((sum, item) => {
+        return sum + (Number(item.cantidad) || 0);
+      }, 0);
+  
+      const medioId = temaSeleccionado?.id_medio;
+      const esMediacionEspecial = medioId === 38 || medioId === 35;
+  
+      let valorUnitario = Number(prev.valor_unitario) || 0;
+      if (esMediacionEspecial && totalCantidades > 0) {
+        valorUnitario *= totalCantidades;
+      }
+  
+      const descuento = Number(prev.descuento_plan) || 0;
+      const recargo = Number(prev.recargo_plan) || 0;
+  
+      const descuentoValor = valorUnitario * (descuento / 100);
+      const recargoValor = valorUnitario * (recargo / 100);
+  
+      const totalBruto = valorUnitario;
+      const totalNeto = (totalBruto - descuentoValor + recargoValor) * 1.19;
+  
       return {
         ...prev,
-        cantidades: nuevasCantidades
+        cantidades: nuevasCantidades,
+        total_bruto: Math.round(totalBruto),
+        total_neto: Math.round(totalNeto)
       };
     });
   };
 
-  const CalendarioAlternativa = ({ anio, mes, cantidades, onChange }) => {
-    const dias = getDiasDelMes(anio, mes);
+  const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
+  const dias = getDiasDelMes(anio, mes);
     
-    const getCantidad = (dia) => {
-      const item = cantidades.find(c => c.dia === dia);
-      return item ? item.cantidad : '';
-    };
+  const getCantidad = (dia) => {
+    const item = cantidades?.find(c => c.dia === dia);
+    return item ? item.cantidad : '';
+  };
 
-    const calcularTotal = () => {
-      return cantidades.reduce((sum, item) => {
-        const cantidad = parseInt(item.cantidad) || 0;
-        return sum + cantidad;
-      }, 0);
-    };
+  const calcularTotal = () => {
+    return (cantidades || []).reduce((sum, item) => {
+      const cantidad = parseInt(item.cantidad) || 0;
+      return sum + cantidad;
+    }, 0);
+  };
     
     return (
       <Box sx={{ mt: 2 }}>
@@ -1699,7 +1779,6 @@ const Alternativas = () => {
       // Preparar los datos para la tabla alternativa según su estructura real
       const alternativaData = {
         nlinea: nuevaAlternativa.nlinea || null,
-        numerorden: planActual.num_correlativo,
         anio: nuevaAlternativa.anio,
         mes: nuevaAlternativa.mes,
         id_campania: nuevaAlternativa.id_campania,
@@ -2002,7 +2081,7 @@ const Alternativas = () => {
 
         <Dialog 
           open={openModal} 
-          onClose={() => setOpenModal(false)}
+          onClose={handleCloseModal}
           maxWidth="xl"
           fullWidth
           PaperProps={{
