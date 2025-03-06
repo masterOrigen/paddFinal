@@ -521,107 +521,89 @@ const RevisarOrden = () => {
     <Typography>Año: {selectedCampana.Anios?.years || 'No especificado'}</Typography>
     <Typography>Producto: {selectedCampana.Productos?.NombreDelProducto || 'No especificado'}</Typography>
 
+
+					{/* Órdenes */}
+					<Grid item xs={12}>
+						<Paper sx={{ p: 2 }}>
+							<Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+								<Typography variant="h6">
+									Órdenes Asociadas
+								</Typography>
+								<ButtonGroup variant="contained">
+									<Tooltip title="Imprimir orden">
+										<Button
+											onClick={handlePrint}
+											startIcon={<PrintIcon />}
+											disabled={!selectedOrder}
+										>
+											Imprimir
+										</Button>
+									</Tooltip>
+									<Tooltip title="Anular y reemplazar orden">
+										<Button
+											onClick={handleCancelAndReplace}
+											startIcon={<SwapHorizIcon />}
+											disabled={!selectedOrder}
+										>
+											Anular y reemplazar
+										</Button>
+									</Tooltip>
+									<Tooltip title="Anular orden">
+										<Button
+											onClick={handleCancel}
+											startIcon={<CancelIcon />}
+											color="error"
+											disabled={!selectedOrder}
+										>
+											Anular
+										</Button>
+									</Tooltip>
+								</ButtonGroup>
+							</Box>
+							<TableContainer>
+								<Table>
+									<TableHead>
+										<TableRow>
+											<TableCell>ID Orden</TableCell>
+											<TableCell>N° de Orden</TableCell>
+											<TableCell>N° de copias</TableCell>
+											<TableCell>Plan</TableCell>
+											<TableCell>Fecha</TableCell>
+											<TableCell>Estado</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{orders.map((order) => (
+											<TableRow 
+												key={order.id_ordenes_de_comprar}
+												onClick={() => {
+													setSelectedOrder(order);
+													fetchAlternatives(order.alternativas_plan_orden);
+												}}
+												sx={{ 
+													cursor: 'pointer',
+													backgroundColor: selectedOrder?.id_ordenes_de_comprar === order.id_ordenes_de_comprar 
+														? 'rgba(0, 0, 0, 0.04)' 
+														: 'inherit'
+												}}
+											>
+												<TableCell>{order.id_ordenes_de_comprar}</TableCell>
+												<TableCell>{order.numero_correlativo || '-'}</TableCell>
+												<TableCell>{order.copia || '-'}</TableCell>
+												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
+												<TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+												<TableCell>{order.estado}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</TableContainer>
+						</Paper>
+					</Grid>
+=======
     </Paper>
     </Grid>
 
-    {/* Órdenes */}
-    <Grid item xs={12}>
-    <Paper sx={{ p: 2 }}>
-    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-    <Typography variant="h6">
-    Órdenes Asociadas
-    </Typography>
-    <ButtonGroup variant="contained">
-    <Tooltip title="Imprimir orden">
-    <Button
-    onClick={handlePrint}
-    startIcon={<PrintIcon />}
-    disabled={!selectedOrder}
-    >
-    Imprimir
-    </Button>
-    </Tooltip>
-    <Tooltip title="Anular y reemplazar orden">
-    <Button
-    onClick={handleCancelAndReplace}
-    startIcon={<SwapHorizIcon />}
-    disabled={!selectedOrder || selectedOrder.estado === 'anulada'}
-    >
-    Anular y reemplazar
-    </Button>
-    </Tooltip>
-    <Tooltip title="Anular orden">
-    <Button
-    onClick={handleCancel}
-    startIcon={<CancelIcon />}
-    color="error"
-    disabled={!selectedOrder || selectedOrder.estado === 'anulada'}
-    >
-    Anular
-    </Button>
-    </Tooltip>
-    </ButtonGroup>
-    </Box>
-    <TableContainer>
-    <Table>
-    <TableHead>
-    <TableRow>
-    <TableCell>ID Orden</TableCell>
-    <TableCell>N° de Orden</TableCell>
-    <TableCell>Plan</TableCell>
-    <TableCell>Fecha</TableCell>
-    <TableCell>Estado</TableCell>
-    </TableRow>
-    </TableHead>
-    <TableBody>
-    {orders.map((order) => (
-    <TableRow 
-    key={order.id_ordenes_de_comprar}
-    onClick={() => {
-    setSelectedOrder(order);
-    fetchAlternatives(order.alternativas_plan_orden);
-    }}
-    sx={{ 
-    cursor: 'pointer',
-    backgroundColor: selectedOrder?.id_ordenes_de_comprar === order.id_ordenes_de_comprar 
-    ? 'rgba(0, 0, 0, 0.04)' 
-    : 'inherit'
-    }}
-    >
-    <TableCell>{order.id_ordenes_de_comprar}</TableCell>
-    <TableCell>{order.numero_correlativo || '-'}</TableCell>
-    <TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
-    <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-	<TableCell>
-  {order.estado === 'anulada' ? (
-    <Box sx={{ 
-      color: 'error.main', 
-      fontWeight: 'bold',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <CancelIcon color="error" />
-    </Box>
-  ) : (
-    <Box sx={{ 
-      color: 'success.main', 
-      fontWeight: 'bold',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <CheckCircleIcon color="success" />
-    </Box>
-  )}
-</TableCell>
-    </TableRow>
-    ))}
-    </TableBody>
-    </Table>
-    </TableContainer>
-    </Paper>
-    </Grid>
 
     {/* Alternativas - Solo se muestra si hay una orden seleccionada y no está anulada */}
     {selectedOrder && selectedOrder.estado !== 'anulada' && (
