@@ -207,6 +207,15 @@ function cerrarModal() {
         if (modalInstance) {
             modalInstance.hide();
         }
+
+        // Remove backdrop and reset body styles
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
     }
     
     // Limpiar todos los campos del formulario
