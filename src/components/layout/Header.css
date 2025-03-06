@@ -164,3 +164,9 @@
 .css-1l7p8i1 {
   justify-content: left !important;
 }
+.MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorError.MuiIconButton-sizeSmall.css-1cmn7xy-MuiButtonBase-root-MuiIconButton-root {
+  width: 50%;
+}
+.MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorPrimary.MuiIconButton-sizeSmall.css-1mgprzk-MuiButtonBase-root-MuiIconButton-root {
+  width: 50%;
+}
