@@ -550,6 +550,7 @@ const RevisarOrden = () => {
 										<TableRow>
 											<TableCell>ID Orden</TableCell>
 											<TableCell>N° de Orden</TableCell>
+											<TableCell>N° de copias</TableCell>
 											<TableCell>Plan</TableCell>
 											<TableCell>Fecha</TableCell>
 											<TableCell>Estado</TableCell>
@@ -572,6 +573,7 @@ const RevisarOrden = () => {
 											>
 												<TableCell>{order.id_ordenes_de_comprar}</TableCell>
 												<TableCell>{order.numero_correlativo || '-'}</TableCell>
+												<TableCell>{order.copia || '-'}</TableCell>
 												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
 												<TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
 												<TableCell>{order.estado}</TableCell>
