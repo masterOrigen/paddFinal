@@ -260,3 +260,94 @@ input:checked + .slider {
   background-color: #f44336 !important;
   font-size: 12px !important;
 }
+
+/* Añade estos estilos a tu archivo CSS existente */
+
+.menu-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-icon {
+  width: 20px;
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.menu-text {
+  flex: 1;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+}
+
+.submenu-link {
+  padding-left: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Estilos para los submenús anidados */
+.nested-submenu-container {
+  width: 100%;
+}
+
+.nested-parent {
+  font-weight: 500;
+}
+
+.nested-submenu {
+  display: none;
+  background-color: white;
+  padding-left: 15px;
+}
+
+.nested-submenu.expanded {
+  display: block;
+}
+
+.nested-submenu-link {
+  display: block;
+  padding: 8px 15px 8px 25px;
+  text-decoration: none;
+  color: #333;
+  background-color: white;
+  transition: background-color 0.2s;
+}
+
+.nested-submenu-link:hover {
+  background-color: #f5f5f5;
+}
+
+.submenu-icon {
+  transition: transform 0.3s;
+}
+
+.submenu-icon.expanded {
+  transform: rotate(90deg);
+}
+
+/* Asegúrate de que el sidebar tenga el espaciado adecuado */
+.sidebar-nav {
+  padding-top: 10px;
+}
+
+.menu-item {
+  margin-bottom: 5px;
+}
+/* Asegura que todos los elementos del menú tengan el mismo tamaño de fuente */
+.sidebar-nav, 
+.menu-text, 
+.submenu-link, 
+.nested-parent, 
+.nested-submenu-link {
+  font-size: 13px; /* Establece un tamaño de fuente consistente */
+}
