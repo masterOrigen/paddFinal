@@ -210,7 +210,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
 			<View style={styles.header}>
 				<Text style={styles.headerText}>RUT {cliente?.RUT}</Text>
 				<View style={styles.titleContainer}>
-					<Text style={styles.title}>ORDEN DE PUBLICIDAD {order?.numerorden}</Text>
+					<Text style={styles.title}>ORDEN DE PUBLICIDAD {order?.numero_correlativo}</Text>
 					{order?.remplaza && order?.numerodeordenremplaza > 1 && (
 						<Text style={styles.replacementText}>
 							ANULA Y REMPLAZA ORDEN N° {order?.numerorden} / {order?.copia}

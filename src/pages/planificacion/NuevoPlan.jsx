@@ -273,7 +273,8 @@ const NuevoPlan = () => {
             mes: planData.mes,
             nombre_plan: planData.nombre_plan,
             estado: 'P',
-            estado2: 'Pendiente'
+            estado2: 'Pendiente',
+            num_correlativo: 0
           }
         ])
         .select()

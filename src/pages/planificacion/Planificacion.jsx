@@ -393,7 +393,7 @@ const Planificacion = () => {
 
       if (planError) {
         console.error('Error al crear plan:', planError);
-        throw planError;
+ 
       }
 
       console.log('Plan creado:', planData);
@@ -428,7 +428,6 @@ const Planificacion = () => {
       Swal.fire({
         icon: 'success',
         title: 'Plan creado exitosamente',
-        text: `Número correlativo asignado: ${newCorrelative}`,
         showConfirmButton: false,
         timer: 1500
       });
