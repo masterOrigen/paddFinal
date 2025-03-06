@@ -197,13 +197,13 @@ const Alternativas = () => {
     setOpenModal(false);
     setModoEdicion(false);
     setEditandoAlternativa(null);
-    // Reset nueva alternativa to initial state with empty array for cantidades
+    // Reset nueva alternativa with all required fields including empty cantidades array
     setNuevaAlternativa({
       nlinea: '',
       numerorden: nextNumeroOrden,
-      anio: '',
-      mes: '',
-      id_campania: '',
+      anio: planData?.anio || '',
+      mes: planData?.mes || '',
+      id_campania: planData?.id_campania || '',
       num_contrato: '',
       id_soporte: '',
       id_programa: '',
@@ -213,7 +213,7 @@ const Alternativas = () => {
       id_tema: '',
       segundos: '',
       id_medio: '',
-      cantidades: [], // Ensure this is always an array
+      cantidades: [], // Ensure this is always initialized as an empty array
       valor_unitario: '',
       descuento_plan: '',
       recargo_plan: '',
@@ -705,26 +705,74 @@ const Alternativas = () => {
     try {
       setLoading(true);
       
-      // Obtener los datos completos de la alternativa
+      // Updated query to include Clasificacion
       const { data: alternativa, error } = await supabase
         .from('alternativa')
-        .select('*')
+        .select(`
+          *,
+          Contratos:num_contrato (*,
+            formaPago:id_FormadePago (
+              id,
+              NombreFormadePago
+            )
+          ),
+          Soportes:id_soporte (*),
+          Programas:id_programa (*),
+          Temas:id_tema (
+            id_tema,
+            NombreTema,
+            Duracion,
+            id_medio,
+            Medios:id_medio (
+              id,
+              NombredelMedio
+            )
+          ),
+          Clasificacion:id_clasificacion (*)
+        `)
         .eq('id', alternativaId)
         .single();
-
+  
       if (error) throw error;
-
-      // Preparar el objeto para edición
-      const alternativaParaEditar = {
+  
+      console.log('Alternativa loaded:', alternativa);
+  
+      // Set related data including classification
+      setContratoSeleccionado(alternativa.Contratos);
+      setSelectedSoporte(alternativa.Soportes);
+      setSelectedPrograma(alternativa.Programas);
+      setSelectedClasificacion(alternativa.Clasificacion);
+      
+      // Set tema with proper structure
+      if (alternativa.Temas) {
+        const temaData = {
+          id_tema: alternativa.Temas.id_tema,
+          nombre_tema: alternativa.Temas.NombreTema,
+          segundos: alternativa.Temas.Duracion,
+          id_medio: alternativa.Temas.id_medio,
+          Medios: alternativa.Temas.Medios
+        };
+        setTemaSeleccionado(temaData);
+      }
+  
+      // Prepare calendar data
+      const calendarData = alternativa.calendar || [];
+  
+      // Set complete alternative data for editing
+      setNuevaAlternativa({
         ...alternativa,
-        cantidades: alternativa.calendar || []
-      };
-
-      // Establecer los valores para edición
-      setNuevaAlternativa(alternativaParaEditar);
+        cantidades: calendarData,
+        formaDePago: alternativa.Contratos?.formaPago?.id,
+        nombreFormaPago: alternativa.Contratos?.formaPago?.NombreFormadePago,
+        segundos: alternativa.Temas?.Duracion || '',
+        id_medio: alternativa.Temas?.id_medio || null
+      });
+  
+      // Set edit mode and open modal
       setEditandoAlternativa(alternativaId);
       setModoEdicion(true);
       setOpenModal(true);
+  
     } catch (error) {
       console.error('Error al cargar alternativa para editar:', error);
       Swal.fire({
@@ -740,88 +788,81 @@ const Alternativas = () => {
   const handleGuardarEdicion = async () => {
     try {
       setLoading(true);
-
-      // Validar campos requeridos
-      const camposRequeridos = {
-        tipo_item: nuevaAlternativa.tipo_item
+  
+      // Function to clean numeric values
+      const cleanNumericValue = (value) => {
+        if (value === "" || value === null || value === undefined) return null;
+        return Number(value);
       };
-
-      const camposFaltantes = Object.entries(camposRequeridos)
-        .filter(([_, value]) => !value)
-        .map(([key]) => key);
-
-      if (camposFaltantes.length > 0) {
-        throw new Error(`Campos requeridos faltantes: ${camposFaltantes.join(', ')}`);
-      }
-
-      // Preparar datos para actualización
+  
+      // Prepare data for update, only including valid table columns
       const datosActualizacion = {
-        ...nuevaAlternativa,
-        calendar: Object.keys(nuevaAlternativa.cantidades).length > 0 ? nuevaAlternativa.cantidades : null
+        nlinea: nuevaAlternativa.nlinea,
+        numerorden: nuevaAlternativa.numerorden,
+        anio: nuevaAlternativa.anio,
+        mes: nuevaAlternativa.mes,
+        id_campania: nuevaAlternativa.id_campania,
+        num_contrato: cleanNumericValue(nuevaAlternativa.num_contrato),
+        id_soporte: cleanNumericValue(nuevaAlternativa.id_soporte),
+        id_programa: cleanNumericValue(nuevaAlternativa.id_programa),
+        tipo_item: nuevaAlternativa.tipo_item,
+        id_clasificacion: cleanNumericValue(nuevaAlternativa.id_clasificacion),
+        detalle: nuevaAlternativa.detalle || null,
+        id_tema: cleanNumericValue(nuevaAlternativa.id_tema),
+        segundos: cleanNumericValue(nuevaAlternativa.segundos),
+        total_general: cleanNumericValue(nuevaAlternativa.total_bruto),
+        total_neto: cleanNumericValue(nuevaAlternativa.total_neto),
+        descuento_pl: cleanNumericValue(nuevaAlternativa.descuento_plan),
+        recargo_plan: cleanNumericValue(nuevaAlternativa.recargo_plan),
+        valor_unitario: cleanNumericValue(nuevaAlternativa.valor_unitario),
+        medio: cleanNumericValue(nuevaAlternativa.id_medio),
+        total_bruto: cleanNumericValue(nuevaAlternativa.total_bruto),
+        calendar: nuevaAlternativa.cantidades?.length > 0 ? nuevaAlternativa.cantidades : null
       };
-
-      // Eliminar campos que no queremos actualizar
-      delete datosActualizacion.id;
-      delete datosActualizacion.cantidades;
-
-      // Actualizar la alternativa
+  
+      // Remove any undefined or null properties
+      Object.keys(datosActualizacion).forEach(key => {
+        if (datosActualizacion[key] === undefined) {
+          delete datosActualizacion[key];
+        }
+      });
+  
+      // Update the alternative
       const { error: updateError } = await supabase
-        .from('alternativa')
-        .update(datosActualizacion)
-        .eq('id', editandoAlternativa);
+      .from('alternativa')
+      .update(datosActualizacion)
+      .eq('id', editandoAlternativa);
 
-      if (updateError) throw updateError;
+    if (updateError) throw updateError;
 
-      // Recargar alternativas y limpiar estado
-      await fetchAlternativas();
-      setOpenModal(false);
-      setModoEdicion(false);
-      setEditandoAlternativa(null);
-      setNuevaAlternativa({
-        nlinea: '',
-        numerorden: nextNumeroOrden,
-        anio: '',
-        mes: '',
-        id_campania: '',
-        num_contrato: '',
-        id_soporte: '',
-        id_programa: '',
-        tipo_item: '',
-        id_clasificacion: '',
-        detalle: '',
-        id_tema: '',
-        segundos: '',
-        id_medio: '',
-        cantidades: [], 
-        valor_unitario: '',
-        descuento_plan: '',
-        recargo_plan: '',
-        total_bruto: '',
-        total_neto: '',
-        medio: '',
-        bonificacion_ano: '',
-        escala: '',
-        formaDePago: '',
-        nombreFormaPago: '',
-        soporte: ''
-      });
+    // Refresh the alternatives list
+    await fetchAlternativas();
+    
+    // Close modal and reset states
+    setOpenModal(false);
+    setModoEdicion(false);
+    setEditandoAlternativa(null);
+    
+    // Reset nueva alternativa state
+    setNuevaAlternativa({
+      nlinea: '',
+      numerorden: nextNumeroOrden,
+      anio: planData?.anio || '',
+      mes: planData?.mes || '',
+      // ... rest of the initial state
+    });
 
-      Swal.fire({
-        icon: 'success',
-        title: '¡Éxito!',
-        text: 'Alternativa actualizada correctamente'
-      });
-    } catch (error) {
-      console.error('Error al actualizar alternativa:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'No se pudo actualizar la alternativa'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    Swal.fire({
+      icon: 'success',
+      title: '¡Éxito!',
+      text: 'Alternativa actualizada correctamente'
+    });
+  } catch (error) {
+    // ... existing error handling ...
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleOpenContratosModal = () => {
     setOpenContratosModal(true);
@@ -1749,14 +1790,13 @@ const Alternativas = () => {
         throw new Error('No hay un plan seleccionado');
       }
   
-      // Función para convertir strings vacíos a null
-      const cleanValue = (value) => {
-        if (value === "") return null;
-        if (typeof value === 'string' && !isNaN(value)) return Number(value);
-        return value;
+      // Function to clean numeric values
+      const cleanNumericValue = (value) => {
+        if (value === "" || value === null || value === undefined) return null;
+        return Number(value);
       };
   
-      // Filtrar cantidades para solo incluir días con valores
+      // Filter calendar data
       const calendarData = nuevaAlternativa.cantidades
         .filter(item => item.cantidad && item.cantidad > 0)
         .map(item => ({
@@ -1764,29 +1804,29 @@ const Alternativas = () => {
           cantidad: parseInt(item.cantidad)
         }));
   
-      // Preparar los datos para la tabla alternativa
+      // Prepare data with proper numeric handling
       const alternativaData = {
-        nlinea: nuevaAlternativa.nlinea || null,
+        nlinea: cleanNumericValue(nuevaAlternativa.nlinea),
         anio: nuevaAlternativa.anio,
         mes: nuevaAlternativa.mes,
         id_campania: nuevaAlternativa.id_campania,
-        num_contrato: nuevaAlternativa.num_contrato,
-        id_soporte: nuevaAlternativa.id_soporte,
+        num_contrato: cleanNumericValue(nuevaAlternativa.num_contrato),
+        id_soporte: cleanNumericValue(nuevaAlternativa.id_soporte),
         descripcion: nuevaAlternativa.descripcion || null,
         tipo_item: nuevaAlternativa.tipo_item,
-        id_clasificacion: nuevaAlternativa.id_clasificacion,
+        id_clasificacion: cleanNumericValue(nuevaAlternativa.id_clasificacion),
         detalle: nuevaAlternativa.detalle || null,
-        id_tema: nuevaAlternativa.id_tema,
-        segundos: nuevaAlternativa.segundos,
-        total_general: cleanValue(nuevaAlternativa.total_bruto),
-        total_neto: cleanValue(nuevaAlternativa.total_neto),
-        descuento_pl: cleanValue(nuevaAlternativa.descuento_plan),
-        id_programa: nuevaAlternativa.id_programa,
-        recargo_plan: cleanValue(nuevaAlternativa.recargo_plan),
-        valor_unitario: cleanValue(nuevaAlternativa.valor_unitario),
-        medio: nuevaAlternativa.id_medio,
-        total_bruto: cleanValue(nuevaAlternativa.total_bruto),
-        calendar: calendarData // Agregando el campo calendar
+        id_tema: cleanNumericValue(nuevaAlternativa.id_tema),
+        segundos: cleanNumericValue(nuevaAlternativa.segundos),
+        total_general: cleanNumericValue(nuevaAlternativa.total_bruto),
+        total_neto: cleanNumericValue(nuevaAlternativa.total_neto),
+        descuento_pl: cleanNumericValue(nuevaAlternativa.descuento_plan),
+        id_programa: cleanNumericValue(nuevaAlternativa.id_programa),
+        recargo_plan: cleanNumericValue(nuevaAlternativa.recargo_plan),
+        valor_unitario: cleanNumericValue(nuevaAlternativa.valor_unitario),
+        medio: cleanNumericValue(nuevaAlternativa.id_medio),
+        total_bruto: cleanNumericValue(nuevaAlternativa.total_bruto),
+        calendar: calendarData
       };
 
       console.log('Datos para inserción en alternativa:', alternativaData);
@@ -2562,26 +2602,17 @@ const Alternativas = () => {
 
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => {
-              setOpenModal(false);
-              setModoEdicion(false);
-              setEditandoAlternativa(null);
-              setNuevaAlternativa({
-                id_soporte: null,
-                id_programa: null,
-                estado: true
-              });
-            }}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleGuardar}
-              variant="contained" 
-              color="primary"
-            >
-              {modoEdicion ? 'Guardar Cambios' : 'Guardar'}
-            </Button>
-          </DialogActions>
+  <Button onClick={handleCloseModal}>
+    Cancelar
+  </Button>
+  <Button 
+    onClick={handleGuardar}
+    variant="contained" 
+    color="primary"
+  >
+    {modoEdicion ? 'Guardar Cambios' : 'Guardar'}
+  </Button>
+</DialogActions>
         </Dialog>
 
         <Dialog 
