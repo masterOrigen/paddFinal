@@ -31,7 +31,8 @@ import {
     Cancel as CancelIcon,
     SwapHoriz as SwapHorizIcon,
     Close as CloseIcon,
-    CheckCircle as CheckCircleIcon
+    CheckCircle as CheckCircleIcon,
+    Edit as EditIcon
 } from '@mui/icons-material';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
@@ -57,6 +58,7 @@ const RevisarOrden = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [alternatives, setAlternatives] = useState([]);
     const [selectedAlternative, setSelectedAlternative] = useState(null);
+    const [showActions, setShowActions] = useState(false);
 
 	
     const handlePrint = async () => {
@@ -162,8 +164,11 @@ const RevisarOrden = () => {
         });
         return;
     }
-    setOpenReplaceModal(true);
-};
+
+    // TODO: Implementar la lógica de anular y reemplazar para toda la orden
+    console.log('Anular y reemplazar orden:', selectedOrder);
+    setShowActions(true);
+    };
 
 
     useEffect(() => {
@@ -739,6 +744,7 @@ const RevisarOrden = () => {
     <TableCell align="right">Total Bruto</TableCell>
     <TableCell align="right">Total General</TableCell>
     <TableCell align="right">Total Neto</TableCell>
+    <TableCell>Acciones</TableCell>
     </TableRow>
     </TableHead>
     <TableBody>
@@ -789,6 +795,18 @@ const RevisarOrden = () => {
     currency: 'CLP'
     })}
     </TableCell>
+    <TableCell>
+      {showActions && (
+        <Tooltip title="Editar alternativa">
+          <IconButton size="small" onClick={(e) => {
+            e.stopPropagation();
+            // Future edit functionality will go here
+          }}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+    </TableCell>
     </TableRow>
     ))}
     {alternatives.length > 0 && (
@@ -832,6 +850,7 @@ const RevisarOrden = () => {
     })}
     </strong>
     </TableCell>
+    <TableCell></TableCell>
     </TableRow>
     )}
     </TableBody>
