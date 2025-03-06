@@ -51,6 +51,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon,
   AccessTime as AccessTimeIcon,
+  AddCircle as AddCircleIcon,
   Payment as PaymentIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -59,8 +60,6 @@ import ModalAgregarContrato from '../contratos/ModalAgregarContrato';
 import ModalEditarContrato from '../contratos/ModalEditarContrato';
 import ModalAgregarTema from '../campanas/ModalAgregarTema';
 import Swal from 'sweetalert2';
-
-import FileCopyIcon from '@mui/icons-material/FileCopy';
 
 const TIPO_ITEMS = [
   'PAUTA LIBRE',
@@ -77,7 +76,7 @@ const Alternativas = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // console.log('Componente Alternativas - ID del plan:', id);
+  console.log('Componente Alternativas - ID del plan:', id);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -198,13 +197,13 @@ const Alternativas = () => {
     setOpenModal(false);
     setModoEdicion(false);
     setEditandoAlternativa(null);
-    // Reset nueva alternativa to initial state with empty array for cantidades
+    // Reset nueva alternativa with all required fields including empty cantidades array
     setNuevaAlternativa({
       nlinea: '',
       numerorden: nextNumeroOrden,
-      anio: '',
-      mes: '',
-      id_campania: '',
+      anio: planData?.anio || '',
+      mes: planData?.mes || '',
+      id_campania: planData?.id_campania || '',
       num_contrato: '',
       id_soporte: '',
       id_programa: '',
@@ -214,7 +213,7 @@ const Alternativas = () => {
       id_tema: '',
       segundos: '',
       id_medio: '',
-      cantidades: [], // Ensure this is always an array
+      cantidades: [], // Ensure this is always initialized as an empty array
       valor_unitario: '',
       descuento_plan: '',
       recargo_plan: '',
@@ -647,69 +646,6 @@ const Alternativas = () => {
     }
   };
 
-  const handleDuplicateAlternativa = async (alternativa) => {
-
-    console.log('Nueva alternativa insertada:', alternativa);
-
-
-    try {
-      // Create a new alternativa object with the same values but without the id
-      const duplicatedAlternativaData = {
-        ...alternativa,
-        // Handle nlinea properly - if it's null or not a number, generate a new one
-        // otherwise append a number to make it unique
-        nlinea: alternativa.nlinea ? (Number(alternativa.nlinea) + 1).toString() : '1',
-        numerorden: nextNumeroOrden
-      };
-      delete duplicatedAlternativaData.id;
-      delete duplicatedAlternativaData.Anios;
-      delete duplicatedAlternativaData.Meses;
-      delete duplicatedAlternativaData.Contratos;
-      delete duplicatedAlternativaData.Soportes;
-      delete duplicatedAlternativaData.Clasificacion;
-      delete duplicatedAlternativaData.Temas;
-      delete duplicatedAlternativaData.Medios;
-
-      // First insert the new alternativa
-      const { data: newAlternativa, error: alternativaError } = await supabase
-        .from('alternativa')
-        .insert([duplicatedAlternativaData])
-        .select();
-
-
-        
-      if (alternativaError) throw alternativaError;
-
-      // Then create the plan_alternativas relationship
-      const { error: planAltError } = await supabase
-        .from('plan_alternativas')
-        .insert([{
-          id_plan: id,
-          id_alternativa: newAlternativa[0].id
-        }]);
-
-      if (planAltError) throw planAltError;
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Éxito',
-        text: 'Alternativa duplicada correctamente'
-      });
-
-      // Refresh the alternativas list
-      await fetchAlternativas();
-      setNextNumeroOrden(prev => prev + 1);
-
-    } catch (error) {
-      console.error('Error al duplicar la alternativa:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudo duplicar la alternativa'
-      });
-    }
-  };
-
   const handleDeleteAlternativa = async (alternativaId) => {
     try {
       // Mostrar confirmación antes de eliminar
@@ -769,65 +705,74 @@ const Alternativas = () => {
     try {
       setLoading(true);
       
-      // Obtener los datos completos de la alternativa
+      // Updated query to include Clasificacion
       const { data: alternativa, error } = await supabase
         .from('alternativa')
-        .select('*, Medios(*), Clasificacion(*), Temas(*), Programas(*), Soportes(*)')
+        .select(`
+          *,
+          Contratos:num_contrato (*,
+            formaPago:id_FormadePago (
+              id,
+              NombreFormadePago
+            )
+          ),
+          Soportes:id_soporte (*),
+          Programas:id_programa (*),
+          Temas:id_tema (
+            id_tema,
+            NombreTema,
+            Duracion,
+            id_medio,
+            Medios:id_medio (
+              id,
+              NombredelMedio
+            )
+          ),
+          Clasificacion:id_clasificacion (*)
+        `)
         .eq('id', alternativaId)
         .single();
-
+  
       if (error) throw error;
-
-      // Preparar el objeto para edición con todos los campos necesarios
-      const alternativaParaEditar = {
+  
+      console.log('Alternativa loaded:', alternativa);
+  
+      // Set related data including classification
+      setContratoSeleccionado(alternativa.Contratos);
+      setSelectedSoporte(alternativa.Soportes);
+      setSelectedPrograma(alternativa.Programas);
+      setSelectedClasificacion(alternativa.Clasificacion);
+      
+      // Set tema with proper structure
+      if (alternativa.Temas) {
+        const temaData = {
+          id_tema: alternativa.Temas.id_tema,
+          nombre_tema: alternativa.Temas.NombreTema,
+          segundos: alternativa.Temas.Duracion,
+          id_medio: alternativa.Temas.id_medio,
+          Medios: alternativa.Temas.Medios
+        };
+        setTemaSeleccionado(temaData);
+      }
+  
+      // Prepare calendar data
+      const calendarData = alternativa.calendar || [];
+  
+      // Set complete alternative data for editing
+      setNuevaAlternativa({
         ...alternativa,
-        cantidades: alternativa.calendar || [],
-        nlinea: alternativa.nlinea || '',
-        numerorden: alternativa.numerorden || 1,
-        anio: alternativa.anio || '',
-        mes: alternativa.mes || '',
-        id_campania: alternativa.id_campania || '',
-        num_contrato: alternativa.num_contrato || '',
-        id_soporte: alternativa.id_soporte || '',
-        id_programa: alternativa.id_programa || '',
-        tipo_item: alternativa.tipo_item || '',
-        id_clasificacion: alternativa.id_clasificacion || '',
-        detalle: alternativa.detalle || '',
-        id_tema: alternativa.id_tema || '',
-        segundos: alternativa.segundos || '',
-        id_medio: alternativa.id_medio || '',
-        valor_unitario: alternativa.valor_unitario || '',
-        descuento_plan: alternativa.descuento_plan || '',
-        recargo_plan: alternativa.recargo_plan || '',
-        total_bruto: alternativa.total_bruto || '',
-        total_neto: alternativa.total_neto || '',
-        medio: alternativa.Medios?.NombredelMedio || '',
-        bonificacion_ano: alternativa.bonificacion_ano || '',
-        escala: alternativa.escala || '',
-        formaDePago: alternativa.formaDePago || '',
-        nombreFormaPago: alternativa.nombreFormaPago || '',
-        soporte: alternativa.Soportes?.nombre || ''
-      };
-
-      // Establecer los valores para edición
-      setNuevaAlternativa(alternativaParaEditar);
+        cantidades: calendarData,
+        formaDePago: alternativa.Contratos?.formaPago?.id,
+        nombreFormaPago: alternativa.Contratos?.formaPago?.NombreFormadePago,
+        segundos: alternativa.Temas?.Duracion || '',
+        id_medio: alternativa.Temas?.id_medio || null
+      });
+  
+      // Set edit mode and open modal
       setEditandoAlternativa(alternativaId);
       setModoEdicion(true);
       setOpenModal(true);
-      
-      // Establecer valores relacionados si existen
-      if (alternativa.Soportes) {
-        setSelectedSoporte(alternativa.Soportes);
-      }
-      if (alternativa.Programas) {
-        setSelectedPrograma(alternativa.Programas);
-      }
-      if (alternativa.Clasificacion) {
-        setSelectedClasificacion(alternativa.Clasificacion);
-      }
-      if (alternativa.Temas) {
-        setTemaSeleccionado(alternativa.Temas);
-      }
+  
     } catch (error) {
       console.error('Error al cargar alternativa para editar:', error);
       Swal.fire({
@@ -843,88 +788,81 @@ const Alternativas = () => {
   const handleGuardarEdicion = async () => {
     try {
       setLoading(true);
-
-      // Validar campos requeridos
-      const camposRequeridos = {
-        tipo_item: nuevaAlternativa.tipo_item
+  
+      // Function to clean numeric values
+      const cleanNumericValue = (value) => {
+        if (value === "" || value === null || value === undefined) return null;
+        return Number(value);
       };
-
-      const camposFaltantes = Object.entries(camposRequeridos)
-        .filter(([_, value]) => !value)
-        .map(([key]) => key);
-
-      if (camposFaltantes.length > 0) {
-        throw new Error(`Campos requeridos faltantes: ${camposFaltantes.join(', ')}`);
-      }
-
-      // Preparar datos para actualización
+  
+      // Prepare data for update, only including valid table columns
       const datosActualizacion = {
-        ...nuevaAlternativa,
-        calendar: Object.keys(nuevaAlternativa.cantidades).length > 0 ? nuevaAlternativa.cantidades : null
+        nlinea: nuevaAlternativa.nlinea,
+        numerorden: nuevaAlternativa.numerorden,
+        anio: nuevaAlternativa.anio,
+        mes: nuevaAlternativa.mes,
+        id_campania: nuevaAlternativa.id_campania,
+        num_contrato: cleanNumericValue(nuevaAlternativa.num_contrato),
+        id_soporte: cleanNumericValue(nuevaAlternativa.id_soporte),
+        id_programa: cleanNumericValue(nuevaAlternativa.id_programa),
+        tipo_item: nuevaAlternativa.tipo_item,
+        id_clasificacion: cleanNumericValue(nuevaAlternativa.id_clasificacion),
+        detalle: nuevaAlternativa.detalle || null,
+        id_tema: cleanNumericValue(nuevaAlternativa.id_tema),
+        segundos: cleanNumericValue(nuevaAlternativa.segundos),
+        total_general: cleanNumericValue(nuevaAlternativa.total_bruto),
+        total_neto: cleanNumericValue(nuevaAlternativa.total_neto),
+        descuento_pl: cleanNumericValue(nuevaAlternativa.descuento_plan),
+        recargo_plan: cleanNumericValue(nuevaAlternativa.recargo_plan),
+        valor_unitario: cleanNumericValue(nuevaAlternativa.valor_unitario),
+        medio: cleanNumericValue(nuevaAlternativa.id_medio),
+        total_bruto: cleanNumericValue(nuevaAlternativa.total_bruto),
+        calendar: nuevaAlternativa.cantidades?.length > 0 ? nuevaAlternativa.cantidades : null
       };
-
-      // Eliminar campos que no queremos actualizar
-      delete datosActualizacion.id;
-      delete datosActualizacion.cantidades;
-
-      // Actualizar la alternativa
+  
+      // Remove any undefined or null properties
+      Object.keys(datosActualizacion).forEach(key => {
+        if (datosActualizacion[key] === undefined) {
+          delete datosActualizacion[key];
+        }
+      });
+  
+      // Update the alternative
       const { error: updateError } = await supabase
-        .from('alternativa')
-        .update(datosActualizacion)
-        .eq('id', editandoAlternativa);
+      .from('alternativa')
+      .update(datosActualizacion)
+      .eq('id', editandoAlternativa);
 
-      if (updateError) throw updateError;
+    if (updateError) throw updateError;
 
-      // Recargar alternativas y limpiar estado
-      await fetchAlternativas();
-      setOpenModal(false);
-      setModoEdicion(false);
-      setEditandoAlternativa(null);
-      setNuevaAlternativa({
-        nlinea: '',
-        numerorden: nextNumeroOrden,
-        anio: '',
-        mes: '',
-        id_campania: '',
-        num_contrato: '',
-        id_soporte: '',
-        id_programa: '',
-        tipo_item: '',
-        id_clasificacion: '',
-        detalle: '',
-        id_tema: '',
-        segundos: '',
-        id_medio: '',
-        cantidades: [], 
-        valor_unitario: '',
-        descuento_plan: '',
-        recargo_plan: '',
-        total_bruto: '',
-        total_neto: '',
-        medio: '',
-        bonificacion_ano: '',
-        escala: '',
-        formaDePago: '',
-        nombreFormaPago: '',
-        soporte: ''
-      });
+    // Refresh the alternatives list
+    await fetchAlternativas();
+    
+    // Close modal and reset states
+    setOpenModal(false);
+    setModoEdicion(false);
+    setEditandoAlternativa(null);
+    
+    // Reset nueva alternativa state
+    setNuevaAlternativa({
+      nlinea: '',
+      numerorden: nextNumeroOrden,
+      anio: planData?.anio || '',
+      mes: planData?.mes || '',
+      // ... rest of the initial state
+    });
 
-      Swal.fire({
-        icon: 'success',
-        title: '¡Éxito!',
-        text: 'Alternativa actualizada correctamente'
-      });
-    } catch (error) {
-      console.error('Error al actualizar alternativa:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'No se pudo actualizar la alternativa'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    Swal.fire({
+      icon: 'success',
+      title: '¡Éxito!',
+      text: 'Alternativa actualizada correctamente'
+    });
+  } catch (error) {
+    // ... existing error handling ...
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleOpenContratosModal = () => {
     setOpenContratosModal(true);
@@ -1755,14 +1693,12 @@ const Alternativas = () => {
     return item ? item.cantidad : '';
   };
 
-    const calcularTotal = () => {
-      if (!cantidades || !Array.isArray(cantidades)) return 0;
-      return cantidades.reduce((sum, item) => {
-        const cantidad = parseInt(item.cantidad) || 0;
-        return sum + cantidad;
-      }, 0);
-    };
-
+  const calcularTotal = () => {
+    return (cantidades || []).reduce((sum, item) => {
+      const cantidad = parseInt(item.cantidad) || 0;
+      return sum + cantidad;
+    }, 0);
+  };
     
     return (
       <Box sx={{ mt: 2 }}>
@@ -1854,14 +1790,13 @@ const Alternativas = () => {
         throw new Error('No hay un plan seleccionado');
       }
   
-      // Función para convertir strings vacíos a null
-      const cleanValue = (value) => {
-        if (value === "") return null;
-        if (typeof value === 'string' && !isNaN(value)) return Number(value);
-        return value;
+      // Function to clean numeric values
+      const cleanNumericValue = (value) => {
+        if (value === "" || value === null || value === undefined) return null;
+        return Number(value);
       };
   
-      // Filtrar cantidades para solo incluir días con valores
+      // Filter calendar data
       const calendarData = nuevaAlternativa.cantidades
         .filter(item => item.cantidad && item.cantidad > 0)
         .map(item => ({
@@ -1869,32 +1804,29 @@ const Alternativas = () => {
           cantidad: parseInt(item.cantidad)
         }));
   
-      // Preparar los datos para la tabla alternativa
+      // Prepare data with proper numeric handling
       const alternativaData = {
-        created_at: new Date().toISOString(),
-        nlinea: nuevaAlternativa.nlinea || null,
+        nlinea: cleanNumericValue(nuevaAlternativa.nlinea),
         anio: nuevaAlternativa.anio,
         mes: nuevaAlternativa.mes,
         id_campania: nuevaAlternativa.id_campania,
-        num_contrato: nuevaAlternativa.num_contrato,
-        id_soporte: nuevaAlternativa.id_soporte,
+        num_contrato: cleanNumericValue(nuevaAlternativa.num_contrato),
+        id_soporte: cleanNumericValue(nuevaAlternativa.id_soporte),
         descripcion: nuevaAlternativa.descripcion || null,
         tipo_item: nuevaAlternativa.tipo_item,
-        id_clasificacion: nuevaAlternativa.id_clasificacion,
+        id_clasificacion: cleanNumericValue(nuevaAlternativa.id_clasificacion),
         detalle: nuevaAlternativa.detalle || null,
-        id_tema: nuevaAlternativa.id_tema,
-        segundos: nuevaAlternativa.segundos,
-        total_general: cleanValue(nuevaAlternativa.total_bruto),
-        total_neto: cleanValue(nuevaAlternativa.total_neto),
-        descuento_pl: cleanValue(nuevaAlternativa.descuento_plan),
-        id_programa: nuevaAlternativa.id_programa,
-        calendar: calendarData,
-        recargo_plan: cleanValue(nuevaAlternativa.recargo_plan),
-        valor_unitario: cleanValue(nuevaAlternativa.valor_unitario),
-        medio: nuevaAlternativa.id_medio,
-        total_bruto: cleanValue(nuevaAlternativa.total_bruto),
-        ordencreada: false,
-        copia: false
+        id_tema: cleanNumericValue(nuevaAlternativa.id_tema),
+        segundos: cleanNumericValue(nuevaAlternativa.segundos),
+        total_general: cleanNumericValue(nuevaAlternativa.total_bruto),
+        total_neto: cleanNumericValue(nuevaAlternativa.total_neto),
+        descuento_pl: cleanNumericValue(nuevaAlternativa.descuento_plan),
+        id_programa: cleanNumericValue(nuevaAlternativa.id_programa),
+        recargo_plan: cleanNumericValue(nuevaAlternativa.recargo_plan),
+        valor_unitario: cleanNumericValue(nuevaAlternativa.valor_unitario),
+        medio: cleanNumericValue(nuevaAlternativa.id_medio),
+        total_bruto: cleanNumericValue(nuevaAlternativa.total_bruto),
+        calendar: calendarData
       };
 
       console.log('Datos para inserción en alternativa:', alternativaData);
@@ -2108,15 +2040,6 @@ const Alternativas = () => {
                         >
                           <DeleteIcon />
                         </IconButton>
-                        <Tooltip title="Duplicar">
-                          <IconButton
-                            onClick={() => handleDuplicateAlternativa(alternativa)}
-                            size="small"
-                            color="primary"
-                          >
-                            <FileCopyIcon />
-                          </IconButton>
-                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -2679,26 +2602,17 @@ const Alternativas = () => {
 
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => {
-              setOpenModal(false);
-              setModoEdicion(false);
-              setEditandoAlternativa(null);
-              setNuevaAlternativa({
-                id_soporte: null,
-                id_programa: null,
-                estado: true
-              });
-            }}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleGuardar}
-              variant="contained" 
-              color="primary"
-            >
-              {modoEdicion ? 'Guardar Cambios' : 'Guardar'}
-            </Button>
-          </DialogActions>
+  <Button onClick={handleCloseModal}>
+    Cancelar
+  </Button>
+  <Button 
+    onClick={handleGuardar}
+    variant="contained" 
+    color="primary"
+  >
+    {modoEdicion ? 'Guardar Cambios' : 'Guardar'}
+  </Button>
+</DialogActions>
         </Dialog>
 
         <Dialog 
