@@ -35,7 +35,7 @@ import {
 } from '@mui/icons-material';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
-
+import EditarAlternativa from '../../components/alternativas/EditarAlternativa';
 
 const RevisarOrden = () => {
     const navigate = useNavigate();
@@ -522,7 +522,7 @@ const RevisarOrden = () => {
     <Typography>Campaña: {selectedCampana.NombreCampania}</Typography>
     <Typography>Año: {selectedCampana.Anios?.years || 'No especificado'}</Typography>
     <Typography>Producto: {selectedCampana.Productos?.NombreDelProducto || 'No especificado'}</Typography>
-
+<div className='espaciadorx'></div>
 
 					{/* Órdenes */}
 					<Grid item xs={12}>
@@ -628,8 +628,7 @@ const RevisarOrden = () => {
                 </DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2}>
-                        {/* Left container - Alternatives List */}
-                        <Grid item xs={6}>
+                        <Grid item xs={4.8}>
                             <Paper sx={{ p: 2, height: '100%' }}>
                                 <Typography variant="h6" gutterBottom>
                                     Alternativas de la Orden
@@ -674,19 +673,35 @@ const RevisarOrden = () => {
                                 </TableContainer>
                             </Paper>
                         </Grid>
-
-                        {/* Right container - Edit Alternative */}
-                        <Grid item xs={6}>
+                        <Grid item xs={7.2}>
                             <Paper sx={{ p: 2, height: '100%' }}>
                                 {selectedAlternativeToReplace ? (
                                     <>
                                         <Typography variant="h6" gutterBottom>
                                             Editar Alternativa
                                         </Typography>
-                                        {/* Add your edit form here */}
-                                        <Typography>
-                                            Formulario de edición para la alternativa {selectedAlternativeToReplace.numerorden}
-                                        </Typography>
+                                        <EditarAlternativa 
+                                            alternativaId={selectedAlternativeToReplace.id}
+                                            onSave={() => {
+                                                if (selectedOrder) {
+                                                    supabase
+                                                        .from('alternativa')
+                                                        .select('*, Anios(*), Meses(*), Contratos(*), Soportes(*), Clasificacion(*), Temas(*), Programas(*)')
+                                                        .eq('id_orden', selectedOrder.id)
+                                                        .order('numerorden', { ascending: true })
+                                                        .then(({ data, error }) => {
+                                                            if (!error && data) {
+                                                                setAlternatives(data);
+                                                                setOpenReplaceModal(false);
+                                                                setSelectedAlternativeToReplace(null);
+                                                            }
+                                                        });
+                                                }
+                                            }}
+                                            onCancel={() => {
+                                                setSelectedAlternativeToReplace(null);
+                                            }}
+                                        />
                                     </>
                                 ) : (
                                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
@@ -706,9 +721,10 @@ const RevisarOrden = () => {
                     <Button 
                         variant="contained" 
                         color="primary"
+                        onClick={() => setOpenReplaceModal(false)}
                         disabled={!selectedAlternativeToReplace}
                     >
-                        Guardar Cambios
+                        Guardar y reemplazar orden
                     </Button>
                 </DialogActions>
             </Dialog>
