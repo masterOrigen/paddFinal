@@ -31,8 +31,7 @@ import {
     Cancel as CancelIcon,
     SwapHoriz as SwapHorizIcon,
     Close as CloseIcon,
-    CheckCircle as CheckCircleIcon,
-    Edit as EditIcon
+    CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
@@ -45,6 +44,8 @@ const RevisarOrden = () => {
     const handleClose = () => {
     navigate('/');
     };
+	const [openReplaceModal, setOpenReplaceModal] = useState(false);
+    const [selectedAlternativeToReplace, setSelectedAlternativeToReplace] = useState(null);
     const [openCampanaModal, setOpenCampanaModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -56,8 +57,8 @@ const RevisarOrden = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [alternatives, setAlternatives] = useState([]);
     const [selectedAlternative, setSelectedAlternative] = useState(null);
-    const [showActions, setShowActions] = useState(false);
 
+	
     const handlePrint = async () => {
     if (!selectedOrder) {
     Swal.fire({
@@ -152,20 +153,18 @@ const RevisarOrden = () => {
     }
     }
   };
-
-    const handleCancelAndReplace = async () => {
+  const handleCancelAndReplace = () => {
     if (!selectedOrder) {
-    Swal.fire({
-    icon: 'warning',
-    title: 'Selección requerida',
-    text: 'Por favor, seleccione una orden para anular y reemplazar'
-    });
-    return;
+        Swal.fire({
+            icon: 'warning',
+            title: 'Selección requerida',
+            text: 'Por favor, seleccione una orden para anular y reemplazar'
+        });
+        return;
     }
-    // TODO: Implementar la lógica de anular y reemplazar para toda la orden
-    console.log('Anular y reemplazar orden:', selectedOrder);
-    setShowActions(true);
-    };
+    setOpenReplaceModal(true);
+};
+
 
     useEffect(() => {
     fetchClientes();
@@ -603,10 +602,116 @@ const RevisarOrden = () => {
 							</TableContainer>
 						</Paper>
 					</Grid>
-=======
+
     </Paper>
     </Grid>
 
+
+											    {/* Add the new Replace Modal */}
+												<Dialog 
+                open={openReplaceModal} 
+                maxWidth="xl" 
+                fullWidth
+                onClose={() => setOpenReplaceModal(false)}
+            >
+                <DialogTitle sx={{ m: 0, p: 2 }}>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Typography variant="h6">Estas anulando reemplazando los datos de la orden</Typography>
+                        <IconButton
+                            aria-label="close"
+                            onClick={() => setOpenReplaceModal(false)}
+                            sx={{ color: (theme) => theme.palette.grey[500] }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                </DialogTitle>
+                <DialogContent>
+                    <Grid container spacing={2}>
+                        {/* Left container - Alternatives List */}
+                        <Grid item xs={6}>
+                            <Paper sx={{ p: 2, height: '100%' }}>
+                                <Typography variant="h6" gutterBottom>
+                                    Alternativas de la Orden
+                                </Typography>
+                                <TableContainer>
+                                    <Table size="small">
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>N° Orden</TableCell>
+                                                <TableCell>Soporte</TableCell>
+                                                <TableCell>Tipo Item</TableCell>
+                                                <TableCell>Acción</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {alternatives.map((alternative) => (
+                                                <TableRow 
+                                                    key={alternative.id}
+                                                    sx={{ 
+                                                        cursor: 'pointer',
+                                                        backgroundColor: selectedAlternativeToReplace?.id === alternative.id 
+                                                            ? 'rgba(0, 0, 0, 0.04)' 
+                                                            : 'inherit'
+                                                    }}
+                                                >
+                                                    <TableCell>{alternative.numerorden}</TableCell>
+                                                    <TableCell>{alternative.Soportes?.nombreIdentficiador}</TableCell>
+                                                    <TableCell>{alternative.tipo_item}</TableCell>
+                                                    <TableCell>
+                                                        <Button
+                                                            variant="contained"
+                                                            size="small"
+                                                            onClick={() => setSelectedAlternativeToReplace(alternative)}
+                                                        >
+                                                            Seleccionar
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Paper>
+                        </Grid>
+
+                        {/* Right container - Edit Alternative */}
+                        <Grid item xs={6}>
+                            <Paper sx={{ p: 2, height: '100%' }}>
+                                {selectedAlternativeToReplace ? (
+                                    <>
+                                        <Typography variant="h6" gutterBottom>
+                                            Editar Alternativa
+                                        </Typography>
+                                        {/* Add your edit form here */}
+                                        <Typography>
+                                            Formulario de edición para la alternativa {selectedAlternativeToReplace.numerorden}
+                                        </Typography>
+                                    </>
+                                ) : (
+                                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                                        <Typography color="textSecondary">
+                                            Seleccione una alternativa para editar
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Paper>
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenReplaceModal(false)} color="primary">
+                        Cancelar
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        color="primary"
+                        disabled={!selectedAlternativeToReplace}
+                    >
+                        Guardar Cambios
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
     {/* Alternativas - Solo se muestra si hay una orden seleccionada y no está anulada */}
     {selectedOrder && selectedOrder.estado !== 'anulada' && (
@@ -634,7 +739,6 @@ const RevisarOrden = () => {
     <TableCell align="right">Total Bruto</TableCell>
     <TableCell align="right">Total General</TableCell>
     <TableCell align="right">Total Neto</TableCell>
-    <TableCell>Acciones</TableCell>
     </TableRow>
     </TableHead>
     <TableBody>
@@ -685,18 +789,6 @@ const RevisarOrden = () => {
     currency: 'CLP'
     })}
     </TableCell>
-    <TableCell>
-      {showActions && (
-        <Tooltip title="Editar alternativa">
-          <IconButton size="small" onClick={(e) => {
-            e.stopPropagation();
-            // Future edit functionality will go here
-          }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
-    </TableCell>
     </TableRow>
     ))}
     {alternatives.length > 0 && (
@@ -740,7 +832,6 @@ const RevisarOrden = () => {
     })}
     </strong>
     </TableCell>
-    <TableCell></TableCell>
     </TableRow>
     )}
     </TableBody>
