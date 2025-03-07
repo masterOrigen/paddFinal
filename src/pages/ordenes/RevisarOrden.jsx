@@ -31,12 +31,11 @@ import {
     Cancel as CancelIcon,
     SwapHoriz as SwapHorizIcon,
     Close as CloseIcon,
-    CheckCircle as CheckCircleIcon,
-    Edit as EditIcon
+    CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
-
+import EditarAlternativa from '../../components/alternativas/EditarAlternativa';
 
 const RevisarOrden = () => {
     const navigate = useNavigate();
@@ -58,7 +57,6 @@ const RevisarOrden = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [alternatives, setAlternatives] = useState([]);
     const [selectedAlternative, setSelectedAlternative] = useState(null);
-    const [showActions, setShowActions] = useState(false);
 
 	
     const handlePrint = async () => {
@@ -165,10 +163,9 @@ const RevisarOrden = () => {
         return;
     }
 
-    // TODO: Implementar la lógica de anular y reemplazar para toda la orden
-    console.log('Anular y reemplazar orden:', selectedOrder);
-    setShowActions(true);
-    };
+    setOpenReplaceModal(true);
+};
+
 
 
     useEffect(() => {
@@ -530,7 +527,7 @@ const RevisarOrden = () => {
     <Typography>Campaña: {selectedCampana.NombreCampania}</Typography>
     <Typography>Año: {selectedCampana.Anios?.years || 'No especificado'}</Typography>
     <Typography>Producto: {selectedCampana.Productos?.NombreDelProducto || 'No especificado'}</Typography>
-
+<div className='espaciadorx'></div>
 
 					{/* Órdenes */}
 					<Grid item xs={12}>
@@ -624,7 +621,9 @@ const RevisarOrden = () => {
             >
                 <DialogTitle sx={{ m: 0, p: 2 }}>
                     <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Typography variant="h6">Anular y Reemplazar Alternativa</Typography>
+
+                        <Typography variant="h6">Estas anulando reemplazando los datos de la orden</Typography>
+
                         <IconButton
                             aria-label="close"
                             onClick={() => setOpenReplaceModal(false)}
@@ -636,8 +635,9 @@ const RevisarOrden = () => {
                 </DialogTitle>
                 <DialogContent>
                     <Grid container spacing={2}>
-                        {/* Left container - Alternatives List */}
-                        <Grid item xs={6}>
+
+                        <Grid item xs={4.8}>
+
                             <Paper sx={{ p: 2, height: '100%' }}>
                                 <Typography variant="h6" gutterBottom>
                                     Alternativas de la Orden
@@ -683,18 +683,38 @@ const RevisarOrden = () => {
                             </Paper>
                         </Grid>
 
-                        {/* Right container - Edit Alternative */}
-                        <Grid item xs={6}>
+                        <Grid item xs={7.2}>
+
                             <Paper sx={{ p: 2, height: '100%' }}>
                                 {selectedAlternativeToReplace ? (
                                     <>
                                         <Typography variant="h6" gutterBottom>
                                             Editar Alternativa
                                         </Typography>
-                                        {/* Add your edit form here */}
-                                        <Typography>
-                                            Formulario de edición para la alternativa {selectedAlternativeToReplace.numerorden}
-                                        </Typography>
+
+                                        <EditarAlternativa 
+                                            alternativaId={selectedAlternativeToReplace.id}
+                                            onSave={() => {
+                                                if (selectedOrder) {
+                                                    supabase
+                                                        .from('alternativa')
+                                                        .select('*, Anios(*), Meses(*), Contratos(*), Soportes(*), Clasificacion(*), Temas(*), Programas(*)')
+                                                        .eq('id_orden', selectedOrder.id)
+                                                        .order('numerorden', { ascending: true })
+                                                        .then(({ data, error }) => {
+                                                            if (!error && data) {
+                                                                setAlternatives(data);
+                                                                setOpenReplaceModal(false);
+                                                                setSelectedAlternativeToReplace(null);
+                                                            }
+                                                        });
+                                                }
+                                            }}
+                                            onCancel={() => {
+                                                setSelectedAlternativeToReplace(null);
+                                            }}
+                                        />
+
                                     </>
                                 ) : (
                                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
@@ -714,9 +734,12 @@ const RevisarOrden = () => {
                     <Button 
                         variant="contained" 
                         color="primary"
+
+                        onClick={() => setOpenReplaceModal(false)}
                         disabled={!selectedAlternativeToReplace}
                     >
-                        Guardar Cambios
+                        Guardar y reemplazar orden
+
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -747,7 +770,6 @@ const RevisarOrden = () => {
     <TableCell align="right">Total Bruto</TableCell>
     <TableCell align="right">Total General</TableCell>
     <TableCell align="right">Total Neto</TableCell>
-    <TableCell>Acciones</TableCell>
     </TableRow>
     </TableHead>
     <TableBody>
@@ -798,18 +820,6 @@ const RevisarOrden = () => {
     currency: 'CLP'
     })}
     </TableCell>
-    <TableCell>
-      {showActions && (
-        <Tooltip title="Editar alternativa">
-          <IconButton size="small" onClick={(e) => {
-            e.stopPropagation();
-            // Future edit functionality will go here
-          }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
-    </TableCell>
     </TableRow>
     ))}
     {alternatives.length > 0 && (
@@ -853,7 +863,6 @@ const RevisarOrden = () => {
     })}
     </strong>
     </TableCell>
-    <TableCell></TableCell>
     </TableRow>
     )}
     </TableBody>

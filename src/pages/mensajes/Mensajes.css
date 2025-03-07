@@ -132,3 +132,9 @@
 .ql-toolbar .ql-active {
   color: #1D4ED8;
 }
+.MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorError.MuiIconButton-sizeSmall.css-1cmn7xy-MuiButtonBase-root-MuiIconButton-root {
+  width: 6% !important;
+}
+.MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorPrimary.MuiIconButton-sizeSmall.css-1mgprzk-MuiButtonBase-root-MuiIconButton-root {
+  width: 6% !important;
+}

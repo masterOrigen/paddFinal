@@ -2673,7 +2673,9 @@ const Alternativas = () => {
           <DialogActions>
   <Button onClick={handleCloseModal}>
 
+
 Cancelar
+
   </Button>
   <Button 
     onClick={handleGuardar}
