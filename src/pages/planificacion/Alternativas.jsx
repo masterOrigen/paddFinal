@@ -609,7 +609,7 @@ const Alternativas = () => {
   const handleDuplicateAlternativa = async (alternativa) => {
 
     console.log('Nueva alternativa insertada:', alternativa);
-
+  
 
     try {
       // Create a new alternativa object with the same values but without the id
@@ -617,8 +617,10 @@ const Alternativas = () => {
         ...alternativa,
         // Handle nlinea properly - if it's null or not a number, generate a new one
         // otherwise append a number to make it unique
-        nlinea: alternativa.nlinea ? (Number(alternativa.nlinea) + 1).toString() : '1',
-        numerorden: nextNumeroOrden
+        // nlinea: alternativa.nlinea ? (Number(alternativa.nlinea) + 1).toString() : '1',
+        // numerorden: nextNumeroOrden
+        nlinea: null,
+  numerorden: null
       };
       delete duplicatedAlternativaData.id;
       delete duplicatedAlternativaData.Anios;
@@ -629,6 +631,9 @@ const Alternativas = () => {
       delete duplicatedAlternativaData.Temas;
       delete duplicatedAlternativaData.Medios;
 
+      console.log('Datos de la nueva alternativa:', duplicatedAlternativaData);
+
+   
       // First insert the new alternativa
       const { data: newAlternativa, error: alternativaError } = await supabase
         .from('alternativa')
