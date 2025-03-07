@@ -184,10 +184,10 @@ const RevisarOrden = () => {
     RUT,
     razonSocial,
     id_comuna,
-    comuna:Comunas!inner (
-    id_comuna,
-    nombreComuna
-    )
+          Comunas (
+            id_comuna,
+            nombreComuna
+          )
     `)
     .order('nombreCliente');
     
@@ -271,7 +271,9 @@ const RevisarOrden = () => {
     id,
     nombre_plan
     ),
-    usuario_registro
+    usuario_registro,
+	copia,
+	orden_remplaza
     `)
     .eq('id_campania', campaignId);
     
@@ -301,15 +303,16 @@ const RevisarOrden = () => {
     Id,
     Nombre
     ),
-    Contratos (
-    id,
-    num_contrato,
-    id_FormadePago,
-    IdProveedor,
-    FormaDePago (
-    id,
-    NombreFormadePago
-    ),
+    Contratos!inner (
+                    id,
+                    NombreContrato,
+                    num_contrato,
+                    id_FormadePago,
+                    IdProveedor,
+                    FormaDePago (
+                        id,
+                        NombreFormadePago
+                    ),
     Proveedores (
     id_proveedor,
     nombreProveedor,
@@ -785,7 +788,7 @@ const RevisarOrden = () => {
     <TableCell>{alternative.numerorden}</TableCell>
     <TableCell>{alternative.Anios?.years}</TableCell>
     <TableCell>{alternative.Meses?.Nombre}</TableCell>
-    <TableCell>{alternative.Contratos?.num_contrato}</TableCell>
+    <TableCell>{alternative.Contratos?.NombreContrato}</TableCell>
     <TableCell>{alternative.Soportes?.nombreIdentficiador}</TableCell>
     <TableCell>{alternative.tipo_item}</TableCell>
     <TableCell>{alternative.Clasificacion?.NombreClasificacion}</TableCell>

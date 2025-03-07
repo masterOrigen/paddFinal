@@ -2673,7 +2673,8 @@ const Alternativas = () => {
           <DialogActions>
   <Button onClick={handleCloseModal}>
 
-    Anular órden y reemplazarla
+
+Cancelar
 
   </Button>
   <Button 
