@@ -646,6 +646,75 @@ const Alternativas = () => {
     }
   };
 
+
+  const handleDuplicateAlternativa = async (alternativa) => {
+
+    console.log('Nueva alternativa insertada:', alternativa);
+  
+
+    try {
+      // Create a new alternativa object with the same values but without the id
+      const duplicatedAlternativaData = {
+        ...alternativa,
+        // Handle nlinea properly - if it's null or not a number, generate a new one
+        // otherwise append a number to make it unique
+        // nlinea: alternativa.nlinea ? (Number(alternativa.nlinea) + 1).toString() : '1',
+        // numerorden: nextNumeroOrden
+        nlinea: null,
+  numerorden: null
+      };
+      delete duplicatedAlternativaData.id;
+      delete duplicatedAlternativaData.Anios;
+      delete duplicatedAlternativaData.Meses;
+      delete duplicatedAlternativaData.Contratos;
+      delete duplicatedAlternativaData.Soportes;
+      delete duplicatedAlternativaData.Clasificacion;
+      delete duplicatedAlternativaData.Temas;
+      delete duplicatedAlternativaData.Medios;
+
+      console.log('Datos de la nueva alternativa:', duplicatedAlternativaData);
+
+   
+      // First insert the new alternativa
+      const { data: newAlternativa, error: alternativaError } = await supabase
+        .from('alternativa')
+        .insert([duplicatedAlternativaData])
+        .select();
+
+
+        
+      if (alternativaError) throw alternativaError;
+
+      // Then create the plan_alternativas relationship
+      const { error: planAltError } = await supabase
+        .from('plan_alternativas')
+        .insert([{
+          id_plan: id,
+          id_alternativa: newAlternativa[0].id
+        }]);
+
+      if (planAltError) throw planAltError;
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: 'Alternativa duplicada correctamente'
+      });
+
+      // Refresh the alternativas list
+      await fetchAlternativas();
+      setNextNumeroOrden(prev => prev + 1);
+
+    } catch (error) {
+      console.error('Error al duplicar la alternativa:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo duplicar la alternativa'
+      });
+    }
+  };
+
   const handleDeleteAlternativa = async (alternativaId) => {
     try {
       // Mostrar confirmación antes de eliminar
@@ -2603,7 +2672,8 @@ const Alternativas = () => {
           </DialogContent>
           <DialogActions>
   <Button onClick={handleCloseModal}>
-    Cancelar
+
+Cancelar
   </Button>
   <Button 
     onClick={handleGuardar}

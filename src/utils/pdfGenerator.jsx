@@ -20,6 +20,7 @@ dayNumber: {
 	fontSize:6,
 	textAlign: 'center'
 },
+
 header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -158,6 +159,15 @@ header: {
     color: '#666',
     marginTop: 2
   },
+  replacementText2: {
+    marginTop:5,
+    fontSize: 12,
+    color: 'red'
+  },
+
+
+
+
   yearText: {
     fontSize: 10,
 	fontWeight:'900',
@@ -184,6 +194,7 @@ totalsContainer: {
 
     overflow: 'hidden'
   },
+ 
   totalRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -209,14 +220,18 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
 		<Page size={{ width: 800, height:1000  }} orientation="landscape" style={styles.page}>
 			<View style={styles.header}>
 				<Text style={styles.headerText}>RUT {cliente?.RUT}</Text>
-				<View style={styles.titleContainer}>
-					<Text style={styles.title}>ORDEN DE PUBLICIDAD {order?.numero_correlativo}</Text>
-					{order?.remplaza && order?.numerodeordenremplaza > 1 && (
-						<Text style={styles.replacementText}>
-							ANULA Y REMPLAZA ORDEN N° {order?.numerorden} / {order?.copia}
-						</Text>
-					)}
-				</View>
+        <View style={styles.titleContainer}>
+    <Text style={styles.title}>
+        ORDEN DE PUBLICIDAD {order?.numero_correlativo}
+        {order?.orden_remplaza ? ` - ${order?.copia}` : ''}
+    </Text>
+    {order?.orden_remplaza && (
+        <Text style={styles.replacementText2}>
+            ANULA Y REMPLAZA ORDEN N° {order?.numero_correlativo}
+            {(Number(order?.copia) - 1) > 0 ? ` / ${Number(order?.copia) - 1}` : ''}
+        </Text>
+    )}
+</View>
 				<View style={styles.yearContainer}>
 					<Text style={styles.yearText}>AÑO /{new Date().getFullYear()}</Text>
 				</View>
@@ -237,9 +252,9 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
 								<Text style={styles.infoValue}>{cliente?.direccionEmpresa}</Text>
 							</View>
 							<View style={styles.rowex}>
-								<Text style={styles.infoLabel}>COMUNA:</Text>
-								<Text style={styles.infoValue}>{cliente?.comuna?.id_comuna || 'No especificado'}</Text>
-							</View>
+                <Text style={styles.infoLabel}>COMUNA:</Text>
+                <Text style={styles.infoValue}>{cliente?.Comunas?.nombreComuna || 'No especificado'}</Text>
+              </View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>PRODUCTO:</Text>
 								<Text style={styles.infoValue}>{campana?.Productos?.NombreDelProducto}</Text>
@@ -254,7 +269,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>N° CONTRATO:</Text>
-								<Text style={styles.infoValue}>{alternatives[0]?.num_contrato}</Text>
+								<Text style={styles.infoValue}>{alternatives[0]?.Contratos?.id}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>FORMA DE PAGO:</Text>

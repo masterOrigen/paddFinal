@@ -58,7 +58,7 @@ const CrearOrden = () => {
   const [selectedAlternativas, setSelectedAlternativas] = useState([]);
   const [ordenCreada, setOrdenCreada] = useState(null);
   const [alternativasOrden, setAlternativasOrden] = useState([]);
-
+  const [user, setUser] = useState(null);
   useEffect(() => {
     fetchClientes();
   }, []);
@@ -68,7 +68,24 @@ const CrearOrden = () => {
       fetchPlanes(selectedCampana.id_campania);
     }
   }, [selectedCampana]);
-
+  useEffect(() => {
+    const getUserSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session) {
+        const { data: userData, error: userError } = await supabase
+          .from('usuarios') // or your users table name
+          .select('nombre, email')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (!userError && userData) {
+          setUser(userData);
+        }
+      }
+    };
+    
+    getUserSession();
+  }, []);
   const fetchAlternativas = async () => {
     if (selectedPlan) {
       setLoading(true);
@@ -103,7 +120,7 @@ const CrearOrden = () => {
             *,
             Anios (id, years),
             Meses (Id, Nombre),
-            Contratos (id, num_contrato, id_FormadePago, IdProveedor,
+            Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
               FormaDePago (id, NombreFormadePago),
               Proveedores (id_proveedor, nombreProveedor, rutProveedor, direccionFacturacion, id_comuna)
             ),
@@ -145,9 +162,20 @@ const CrearOrden = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('Clientes')
-        .select('id_cliente, nombreCliente, RUT, razonSocial')
+        .select(`
+          id_cliente, 
+          nombreCliente, 
+          RUT, 
+          razonSocial, 
+          direccionEmpresa,
+          id_comuna,
+          Comunas (
+            id_comuna,
+            nombreComuna
+          )
+        `)
         .order('nombreCliente');
-
+  
       if (error) throw error;
       setClientes(data || []);
     } catch (error) {
@@ -260,7 +288,38 @@ const CrearOrden = () => {
       setSelectedAlternativas([]);
     }
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Add debugging
+  console.log('Current user info:', {
+    nombre: user?.nombre || 'No name available',
+    email: user?.email || 'No email available'
+  });
 
+  try {
+    const orderData = {
+      // ... your existing order data ...
+      usuario_registro: {
+        nombre: user?.nombre,
+        email: user?.email
+      }
+    };
+
+    console.log('Order data being sent:', orderData);
+
+    const response = await axios.post('/api/orders', orderData);
+    
+    // Add debugging for response
+    console.log('Order creation response:', response.data);
+
+    // ... rest of your code ...
+  } catch (error) {
+    console.error('Error creating order:', error);
+    // Handle error appropriately
+  }
+};
+const [user2] = useState(JSON.parse(localStorage.getItem('user')));
   const handleCrearOrden = async () => {
     try {
       if (!selectedAlternativas.length) {
@@ -286,7 +345,7 @@ const CrearOrden = () => {
       }
   
       const nuevoCorrelativo = (ultimaOrden?.numero_correlativo || 33992) + 1;
-  
+
       // Crear el registro en OrdenesDePublicidad
       const { data, error } = await supabase
         .from('OrdenesDePublicidad')
@@ -295,11 +354,18 @@ const CrearOrden = () => {
           id_plan: selectedPlan.id,
           id_compania: selectedCampana.id_compania,
           alternativas_plan_orden: selectedAlternativas,
-          numero_correlativo: nuevoCorrelativo
+          numero_correlativo: nuevoCorrelativo,
+          usuario_registro: user2 ? {
+            nombre: user2.Nombre,
+            email: user2.Email
+          } : null
         })
         .select()
         .single();
-  
+        console.log('Datos del usuario a registrar:', {
+          nombre: user2?.Nombre,
+          email: user2?.Email
+        });
       if (error) {
         console.error('Error al crear la orden:', error);
         throw error;
