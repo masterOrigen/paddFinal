@@ -349,18 +349,31 @@ const [user2] = useState(JSON.parse(localStorage.getItem('user')));
       // Obtener las alternativas seleccionadas
       const alternativasSeleccionadas = alternativas.filter(alt => selectedAlternativas.includes(alt.id));
 
-      // Agrupar alternativas por soporte
-      const alternativasPorSoporte = alternativasSeleccionadas.reduce((acc, alt) => {
+      // Agrupar alternativas por soporte, contrato y proveedor
+      const alternativasPorGrupo = alternativasSeleccionadas.reduce((acc, alt) => {
         const soporteId = alt.Soportes?.id_soporte;
-        if (!acc[soporteId]) {
-          acc[soporteId] = [];
+        const contratoId = alt.Contratos?.id;
+        const proveedorId = alt.Contratos?.IdProveedor;
+        
+        // Crear una clave única combinando soporte, contrato y proveedor
+        const grupoKey = `${soporteId}-${contratoId}-${proveedorId}`;
+        
+        if (!acc[grupoKey]) {
+          acc[grupoKey] = {
+            alternativas: [],
+            soporte: alt.Soportes,
+            contrato: alt.Contratos,
+            proveedor: alt.Contratos?.Proveedores
+          };
         }
-        acc[soporteId].push(alt);
+        acc[grupoKey].alternativas.push(alt);
         return acc;
       }, {});
 
-      // Para cada grupo de soporte, crear una orden y un PDF independiente
-      for (const [soporteId, altsDelSoporte] of Object.entries(alternativasPorSoporte)) {
+      // Para cada grupo (combinación única de soporte, contrato y proveedor), crear una orden y un PDF independiente
+      for (const [grupoKey, grupo] of Object.entries(alternativasPorGrupo)) {
+        const altsDelGrupo = grupo.alternativas;
+        
         // Crear el registro en OrdenesDePublicidad
         const { data, error } = await supabase
           .from('OrdenesDePublicidad')
@@ -368,12 +381,16 @@ const [user2] = useState(JSON.parse(localStorage.getItem('user')));
             id_campania: selectedCampana.id_campania,
             id_plan: selectedPlan.id,
             id_compania: selectedCampana.id_compania,
-            alternativas_plan_orden: altsDelSoporte.map(alt => alt.id),
+            alternativas_plan_orden: altsDelGrupo.map(alt => alt.id),
             numero_correlativo: nuevoCorrelativo,
             usuario_registro: user2 ? {
               nombre: user2.Nombre,
               email: user2.Email
-            } : null
+            } : null,
+            // Agregar información adicional del grupo
+            id_soporte: grupo.soporte?.id_soporte,
+            id_contrato: grupo.contrato?.id,
+            id_proveedor: grupo.proveedor?.id_proveedor
           })
           .select()
           .single();
@@ -383,14 +400,14 @@ const [user2] = useState(JSON.parse(localStorage.getItem('user')));
           throw error;
         }
 
-        // Actualizar las alternativas de este soporte
+        // Actualizar las alternativas de este grupo
         const { error: updateError } = await supabase
           .from('alternativa')
           .update({ 
             ordencreada: true,
             numerorden: nuevoCorrelativo
           })
-          .in('id', altsDelSoporte.map(alt => alt.id));
+          .in('id', altsDelGrupo.map(alt => alt.id));
 
         if (updateError) {
           console.error('Error al actualizar alternativas:', updateError);
@@ -398,14 +415,14 @@ const [user2] = useState(JSON.parse(localStorage.getItem('user')));
         }
 
         // Generar el PDF para este grupo de alternativas
-        generateOrderPDF(data, altsDelSoporte, selectedCliente, selectedCampana, selectedPlan);
+        generateOrderPDF(data, altsDelGrupo, selectedCliente, selectedCampana, selectedPlan);
 
         // Incrementar el correlativo para la siguiente orden
         nuevoCorrelativo++;
       }
 
       // Mostrar mensaje de éxito
-      const cantidadOrdenes = Object.keys(alternativasPorSoporte).length;
+      const cantidadOrdenes = Object.keys(alternativasPorGrupo).length;
       Swal.fire({
         icon: 'success',
         title: '¡Éxito!',
