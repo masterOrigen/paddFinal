@@ -7,9 +7,11 @@ import NewspaperIcon from '@mui/icons-material/Newspaper';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import UserDataPopup from '../UserDataPopup';
 
 const Sidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState({});
+  const [userDataOpen, setUserDataOpen] = useState(false);
 
   const menuItems = [
     {
@@ -73,7 +75,7 @@ const Sidebar = () => {
     icon: 'fas fa-image',
     text: 'Mi Perfíl',
     submenu: [
-    { text: 'Mis Datos', link: '/perfil' }
+    { text: 'Mis Datos', onClick: () => setUserDataOpen(true) }
     ]
     }
   ];
@@ -151,13 +153,20 @@ const Sidebar = () => {
                         </div>
                       </div>
                     ) : (
-                      <Link 
-                        key={index} 
-                        to={subItem.link}
-                        className="submenu-link"
-                      >
-                        {subItem.text}
-                      </Link>
+                      <div key={index} className="submenu-item">
+                        {subItem.onClick ? (
+                          <div onClick={subItem.onClick} style={{ cursor: 'pointer' }}>
+                            {subItem.text}
+                          </div>
+                        ) : (
+                          <Link 
+                            to={subItem.link}
+                            className="submenu-link"
+                          >
+                            {subItem.text}
+                          </Link>
+                        )}
+                      </div>
                     )
                   ))}
                 </div>
@@ -166,6 +175,7 @@ const Sidebar = () => {
           </div>
         ))}
       </nav>
+      <UserDataPopup open={userDataOpen} onClose={() => setUserDataOpen(false)} />
     </div>
   );
 };
