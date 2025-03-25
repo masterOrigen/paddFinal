@@ -155,7 +155,7 @@ const Sidebar = () => {
                     ) : (
                       <div key={index} className="submenu-item">
                         {subItem.onClick ? (
-                          <div onClick={subItem.onClick} style={{ cursor: 'pointer' }}>
+                          <div onClick={subItem.onClick} style={{ cursor: 'pointer' }} className="submenu-link">
                             {subItem.text}
                           </div>
                         ) : (
