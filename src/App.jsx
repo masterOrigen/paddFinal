@@ -22,6 +22,8 @@ import Planificacion from './pages/planificacion/Planificacion';
 import NuevoPlan from './pages/planificacion/NuevoPlan';
 import Alternativas from './pages/planificacion/Alternativas';
 import CrearOrden from './pages/ordenes/CrearOrden';
+import ListadoUsuarios from './pages/usuarios/ListadoUsuarios';
+import MiPerfil from './pages/perfil/MiPerfil';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import './App.css';
@@ -71,9 +73,11 @@ function App() {
                   <Route path="/campanas/:id" element={<ViewCampania />} />
                   <Route path="/contratos" element={<Contratos />} />
                   <Route path="/contratos/view/:id" element={<ViewContrato />} />
-                    <Route path="/ordenes/crear" element={<CrearOrden />} />
-                    <Route path="/ordenes/revisar" element={<RevisarOrden />} />
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/ordenes/crear" element={<CrearOrden />} />
+                  <Route path="/ordenes/revisar" element={<RevisarOrden />} />
+                  <Route path="/usuarios" element={<ListadoUsuarios />} />
+                  <Route path="/perfil" element={<MiPerfil />} />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </div>
