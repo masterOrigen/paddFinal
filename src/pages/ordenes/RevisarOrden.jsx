@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import EditarAlternativaReemplazo from '../../components/alternativas/EditarAlternativaReemplazo';
 import { useNavigate } from 'react-router-dom';
 import { generateOrderPDF } from '../../utils/pdfGenerator';
 import {
@@ -40,7 +41,8 @@ import EditarAlternativa from '../../components/alternativas/EditarAlternativa';
 const RevisarOrden = () => {
     const navigate = useNavigate();
     const [openClienteModal, setOpenClienteModal] = useState(true);
-
+    const [modifiedAlternatives, setModifiedAlternatives] = useState([]);
+    const [isCreatingNewAlternative, setIsCreatingNewAlternative] = useState(false);
     const handleClose = () => {
     navigate('/');
     };
@@ -85,7 +87,22 @@ const RevisarOrden = () => {
     });
     }
     };
-
+// Modificar la función handleEditAlternative para manejar alternativas temporales
+const handleEditAlternative = (alternativa) => {
+    // Si es una alternativa temporal, obtenerla del sessionStorage
+    if (alternativa.id && alternativa.id.toString().startsWith('temp_')) {
+        const tempAlternativas = JSON.parse(sessionStorage.getItem('tempAlternativas') || '[]');
+        const tempAlternativa = tempAlternativas.find(alt => alt.id === alternativa.id);
+        
+        if (tempAlternativa) {
+            setSelectedAlternativeToReplace(tempAlternativa);
+            return;
+        }
+    }
+    
+    // Si no es temporal o no se encontró, usar la alternativa proporcionada
+    setSelectedAlternativeToReplace(alternativa);
+};
  // Modificamos la función handleCancel
  const handleCancel = async () => {
     if (!selectedOrder) {
@@ -163,10 +180,406 @@ const RevisarOrden = () => {
         return;
     }
 
+    // Inicializar las alternativas modificadas con las alternativas actuales
+    setModifiedAlternatives([...alternatives]);
     setOpenReplaceModal(true);
 };
+   // Agregar función para manejar la creación de una nueva alternativa
+   const handleCreateNewAlternative = async () => {
+    try {
+        setLoading(true);
+        
+        // Obtener información del contrato y soporte directamente de la orden
+        const { data: ordenData, error: ordenError } = await supabase
+            .from('OrdenesDePublicidad')
+            .select(`
+                id_ordenes_de_comprar,
+                id_contrato,
+                id_soporte,
+                Contratos (
+                    id,
+                    NombreContrato
+                ),
+                Soportes (
+                    id_soporte,
+                    nombreIdentficiador
+                )
+            `)
+            .eq('id_ordenes_de_comprar', selectedOrder.id_ordenes_de_comprar)
+            .single();
+        
+        if (ordenError) {
+            console.error('Error al obtener datos de la orden:', ordenError);
+            throw ordenError;
+        }
+        
+        // Obtener el contrato y soporte de la primera alternativa existente (si hay alguna)
+        // o directamente de la orden
+        const baseAlternative = modifiedAlternatives.length > 0 ? modifiedAlternatives[0] : null;
+        
+        // Obtener información del plan para extraer año y mes
+        const { data: planData, error: planError } = await supabase
+            .from('plan')
+            .select('anio, mes')
+            .eq('id', selectedOrder.id_plan)
+            .single();
+            
+        if (planError) {
+            console.error('Error al obtener información del plan:', planError);
+            throw planError;
+        }
+        
+        setIsCreatingNewAlternative(true);
+        setSelectedAlternativeToReplace({
+            numerorden: selectedOrder?.id_ordenes_de_comprar, // Usar numerorden en lugar de id_orden
+            // Usar datos de alternativa existente o de la orden
+            num_contrato: baseAlternative?.num_contrato || ordenData?.id_contrato, // Usar num_contrato en lugar de id_contrato
+            id_soporte: baseAlternative?.id_soporte || ordenData?.id_soporte,
+            // También incluimos los objetos relacionados para mostrarlos en los campos de solo lectura
+            Contratos: baseAlternative?.Contratos || ordenData?.Contratos,
+            Soportes: baseAlternative?.Soportes || ordenData?.Soportes,
+            // Usar los valores de año y mes del plan
+            anio: planData?.anio || null,
+            mes: planData?.mes || null,
+            // Incluir id_campania de la orden
+            id_campania: selectedOrder.id_campania,
+            // Inicializar el calendario como un array vacío
+            calendar: '[]',
+            cantidades: [] // Inicializar cantidades para la UI
+        });
+    } catch (error) {
+        console.error('Error al crear nueva alternativa:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo crear la nueva alternativa: ' + error.message
+        });
+    } finally {
+        setLoading(false);
+    }
+};
+// Modifica la función handleSaveModifiedAlternative para asignar correctamente el número de orden
+const handleSaveModifiedAlternative = (modifiedAlternative) => {
+    console.log('Guardando alternativa modificada:', modifiedAlternative);
+    
+    // Crear una copia para no modificar el original
+    const alternativaCopy = { ...modifiedAlternative };
+    
+    // Asegurarse de que calendar sea un string JSON si cantidades existe
+    if (alternativaCopy.cantidades && Array.isArray(alternativaCopy.cantidades)) {
+        alternativaCopy.calendar = alternativaCopy.cantidades;
+        delete alternativaCopy.cantidades;
+    } else if (alternativaCopy.calendar && typeof alternativaCopy.calendar === 'string') {
+        try {
+            alternativaCopy.calendar = JSON.parse(alternativaCopy.calendar);
+        } catch (e) {
+            console.error('Error al parsear calendar:', e);
+            alternativaCopy.calendar = [];
+        }
+    }
+    
+    // Cambiar id_orden a numerorden si existe
+    if (alternativaCopy.id_orden !== undefined) {
+        alternativaCopy.numerorden = alternativaCopy.id_orden;
+        delete alternativaCopy.id_orden;
+    }
+    
+    // Cambiar id_contrato a num_contrato si existe
+    if (alternativaCopy.id_contrato !== undefined) {
+        alternativaCopy.num_contrato = alternativaCopy.id_contrato;
+        delete alternativaCopy.id_contrato;
+    }
+    
+    // Cambiar id_medio a medio si existe
+    if (alternativaCopy.id_medio !== undefined) {
+        alternativaCopy.medio = alternativaCopy.id_medio;
+        delete alternativaCopy.id_medio;
+    }
+    
+    setModifiedAlternatives(prevAlternatives => {
+        // Verificar si esta alternativa ya existe en nuestra lista modificada
+        const existingIndex = prevAlternatives.findIndex(alt => String(alt.id) === String(alternativaCopy.id));
+        
+        // Si la alternativa tiene un ID que no es temporal (es una pre-cargada)
+        // y no es una alternativa que ya hayamos reemplazado antes
+        if (existingIndex >= 0 && 
+            !String(alternativaCopy.id).startsWith('temp_') && 
+            !alternativaCopy._isReplacement) {
+            
+            // Crear una nueva alternativa con ID temporal que reemplaza a la original
+            const newTempId = `temp_${Date.now()}`;
+            
+            // Guardar una copia completa de la alternativa original para referencia
+            const originalData = prevAlternatives[existingIndex];
+            
+            const replacementAlternative = {
+                ...alternativaCopy,
+                id: newTempId,
+                original_id: alternativaCopy.id, // Guardar referencia al ID original
+                _isReplacement: true, // Marcar como reemplazo
+                _lastUpdated: new Date().getTime(),
+                // Mantener el mismo número de orden
+                numerorden: alternativaCopy.numerorden || selectedOrder.numero_correlativo
+                // No guardar _originalData ya que no existe en la tabla
+            };
+            
+            console.log('Reemplazando alternativa pre-cargada con nueva versión:', replacementAlternative);
+            
+            // Filtrar la alternativa original y agregar la nueva versión
+            return [
+                ...prevAlternatives.filter(alt => String(alt.id) !== String(alternativaCopy.id)),
+                replacementAlternative
+            ];
+        } 
+        // Si es una alternativa temporal o ya es un reemplazo, solo actualizamos sus datos
+        else if (existingIndex >= 0) {
+            const updatedAlternatives = [...prevAlternatives];
+            updatedAlternatives[existingIndex] = {
+                ...alternativaCopy,
+                _lastUpdated: new Date().getTime(),
+                // Asegurarse de mantener el mismo número de orden
+                numerorden: prevAlternatives[existingIndex].numerorden || selectedOrder.numero_correlativo
+            };
+            
+            console.log('Actualizando alternativa temporal:', updatedAlternatives[existingIndex]);
+            return updatedAlternatives;
+        } 
+        // Si es una alternativa completamente nueva
+        else {
+            const newTempId = `temp_${Date.now()}`;
+            const newAlternative = {
+                ...alternativaCopy,
+                id: String(alternativaCopy.id).startsWith('temp_') ? alternativaCopy.id : newTempId,
+                numerorden: selectedOrder.numero_correlativo,
+                _lastUpdated: new Date().getTime()
+            };
+            console.log('Nueva alternativa agregada:', newAlternative);
+            return [...prevAlternatives, newAlternative];
+        }
+    });
+    
+    // Mostrar mensaje de confirmación
+    Swal.fire({
+        icon: 'success',
+        title: 'Guardado',
+        text: 'La alternativa ha sido guardada correctamente',
+        timer: 1500,
+        showConfirmButton: false
+    });
+    
+    // Limpiar la selección para volver a la lista
+    setSelectedAlternativeToReplace(null);
+    setIsCreatingNewAlternative(false);
+};
+    
+    // Agregar función para eliminar una alternativa (solo de la lista temporal)
+    const handleDeleteAlternative = (alternativeId) => {
+        setModifiedAlternatives(prevAlternatives => 
+            prevAlternatives.filter(alt => alt.id !== alternativeId)
+        );
+    };
 
-
+   // Agregar función para guardar y reemplazar la orden
+// Modifica la función handleSaveAndReplaceOrder para corregir el tipo de dato
+const handleSaveAndReplaceOrder = async () => {
+    try {
+        setLoading(true);
+        
+        // 1. Marcar la orden original como anulada
+        const { error: cancelError } = await supabase
+            .from('OrdenesDePublicidad')
+            .update({ 
+                estado: 'anulada'
+            })
+            .eq('id_ordenes_de_comprar', selectedOrder.id_ordenes_de_comprar);
+        
+        if (cancelError) throw cancelError;
+        
+        // 2. Crear una nueva orden con los datos base de la orden original
+        const { data: newOrder, error: newOrderError } = await supabase
+            .from('OrdenesDePublicidad')
+            .insert({
+                numero_correlativo: selectedOrder.numero_correlativo,
+                id_plan: selectedOrder.id_plan,
+                id_campania: selectedOrder.id_campania,
+                id_contrato: selectedOrder.id_contrato,
+                id_soporte: selectedOrder.id_soporte,
+                usuario_registro: selectedOrder.usuario_registro,
+                estado: 'activa',
+                // Corregir la lógica para el campo copia
+                copia: selectedOrder.copia === null || selectedOrder.copia === undefined ? 2 : (selectedOrder.copia + 1),
+                orden_remplaza: selectedOrder.id_ordenes_de_comprar
+            })
+            .select();
+        
+        if (newOrderError) throw newOrderError;
+        
+        // 3. Crear nuevas alternativas basadas en las modificadas
+        const newAlternativesPromises = modifiedAlternatives.map(async (alt) => {
+            // Crear una copia para no modificar el original
+            const alternativaData = { ...alt };
+            
+            // Eliminar el id si es temporal o si es una alternativa reemplazada
+            if (alternativaData.id && (
+                String(alternativaData.id).startsWith('temp_') || 
+                alternativaData._isReplacement
+            )) {
+                delete alternativaData.id;
+            }
+            
+            // IMPORTANTE: Siempre eliminar el ID para permitir que la base de datos genere uno nuevo
+            delete alternativaData.id;
+            
+            // Eliminar campos internos de control que no existen en la tabla
+            delete alternativaData._lastUpdated;
+            delete alternativaData._isReplacement;
+            delete alternativaData.original_id;
+            delete alternativaData._originalData;
+            
+            // Corregir los nombres de las columnas
+            // Cambiar id_anio a anio si existe
+            if (alternativaData.id_anio !== undefined) {
+                alternativaData.anio = alternativaData.id_anio;
+                delete alternativaData.id_anio;
+            }
+            
+            // Cambiar id_mes a mes si existe
+            if (alternativaData.id_mes !== undefined) {
+                alternativaData.mes = alternativaData.id_mes;
+                delete alternativaData.id_mes;
+            }
+            
+            // Cambiar id_orden a numerorden si existe
+            if (alternativaData.id_orden !== undefined) {
+                alternativaData.numerorden = alternativaData.id_orden;
+                delete alternativaData.id_orden;
+            }
+            
+            // Cambiar id_contrato a num_contrato si existe
+            if (alternativaData.id_contrato !== undefined) {
+                alternativaData.num_contrato = alternativaData.id_contrato;
+                delete alternativaData.id_contrato;
+            }
+            
+            // Cambiar id_medio a medio si existe
+            if (alternativaData.id_medio !== undefined) {
+                alternativaData.medio = alternativaData.id_medio;
+                delete alternativaData.id_medio;
+            }
+            
+           // Asegurarse de que calendar sea un string JSON
+           if (alternativaData.cantidades && Array.isArray(alternativaData.cantidades)) {
+            // Guardar directamente el array de cantidades como calendar
+            alternativaData.calendar = alternativaData.cantidades;
+            delete alternativaData.cantidades;
+        } else if (alternativaData.calendar && typeof alternativaData.calendar === 'string') {
+            // Si calendar ya es un string, parsearlo para convertirlo a array
+            try {
+                alternativaData.calendar = JSON.parse(alternativaData.calendar);
+            } catch (e) {
+                console.error('Error al parsear calendar:', e);
+                alternativaData.calendar = [];
+            }
+        }
+            
+            // Eliminar objetos relacionados que no deben insertarse
+            delete alternativaData.Anios;
+            delete alternativaData.Meses;
+            delete alternativaData.Contratos;
+            delete alternativaData.Soportes;
+            delete alternativaData.Clasificacion;
+            delete alternativaData.Temas;
+            delete alternativaData.Programas;
+            delete alternativaData.Medios;
+            
+            // Asegurarse de que los campos booleanos sean números
+            Object.keys(alternativaData).forEach(key => {
+                if (typeof alternativaData[key] === 'boolean') {
+                    alternativaData[key] = alternativaData[key] ? 1 : 0;
+                }
+            });
+            
+            // Asegurarse de que id_campania esté incluido
+            alternativaData.id_campania = selectedOrder.id_campania;
+            
+            console.log('Insertando alternativa con datos:', alternativaData);
+            
+            // Crear nueva alternativa
+            const { data: newAlternative, error: altError } = await supabase
+                .from('alternativa')
+                .insert({
+                    ...alternativaData,
+                    // Usar numero_correlativo en lugar de id_ordenes_de_comprar para numerorden
+                    numerorden: newOrder[0].numero_correlativo,
+                    // Establecer copia igual que en la orden
+                    copia: newOrder[0].copia
+                })
+                .select();
+            
+            if (altError) {
+                console.error('Error al insertar alternativa:', altError);
+                throw altError;
+            }
+            
+            return newAlternative[0];
+        });
+        
+        // Esperar a que todas las alternativas se creen y obtener los resultados
+        const createdAlternatives = await Promise.all(newAlternativesPromises);
+        
+        // 4. Actualizar la nueva orden con la lista de IDs de alternativas
+        const alternativeIds = createdAlternatives.map(alt => alt.id);
+        
+        const { error: updateOrderError } = await supabase
+            .from('OrdenesDePublicidad')
+            .update({
+                alternativas_plan_orden: alternativeIds
+            })
+            .eq('id_ordenes_de_comprar', newOrder[0].id_ordenes_de_comprar);
+        
+        if (updateOrderError) throw updateOrderError;
+        
+        // 5. Registrar en la tabla plan_alternativas
+        const planAlternativasData = alternativeIds.map(altId => ({
+            id_plan: selectedOrder.id_plan,
+            id_alternativa: altId
+        }));
+        
+        console.log('Insertando en plan_alternativas:', planAlternativasData);
+        
+        const { error: planAltError } = await supabase
+            .from('plan_alternativas')
+            .insert(planAlternativasData);
+        
+        if (planAltError) {
+            console.error('Error al insertar en plan_alternativas:', planAltError);
+            throw planAltError;
+        }
+        
+        // 6. Limpiar las alternativas temporales del sessionStorage
+        sessionStorage.removeItem('tempAlternativas');
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: 'La orden ha sido anulada y reemplazada correctamente'
+        });
+        
+        // Actualizar la lista de órdenes
+        fetchOrders(selectedCampana.id_campania);
+        setOpenReplaceModal(false);
+        
+    } catch (error) {
+        console.error('Error al anular y reemplazar:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo anular y reemplazar la orden: ' + error.message
+        });
+    } finally {
+        setLoading(false);
+    }
+};
 
     useEffect(() => {
     fetchClientes();
@@ -287,71 +700,88 @@ const RevisarOrden = () => {
     };
 
     const fetchAlternatives = async (alternativeIds) => {
-    if (!alternativeIds || alternativeIds.length === 0) return;
-    
-    try {
-    setLoading(true);
-    const { data, error } = await supabase
-    .from('alternativa')
-    .select(`
-    *,
-    Anios (
-    id,
-    years
-    ),
-    Meses (
-    Id,
-    Nombre
-    ),
-    Contratos!inner (
-                    id,
-                    NombreContrato,
-                    num_contrato,
-                    id_FormadePago,
-                    IdProveedor,
-                    FormaDePago (
+        if (!alternativeIds || alternativeIds.length === 0) return;
+        
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('alternativa')
+                .select(`
+                    *,
+                    Anios (
                         id,
-                        NombreFormadePago
+                        years
                     ),
-    Proveedores (
-    id_proveedor,
-    nombreProveedor,
-    rutProveedor,
-    direccionFacturacion,
-    id_comuna
-    )
-    ),
-    tipo_item,
-    Soportes (
-    id_soporte,
-    nombreIdentficiador
-    ),
-    Clasificacion (
-    id,
-    NombreClasificacion
-    ),
-    Temas (
-    id_tema,
-    NombreTema,
-    Duracion
-    ),
-    Programas (
-    id,
-    codigo_programa,
-    hora_inicio,
-    hora_fin,
-    descripcion
-    )
-    `)
-    .in('id', alternativeIds);
-    
-    if (error) throw error;
-    setAlternatives(data || []);
-    } catch (error) {
-    console.error('Error fetching alternatives:', error);
-    } finally {
-    setLoading(false);
-    }
+                    Meses (
+                        Id,
+                        Nombre
+                    ),
+                    Contratos!inner (
+                        id,
+                        NombreContrato,
+                        num_contrato,
+                        id_FormadePago,
+                        IdProveedor,
+                        FormaDePago (
+                            id,
+                            NombreFormadePago
+                        ),
+                        Proveedores (
+                            id_proveedor,
+                            nombreProveedor,
+                            rutProveedor,
+                            direccionFacturacion,
+                            id_comuna
+                        )
+                    ),
+                    tipo_item,
+                    Soportes (
+                        id_soporte,
+                        nombreIdentficiador
+                    ),
+                    Clasificacion (
+                        id,
+                        NombreClasificacion
+                    ),
+                    Temas (
+                        id_tema,
+                        NombreTema,
+                        Duracion
+                    ),
+                    Programas (
+                        id,
+                        codigo_programa,
+                        hora_inicio,
+                        hora_fin,
+                        descripcion
+                    )
+                `)
+                .in('id', alternativeIds);
+            
+            if (error) throw error;
+            
+            // Procesar los datos para asegurarse de que cantidades esté disponible para la UI
+            const processedData = (data || []).map(alt => {
+                // Si calendar existe y es un string JSON, convertirlo a cantidades para la UI
+                if (alt.calendar && typeof alt.calendar === 'string') {
+                    try {
+                        alt.cantidades = JSON.parse(alt.calendar);
+                    } catch (e) {
+                        console.error('Error al parsear calendar:', e);
+                        alt.cantidades = [];
+                    }
+                } else {
+                    alt.cantidades = [];
+                }
+                return alt;
+            });
+            
+            setAlternatives(processedData);
+        } catch (error) {
+            console.error('Error fetching alternatives:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
 
@@ -613,136 +1043,173 @@ const RevisarOrden = () => {
 
 
 											    {/* Add the new Replace Modal */}
-												<Dialog 
-                open={openReplaceModal} 
-                maxWidth="xl" 
-                fullWidth
-                onClose={() => setOpenReplaceModal(false)}
+                                                <Dialog 
+    open={openReplaceModal} 
+    maxWidth="1650px" 
+    fullWidth
+    onClose={() => setOpenReplaceModal(false)}
+    PaperProps={{
+        sx: {
+            maxHeight: '90vh',
+            height: '90vh'
+        }
+    }}
+>
+    <DialogTitle sx={{ m: 0, p: 2 }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6">Anular y Reemplazar Orden</Typography>
+            <IconButton
+                aria-label="close"
+                onClick={() => setOpenReplaceModal(false)}
+                sx={{ color: (theme) => theme.palette.grey[500] }}
             >
-                <DialogTitle sx={{ m: 0, p: 2 }}>
-                    <Box display="flex" alignItems="center" justifyContent="space-between">
-
-                        <Typography variant="h6">Estas anulando reemplazando los datos de la orden</Typography>
-
-                        <IconButton
-                            aria-label="close"
-                            onClick={() => setOpenReplaceModal(false)}
-                            sx={{ color: (theme) => theme.palette.grey[500] }}
-                        >
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
-                </DialogTitle>
-                <DialogContent>
-                    <Grid container spacing={2}>
-
-                        <Grid item xs={4.8}>
-
-                            <Paper sx={{ p: 2, height: '100%' }}>
-                                <Typography variant="h6" gutterBottom>
-                                    Alternativas de la Orden
-                                </Typography>
-                                <TableContainer>
-                                    <Table size="small">
-                                        <TableHead>
-                                            <TableRow>
-                                                <TableCell>N° Orden</TableCell>
-                                                <TableCell>Soporte</TableCell>
-                                                <TableCell>Tipo Item</TableCell>
-                                                <TableCell>Acción</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            {alternatives.map((alternative) => (
-                                                <TableRow 
-                                                    key={alternative.id}
-                                                    sx={{ 
-                                                        cursor: 'pointer',
-                                                        backgroundColor: selectedAlternativeToReplace?.id === alternative.id 
-                                                            ? 'rgba(0, 0, 0, 0.04)' 
-                                                            : 'inherit'
-                                                    }}
-                                                >
-                                                    <TableCell>{alternative.numerorden}</TableCell>
-                                                    <TableCell>{alternative.Soportes?.nombreIdentficiador}</TableCell>
-                                                    <TableCell>{alternative.tipo_item}</TableCell>
-                                                    <TableCell>
-                                                        <Button
-                                                            variant="contained"
-                                                            size="small"
-                                                            onClick={() => setSelectedAlternativeToReplace(alternative)}
-                                                        >
-                                                            Seleccionar
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                            </Paper>
-                        </Grid>
-
-                        <Grid item xs={7.2}>
-
-                            <Paper sx={{ p: 2, height: '100%' }}>
-                                {selectedAlternativeToReplace ? (
-                                    <>
-                                        <Typography variant="h6" gutterBottom>
-                                            Editar Alternativa
-                                        </Typography>
-
-                                        <EditarAlternativa 
-                                            alternativaId={selectedAlternativeToReplace.id}
-                                            onSave={() => {
-                                                if (selectedOrder) {
-                                                    supabase
-                                                        .from('alternativa')
-                                                        .select('*, Anios(*), Meses(*), Contratos(*), Soportes(*), Clasificacion(*), Temas(*), Programas(*)')
-                                                        .eq('id_orden', selectedOrder.id)
-                                                        .order('numerorden', { ascending: true })
-                                                        .then(({ data, error }) => {
-                                                            if (!error && data) {
-                                                                setAlternatives(data);
-                                                                setOpenReplaceModal(false);
-                                                                setSelectedAlternativeToReplace(null);
-                                                            }
-                                                        });
-                                                }
-                                            }}
-                                            onCancel={() => {
-                                                setSelectedAlternativeToReplace(null);
-                                            }}
-                                        />
-
-                                    </>
-                                ) : (
-                                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                                        <Typography color="textSecondary">
-                                            Seleccione una alternativa para editar
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Paper>
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpenReplaceModal(false)} color="primary">
-                        Cancelar
-                    </Button>
+                <CloseIcon />
+            </IconButton>
+        </Box>
+    </DialogTitle>
+    <DialogContent sx={{ p: 2 }}>
+        <Grid container spacing={2}>
+            <Grid item xs={12}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="subtitle1">
+                        Orden: {selectedOrder?.numero_correlativo} - {selectedOrder?.plan?.nombre_plan}
+                    </Typography>
                     <Button 
                         variant="contained" 
                         color="primary"
-
-                        onClick={() => setOpenReplaceModal(false)}
-                        disabled={!selectedAlternativeToReplace}
+                        onClick={handleCreateNewAlternative}
                     >
-                        Guardar y reemplazar orden
-
+                        Agregar Nueva Alternativa
                     </Button>
-                </DialogActions>
-            </Dialog>
+                </Box>
+            </Grid>
+
+            <Grid item xs={4}>
+                <Paper sx={{ p: 2, height: '100%' }}>
+                    <Typography variant="h6" gutterBottom>
+                        Alternativas de la Orden
+                    </Typography>
+                    <TableContainer sx={{ maxHeight: '65vh' }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell  sx={{ fontSize: '10px' }}>N° Orden</TableCell>
+                                    <TableCell sx={{ fontSize: '10px' }}>Soporte</TableCell>
+                                    <TableCell sx={{ fontSize: '10px' }}>Tipo Item</TableCell>
+                                    <TableCell sx={{ fontSize: '10px' }}>Acciones</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {modifiedAlternatives.map((alternative) => (
+                                    <TableRow 
+                                        key={alternative.id}
+                                        sx={{ 
+                                            cursor: 'pointer',
+                                            backgroundColor: selectedAlternativeToReplace?.id === alternative.id 
+                                                ? 'rgba(0, 0, 0, 0.04)' 
+                                                : 'inherit'
+                                        }}
+                                    >
+                                        <TableCell sx={{ fontSize: '10px' }}>{alternative.numerorden}</TableCell>
+                                        <TableCell sx={{ fontSize: '10px' }}>{alternative.Soportes?.nombreIdentficiador}</TableCell>
+                                        <TableCell sx={{ fontSize: '10px' }}>{alternative.tipo_item}</TableCell>
+                                        <TableCell sx={{ fontSize: '10px' }}>
+                                        <ButtonGroup size="small">
+                                        <Button sx={{ fontSize: '10px', marginRight:'10px' }} 
+    variant="contained"
+    onClick={() => {
+        // Asegurarse de que se carga la alternativa completa y actualizada
+        // Usar toString() para evitar problemas de comparación entre tipos
+        const alternativaCompleta = modifiedAlternatives.find(alt => String(alt.id) === String(alternative.id));
+        console.log('Alternativa seleccionada para editar:', alternativaCompleta);
+        
+        if (!alternativaCompleta) {
+            console.error('No se encontró la alternativa con ID:', alternative.id);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se encontró la alternativa seleccionada'
+            });
+            return;
+        }
+        
+        // Crear una copia fresca para evitar referencias compartidas
+        const freshCopy = JSON.parse(JSON.stringify(alternativaCompleta));
+        
+        // Agregar marca de tiempo para forzar actualización
+        freshCopy._lastUpdated = new Date().getTime();
+        
+        setSelectedAlternativeToReplace(freshCopy);
+        setIsCreatingNewAlternative(false);
+    }}
+>
+    Editar
+</Button>
+    <Button sx={{ fontSize: '10px' }} 
+        variant="contained"
+        color="error"
+        onClick={() => handleDeleteAlternative(alternative.id)}
+    >
+        Eliminar
+    </Button>
+</ButtonGroup>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Paper>
+            </Grid>
+
+            <Grid item xs={8}>
+                <Paper sx={{ p: 2, height: '100%', overflowY: 'auto' }}>
+                    {(selectedAlternativeToReplace || isCreatingNewAlternative) ? (
+                        <>
+                            <Typography variant="h6" gutterBottom>
+                                {isCreatingNewAlternative ? 'Crear Nueva Alternativa' : 'Editar Alternativa'}
+                            </Typography>
+
+                            <EditarAlternativaReemplazo 
+    alternativaId={selectedAlternativeToReplace?.id}
+    isCreatingNew={isCreatingNewAlternative}
+    initialData={selectedAlternativeToReplace}
+    onSave={handleSaveModifiedAlternative}
+    onCancel={() => {
+        setSelectedAlternativeToReplace(null);
+        setIsCreatingNewAlternative(false);
+    }}
+    // Indicar si debe usar los datos proporcionados directamente (para IDs temporales)
+    useProvidedDataOnly={String(selectedAlternativeToReplace?.id || '').startsWith('temp_')}
+    // Usar un key único que incluya un timestamp para forzar re-render
+    key={`alt-${selectedAlternativeToReplace?.id || 'new'}-${selectedAlternativeToReplace?._lastUpdated || new Date().getTime()}`}
+/>
+                        </>
+                    ) : (
+                        <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                            <Typography color="textSecondary">
+                                Seleccione una alternativa para editar o cree una nueva
+                            </Typography>
+                        </Box>
+                    )}
+                </Paper>
+            </Grid>
+        </Grid>
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={() => setOpenReplaceModal(false)} color="primary">
+            Cancelar
+        </Button>
+        <Button 
+            variant="contained" 
+            color="primary"
+            onClick={handleSaveAndReplaceOrder}
+            disabled={loading || modifiedAlternatives.length === 0}
+        >
+            {loading ? <CircularProgress size={24} /> : 'Guardar y Reemplazar Orden'}
+        </Button>
+    </DialogActions>
+</Dialog>
 
     {/* Alternativas - Solo se muestra si hay una orden seleccionada y no está anulada */}
     {selectedOrder && selectedOrder.estado !== 'anulada' && (
