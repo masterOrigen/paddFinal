@@ -344,70 +344,93 @@ const handleCrearOrden = async () => {
       throw errorCorrelativo;
     }
 
-    const nuevoCorrelativo = (ultimaOrden?.numero_correlativo || 33992) + 1;
+    let nuevoCorrelativo = (ultimaOrden?.numero_correlativo || 33992) + 1;
 
-    // Obtener la primera alternativa seleccionada para extraer contrato y soporte
-    const primeraAlternativa = alternativas.find(alt => alt.id === selectedAlternativas[0]);
-    
-    // Extraer id_contrato y id_soporte de la primera alternativa
-    const id_contrato = primeraAlternativa?.Contratos?.id || null;
-    const id_soporte = primeraAlternativa?.Soportes?.id_soporte || null;
+    // Obtener las alternativas seleccionadas
+    const alternativasSeleccionadas = alternativas.filter(alt => selectedAlternativas.includes(alt.id));
 
-    console.log('Datos de contrato y soporte extraídos:', { id_contrato, id_soporte });
+    // Agrupar alternativas por soporte, contrato y proveedor
+    const alternativasPorGrupo = alternativasSeleccionadas.reduce((acc, alt) => {
+      const soporteId = alt.Soportes?.id_soporte;
+      const contratoId = alt.Contratos?.id;
+      const proveedorId = alt.Contratos?.IdProveedor;
+      
+      // Crear una clave única combinando soporte, contrato y proveedor
+      const grupoKey = `${soporteId}-${contratoId}-${proveedorId}`;
+      
+      if (!acc[grupoKey]) {
+        acc[grupoKey] = {
+          alternativas: [],
+          soporte: alt.Soportes,
+          contrato: alt.Contratos,
+          proveedor: alt.Contratos?.Proveedores
+        };
+      }
+      acc[grupoKey].alternativas.push(alt);
+      return acc;
+    }, {});
 
-    // Crear el registro en OrdenesDePublicidad
-    const { data, error } = await supabase
-      .from('OrdenesDePublicidad')
-      .insert({
-        id_campania: selectedCampana.id_campania,
-        id_plan: selectedPlan.id,
-        id_compania: selectedCampana.id_compania,
-        alternativas_plan_orden: selectedAlternativas,
-        numero_correlativo: nuevoCorrelativo,
-        id_contrato: id_contrato, // Agregar id_contrato
-        id_soporte: id_soporte,   // Agregar id_soporte
-        usuario_registro: user2 ? {
-          nombre: user2.Nombre,
-          email: user2.Email
-        } : null
-      })
-      .select()
-      .single();
-      console.log('Datos del usuario a registrar:', {
-        nombre: user2?.Nombre,
-        email: user2?.Email
-      });
-    if (error) {
-      console.error('Error al crear la orden:', error);
-      throw error;
+    // Para cada grupo (combinación única de soporte, contrato y proveedor), crear una orden y un PDF independiente
+    for (const [grupoKey, grupo] of Object.entries(alternativasPorGrupo)) {
+      const altsDelGrupo = grupo.alternativas;
+      
+      // Crear el registro en OrdenesDePublicidad
+      const { data, error } = await supabase
+        .from('OrdenesDePublicidad')
+        .insert({
+          id_campania: selectedCampana.id_campania,
+          id_plan: selectedPlan.id,
+          id_compania: selectedCampana.id_compania,
+          alternativas_plan_orden: altsDelGrupo.map(alt => alt.id),
+          numero_correlativo: nuevoCorrelativo,
+          usuario_registro: user2 ? {
+            nombre: user2.Nombre,
+            email: user2.Email
+          } : null,
+          // Solo incluir los campos que existen en la tabla
+          id_soporte: grupo.soporte?.id_soporte,
+          id_contrato: grupo.contrato?.id
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error al crear la orden:', error);
+        throw error;
+      }
+
+      // Actualizar las alternativas de este grupo
+      const { error: updateError } = await supabase
+        .from('alternativa')
+        .update({ 
+          ordencreada: true,
+          numerorden: nuevoCorrelativo
+        })
+        .in('id', altsDelGrupo.map(alt => alt.id));
+
+      if (updateError) {
+        console.error('Error al actualizar alternativas:', updateError);
+        throw updateError;
+      }
+
+      // Generar el PDF para este grupo de alternativas
+      generateOrderPDF(data, altsDelGrupo, selectedCliente, selectedCampana, selectedPlan);
+
+      // Incrementar el correlativo para la siguiente orden
+      nuevoCorrelativo++;
     }
 
-    // Actualizar las alternativas seleccionadas
-    const { error: updateError } = await supabase
-      .from('alternativa')
-      .update({ 
-        ordencreada: true,
-        numerorden: nuevoCorrelativo
-      })
-      .in('id', selectedAlternativas);
-
-    if (updateError) {
-      console.error('Error al actualizar alternativas:', updateError);
-      throw updateError;
-    }
-
-    // Resto del código existente...
+    // Mostrar mensaje de éxito
+    const cantidadOrdenes = Object.keys(alternativasPorGrupo).length;
     Swal.fire({
       icon: 'success',
       title: '¡Éxito!',
-      text: `La orden N°${nuevoCorrelativo} ha sido creada correctamente`,
+      text: cantidadOrdenes > 1 
+        ? `Se han creado ${cantidadOrdenes} órdenes correctamente`
+        : 'La orden ha sido creada correctamente',
       showConfirmButton: true,
       timer: 2000
     });
-
-    // Generar el PDF
-    const alternativasSeleccionadas = alternativas.filter(alt => selectedAlternativas.includes(alt.id));
-    generateOrderPDF(data, alternativasSeleccionadas, selectedCliente, selectedCampana, selectedPlan);
 
     // Refrescar la tabla de alternativas
     await fetchAlternativas();
