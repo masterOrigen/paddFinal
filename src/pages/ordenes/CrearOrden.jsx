@@ -387,10 +387,9 @@ const [user2] = useState(JSON.parse(localStorage.getItem('user')));
               nombre: user2.Nombre,
               email: user2.Email
             } : null,
-            // Agregar información adicional del grupo
+            // Solo incluir los campos que existen en la tabla
             id_soporte: grupo.soporte?.id_soporte,
-            id_contrato: grupo.contrato?.id,
-            id_proveedor: grupo.proveedor?.id_proveedor
+            id_contrato: grupo.contrato?.id
           })
           .select()
           .single();
