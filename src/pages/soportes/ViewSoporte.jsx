@@ -345,7 +345,7 @@ const ViewSoporte = () => {
       console.log('Fetching programas for soporte_id:', id);
       const { data, error } = await supabase
         .from('Programas')
-        .select('*')
+        .select('*, c_orden')
         .eq('soporte_id', id);
 
       if (error) throw error;
@@ -584,6 +584,7 @@ const ViewSoporte = () => {
 
   // Función para editar un programa
   const handleEditPrograma = async () => {
+
     try {
       const { id: programaId, ...formData } = programaForm;
       
@@ -672,6 +673,15 @@ const ViewSoporte = () => {
 
   // Función para iniciar la edición de un programa
   const startEditPrograma = (programa) => {
+    if (programa.c_orden === true) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No se puede editar',
+        text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+        confirmButtonColor: '#3085d6',
+      });
+      return;
+    }
     setProgramaForm({
       id: programa.id,
       codigo_programa: programa.codigo_programa,
