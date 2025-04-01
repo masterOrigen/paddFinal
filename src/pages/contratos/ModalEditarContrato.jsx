@@ -44,23 +44,37 @@ const ModalEditarContrato = ({ open, onClose, contrato, onContratoUpdated, clien
     const [medios, setMedios] = useState([]);
     const [formasPago, setFormasPago] = useState([]);
     const [tiposOrden, setTiposOrden] = useState([]);
-
     useEffect(() => {
-        if (contrato) {
+        if (contrato && open) {
             console.log('Contrato recibido:', contrato); // Para debugging
+            
+            // Asegurarse de que todos los campos estén correctamente mapeados
             setFormData({
                 NombreContrato: contrato.NombreContrato || '',
                 IdCliente: clienteId || contrato.IdCliente || '',
                 IdProveedor: contrato.IdProveedor || '',
                 IdMedios: contrato.IdMedios || '',
-                FechaInicio: contrato.FechaInicio ? contrato.FechaInicio.split('T')[0] : '',
-                FechaTermino: contrato.FechaTermino ? contrato.FechaTermino.split('T')[0] : '',
+                FechaInicio: contrato.FechaInicio ? new Date(contrato.FechaInicio).toISOString().split('T')[0] : '',
+                FechaTermino: contrato.FechaTermino ? new Date(contrato.FechaTermino).toISOString().split('T')[0] : '',
+                Estado: contrato.Estado || 'Vigente',
+                id_FormadePago: contrato.id_FormadePago || '',
+                id_GeneraracionOrdenTipo: contrato.id_GeneraracionOrdenTipo || ''
+            });
+            
+            // Añadir un log para verificar que formData se está actualizando
+            console.log('FormData actualizado:', {
+                NombreContrato: contrato.NombreContrato || '',
+                IdCliente: clienteId || contrato.IdCliente || '',
+                IdProveedor: contrato.IdProveedor || '',
+                IdMedios: contrato.IdMedios || '',
+                FechaInicio: contrato.FechaInicio ? new Date(contrato.FechaInicio).toISOString().split('T')[0] : '',
+                FechaTermino: contrato.FechaTermino ? new Date(contrato.FechaTermino).toISOString().split('T')[0] : '',
                 Estado: contrato.Estado || 'Vigente',
                 id_FormadePago: contrato.id_FormadePago || '',
                 id_GeneraracionOrdenTipo: contrato.id_GeneraracionOrdenTipo || ''
             });
         }
-    }, [contrato, clienteId]);
+    }, [contrato, clienteId, open]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -162,7 +176,8 @@ const ModalEditarContrato = ({ open, onClose, contrato, onContratoUpdated, clien
             [name]: value
         }));
     };
-
+    // Añadir justo antes del return
+    console.log('Rendering with formData:', formData);
     if (loadingData) {
         return (
             <Grid container justifyContent="center" sx={{ py: 3 }}>
