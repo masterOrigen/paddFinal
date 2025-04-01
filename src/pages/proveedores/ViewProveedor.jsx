@@ -314,7 +314,7 @@ const ViewProveedor = () => {
           // Obtener detalles de los soportes
           const { data: soportesData, error: soportesDetailsError } = await supabase
             .from('Soportes')
-            .select('*')
+            .select('*, c_orden')
             .in('id_soporte', idsSoportes);
 
           if (soportesDetailsError) {
@@ -661,6 +661,16 @@ const ViewProveedor = () => {
   };
 
   const handleEditSoporte = async (soporte) => {
+      // Verificar si el soporte forma parte de una orden creada
+      if (soporte.c_orden === true) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No se puede editar',
+          text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+          confirmButtonColor: '#3085d6',
+        });
+        return;
+      }
     try {
       showLoading();
       
