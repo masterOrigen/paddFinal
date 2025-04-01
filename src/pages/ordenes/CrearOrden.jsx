@@ -370,6 +370,13 @@ const handleCrearOrden = async () => {
       return acc;
     }, {});
 
+     // Recolectar IDs únicos para actualizar las tablas relacionadas
+     const campaniaId = selectedCampana.id_campania;
+     const soporteIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Soportes?.id_soporte).filter(Boolean))];
+     const contratoIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Contratos?.id).filter(Boolean))];
+     const temaIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Temas?.id_tema).filter(Boolean))];
+     const programaIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Programas?.id).filter(Boolean))];
+
     // Para cada grupo (combinación única de soporte, contrato y proveedor), crear una orden y un PDF independiente
     for (const [grupoKey, grupo] of Object.entries(alternativasPorGrupo)) {
       const altsDelGrupo = grupo.alternativas;
@@ -419,6 +426,62 @@ const handleCrearOrden = async () => {
       // Incrementar el correlativo para la siguiente orden
       nuevoCorrelativo++;
     }
+
+       // Actualizar campo c_orden en las tablas relacionadas
+       const updatePromises = [];
+
+       // Actualizar campaña
+       if (campaniaId) {
+         updatePromises.push(
+           supabase
+             .from('Campania')
+             .update({ c_orden: true })
+             .eq('id_campania', campaniaId)
+         );
+       }
+   
+       // Actualizar soportes
+       if (soporteIds.length > 0) {
+         updatePromises.push(
+           supabase
+             .from('Soportes')
+             .update({ c_orden: true })
+             .in('id_soporte', soporteIds)
+         );
+       }
+   
+       // Actualizar contratos
+       if (contratoIds.length > 0) {
+         updatePromises.push(
+           supabase
+             .from('Contratos')
+             .update({ c_orden: true })
+             .in('id', contratoIds)
+         );
+       }
+   
+       // Actualizar temas
+       if (temaIds.length > 0) {
+         updatePromises.push(
+           supabase
+             .from('Temas')
+             .update({ c_orden: true })
+             .in('id_tema', temaIds)
+         );
+       }
+   
+       // Actualizar programas
+       if (programaIds.length > 0) {
+         updatePromises.push(
+           supabase
+             .from('Programas')
+             .update({ c_orden: true })
+             .in('id', programaIds)
+         );
+       }
+   
+       // Ejecutar todas las actualizaciones en paralelo
+       await Promise.all(updatePromises);
 
     // Mostrar mensaje de éxito
     const cantidadOrdenes = Object.keys(alternativasPorGrupo).length;
