@@ -415,19 +415,19 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
     <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>TOTAL NETO:</Text>
         <Text style={styles.totalValue}>
-            ${alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0).toLocaleString('es-CL')}
+            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0)).toLocaleString('es-CL').split(',')[0]}
         </Text>
     </View>
     <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>IVA 19%:</Text>
         <Text style={styles.totalValue}>
-            ${(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 0.19).toLocaleString('es-CL')}
+            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 0.19).toLocaleString('es-CL').split(',')[0]}
         </Text>
     </View>
     <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>TOTAL ORDEN($):</Text>
         <Text style={styles.totalValue}>
-            ${(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 1.19).toLocaleString('es-CL')}
+            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 1.19).toLocaleString('es-CL').split(',')[0]}
         </Text>
     </View>
 </View>
