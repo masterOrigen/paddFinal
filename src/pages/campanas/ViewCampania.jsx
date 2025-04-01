@@ -142,6 +142,7 @@ const ViewCampania = () => {
                         cooperado,
                         rubro,
                         estado,
+                        c_orden,
                         Medios:id_medio (
                             id,
                             NombredelMedio
@@ -282,9 +283,18 @@ const ViewCampania = () => {
     };
 
     const handleEditTema = (tema) => {
+        if (tema.c_orden === true) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No se puede editar',
+                text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+                confirmButtonColor: '#3085d6',
+            });
+            return;
+        }
         setSelectedTema(tema);
         setOpenEditTemaModal(true);
-    };
+    };  
 
     const handleDeleteTema = async (temaId) => {
         const result = await Swal.fire({
@@ -607,10 +617,7 @@ const ViewCampania = () => {
                                                 </TableCell>
                                                 <TableCell>
                                                     <IconButton 
-                                                        onClick={() => {
-                                                            setSelectedTema(tema);
-                                                            setOpenEditTemaModal(true);
-                                                        }}
+                                                        onClick={() => handleEditTema(tema)}
                                                         color="primary"
                                                         title="Editar tema"
                                                     >
