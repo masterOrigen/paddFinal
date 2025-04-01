@@ -670,6 +670,7 @@ const Alternativas = () => {
         // nlinea: alternativa.nlinea ? (Number(alternativa.nlinea) + 1).toString() : '1',
         // numerorden: nextNumeroOrden
         nlinea: null,
+        ordencreada: null,
   numerorden: null
       };
       delete duplicatedAlternativaData.id;
