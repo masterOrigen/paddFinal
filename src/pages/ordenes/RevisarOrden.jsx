@@ -1001,7 +1001,7 @@ const handleSaveAndReplaceOrder = async () => {
 								<Table>
 									<TableHead>
 										<TableRow>
-											<TableCell>ID Orden</TableCell>
+											
 											<TableCell>N° de Orden</TableCell>
 											<TableCell>N° de copias</TableCell>
 											<TableCell>Plan</TableCell>
@@ -1024,7 +1024,7 @@ const handleSaveAndReplaceOrder = async () => {
 														: 'inherit'
 												}}
 											>
-												<TableCell>{order.id_ordenes_de_comprar}</TableCell>
+												
 												<TableCell>{order.numero_correlativo || '-'}</TableCell>
 												<TableCell>{order.copia || '-'}</TableCell>
 												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>

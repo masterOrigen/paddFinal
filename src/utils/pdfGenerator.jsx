@@ -467,7 +467,7 @@ export const generateOrderPDF = async (order, alternatives, cliente, campana, pl
 		const url = window.URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.setAttribute('download', `orden_${order.id_ordenes_de_comprar}.pdf`);
+		link.setAttribute('download', `orden_${order.numero_correlativo}.pdf`);
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);

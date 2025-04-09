@@ -37,6 +37,7 @@ const Mensajes = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedMensaje, setSelectedMensaje] = useState(null);
   const [page, setPage] = useState(1);
+  const [currentUser, setCurrentUser] = useState(null);
   const [formData, setFormData] = useState({
     mensaje: '',
   });
@@ -44,7 +45,6 @@ const Mensajes = () => {
     desde: '',
     hasta: ''
   });
-
   const mensajesPorPagina = 6;
 
   const modules = {
@@ -95,6 +95,8 @@ const Mensajes = () => {
   };
 
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    setCurrentUser(user);
     fetchMensajes();
   }, []);
 
@@ -438,20 +440,24 @@ const Mensajes = () => {
                       className="mensaje-content"
                     />
                     <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleOpenDialog(mensaje)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(mensaje.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      {currentUser && mensaje.id_usuario === currentUser.id_usuario && (
+                        <>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleOpenDialog(mensaje)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDelete(mensaje.id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </>
+                      )}
                     </Box>
                   </CardContent>
                 </Card>
