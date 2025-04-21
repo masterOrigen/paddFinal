@@ -87,6 +87,34 @@ const RevisarOrden = () => {
     });
     }
     };
+        // Función para obtener y mostrar información detallada del contrato
+        const fetchContratoInfo = async (id_contrato) => {
+            try {
+                const { data, error } = await supabase
+                    .from('Contratos')
+                    .select(`
+                        *,
+                        cliente:Clientes(*),
+                        proveedor:Proveedores(*),
+                        medio:Medios(*),
+                        formaPago:FormaDePago(*),
+                        tipoOrden:TipoGeneracionDeOrden(*)
+                    `)
+                    .eq('id', id_contrato)
+                    .single();
+    
+                if (error) throw error;
+    
+                console.log('Información del contrato:', data);
+                console.log('Medio asociado (IdMedios):', data.medio);
+                console.log('Tipo de generación de orden:', data.tipoOrden);
+    
+                return data;
+            } catch (error) {
+                console.error('Error al obtener información del contrato:', error);
+                return null;
+            }
+        };
 // Modificar la función handleEditAlternative para manejar alternativas temporales
 const handleEditAlternative = (alternativa) => {
     // Si es una alternativa temporal, obtenerla del sessionStorage
@@ -1001,7 +1029,7 @@ const handleSaveAndReplaceOrder = async () => {
 								<Table>
 									<TableHead>
 										<TableRow>
-											
+											<TableCell>ID Orden</TableCell>
 											<TableCell>N° de Orden</TableCell>
 											<TableCell>N° de copias</TableCell>
 											<TableCell>Plan</TableCell>
@@ -1024,7 +1052,7 @@ const handleSaveAndReplaceOrder = async () => {
 														: 'inherit'
 												}}
 											>
-												
+												<TableCell>{order.id_ordenes_de_comprar}</TableCell>
 												<TableCell>{order.numero_correlativo || '-'}</TableCell>
 												<TableCell>{order.copia || '-'}</TableCell>
 												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
