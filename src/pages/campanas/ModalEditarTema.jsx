@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import CategoryIcon from '@mui/icons-material/Category';
+import InputAdornment from '@mui/material/InputAdornment';
 import {
     Dialog,
     DialogTitle,
@@ -23,86 +25,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
 
-const CustomCheckboxList = ({ medios, selectedMedios, onChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    
-    const handleToggle = () => setIsOpen(!isOpen);
-    
-    const handleCheckboxChange = (medioId) => {
-        const newSelection = selectedMedios.includes(medioId)
-            ? selectedMedios.filter(id => id !== medioId)
-            : [...selectedMedios, medioId];
-        onChange(newSelection);
-    };
 
-    return (
-        <FormControl fullWidth>
-            <Box sx={{ position: 'relative' }}>
-                <Box
-                    onClick={handleToggle}
-                    sx={{
-                        border: '1px solid #ccc',
-                        borderRadius: 1,
-                        p: 1,
-                        minHeight: '40px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 0.5
-                    }}
-                >
-                    {selectedMedios.length > 0 ? (
-                        selectedMedios.map(medioId => {
-                            const medio = medios.find(m => m.id_medio === medioId);
-                            return medio ? (
-                                <Chip
-                                    key={medio.id_medio}
-                                    label={medio.NombredelMedio}
-                                    onDelete={() => handleCheckboxChange(medio.id_medio)}
-                                    size="small"
-                                />
-                            ) : null;
-                        })
-                    ) : (
-                        <Typography color="text.secondary">Seleccionar medios</Typography>
-                    )}
-                </Box>
-                {isOpen && (
-                    <Paper
-                        sx={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: 0,
-                            right: 0,
-                            mt: 1,
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            zIndex: 1000,
-                            boxShadow: 3
-                        }}
-                    >
-                        <Box sx={{ p: 1 }}>
-                            {medios.map((medio) => (
-                                <FormControlLabel
-                                    key={medio.id_medio}
-                                    control={
-                                        <Checkbox
-                                            checked={selectedMedios.includes(medio.id_medio)}
-                                            onChange={() => handleCheckboxChange(medio.id_medio)}
-                                        />
-                                    }
-                                    label={medio.NombredelMedio}
-                                />
-                            ))}
-                        </Box>
-                    </Paper>
-                )}
-            </Box>
-        </FormControl>
-    );
-};
-
-const ModalEditarTema = ({ open, onClose, onTemaUpdated, temaData }) => {
+const ModalEditarTema = ({ open, onClose, onTemaUpdated, temaData, medioId, medioNombre }) => {
     const [formData, setFormData] = useState({
         NombreTema: '',
         Duracion: '',
@@ -133,13 +57,9 @@ const ModalEditarTema = ({ open, onClose, onTemaUpdated, temaData }) => {
         if (temaData) {
             console.log('Cargando datos del tema:', temaData);
             
-            // Extraer el id_medio del objeto Medios anidado si existe
-            const id_medio = temaData.Medios ? temaData.Medios.id_medio : temaData.id_medio;
-            
-            // Extraer el id_Calidad del objeto Calidad anidado si existe
+            // Prioritize medioId from props over temaData
+            const id_medio = medioId || (temaData.Medios ? temaData.Medios.id_medio : temaData.id_medio);
             const id_Calidad = temaData.Calidad ? temaData.Calidad.id_calidad : temaData.id_Calidad;
-            
-            console.log('id_Calidad extraído:', id_Calidad);
             
             setFormData({
                 NombreTema: temaData.NombreTema || '',
@@ -152,21 +72,15 @@ const ModalEditarTema = ({ open, onClose, onTemaUpdated, temaData }) => {
                 id_medio: id_medio || ''
             });
 
-            // Buscar el medio seleccionado y actualizar los campos visibles
+            // Update visible fields based on the media
             if (id_medio) {
-                console.log('Buscando medio con id:', id_medio);
                 supabase
                     .from('Medios')
                     .select('*')
                     .eq('id', id_medio)
                     .single()
                     .then(({ data: selectedMedio, error }) => {
-                        if (error) {
-                            console.error('Error al cargar medio:', error);
-                            return;
-                        }
-                        if (selectedMedio) {
-                            console.log('Medio encontrado:', selectedMedio);
+                        if (!error && selectedMedio) {
                             setVisibleFields({
                                 duracion: Boolean(selectedMedio.duracion),
                                 color: Boolean(selectedMedio.color),
@@ -178,8 +92,33 @@ const ModalEditarTema = ({ open, onClose, onTemaUpdated, temaData }) => {
                         }
                     });
             }
-        }
-    }, [temaData]);
+        } else if (medioId) {
+            // Update for new tema creation with predefined medio
+            setFormData(prev => ({
+                ...prev,
+                id_medio: medioId
+            }));
+            
+            // Fetch media details to set visible fields
+            supabase
+            .from('Medios')
+            .select('*')
+            .eq('id', medioId)
+            .single()
+            .then(({ data: selectedMedio, error }) => {
+                if (!error && selectedMedio) {
+                    setVisibleFields({
+                        duracion: Boolean(selectedMedio.duracion),
+                        color: Boolean(selectedMedio.color),
+                        codigo_megatime: Boolean(selectedMedio.codigo_megatime),
+                        calidad: Boolean(selectedMedio.calidad),
+                        cooperado: Boolean(selectedMedio.cooperado),
+                        rubro: Boolean(selectedMedio.rubro)
+                    });
+                }
+            });
+    }
+}, [temaData, medioId]);
 
     const handleMedioChange = (event) => {
         const medioId = Number(event.target.value);
@@ -332,7 +271,7 @@ const ModalEditarTema = ({ open, onClose, onTemaUpdated, temaData }) => {
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
             <DialogTitle>
-                Editar Tema
+            {temaData ? 'Editar Tema' : 'Agregar Tema'}
                 <IconButton
                     aria-label="close"
                     onClick={onClose}
@@ -348,27 +287,39 @@ const ModalEditarTema = ({ open, onClose, onTemaUpdated, temaData }) => {
             <form onSubmit={handleSubmit}>
                 <DialogContent>
                     <Grid container spacing={2}>
-                        <Grid item xs={12}>
-                            <FormControl fullWidth>
+                    <Grid item xs={12}>
+                            {medioId ? (
                                 <TextField
-                                    select
+                                    fullWidth
                                     label="Medio"
-                                    name="id_medio"
-                                    value={formData.id_medio}
-                                    onChange={handleMedioChange}
-                                    required
-                                    SelectProps={{
-                                        native: true,
+                                    value={medioNombre || ''}
+                                    disabled
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <CategoryIcon />
+                                            </InputAdornment>
+                                        ),
                                     }}
-                                >
-                                    <option value=""></option>
-                                    {medios.map((medio) => (
-                                        <option key={medio.id} value={medio.id}>
-                                            {medio.NombredelMedio}
-                                        </option>
-                                    ))}
-                                </TextField>
-                            </FormControl>
+                                />
+                            ) : (
+                                <FormControl fullWidth>
+                                    <InputLabel>Medio</InputLabel>
+                                    <Select
+                                        value={formData.id_medio}
+                                        onChange={handleMedioChange}
+                                        name="id_medio"
+                                        label="Medio"
+                                        required
+                                    >
+                                        {medios.map((medio) => (
+                                            <MenuItem key={medio.id} value={medio.id}>
+                                                {medio.NombredelMedio}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            )}
                         </Grid>
 
                         <Grid item xs={12}>
