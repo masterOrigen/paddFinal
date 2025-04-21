@@ -9,6 +9,7 @@ import {
     InputLabel,
     MenuItem,
     Select,
+    FormControlLabel, Checkbox,
     TextField,
     Typography,
     Paper,
@@ -115,8 +116,8 @@ const EditarAlternativaReemplazo = ({
     const [loadingTemas, setLoadingTemas] = useState(false);
     const [loadingProgramas, setLoadingProgramas] = useState(false);
     const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
+    const [autoFillCantidades, setAutoFillCantidades] = useState(false);
 
-    // ... existing code ...
 
     // Funciones para manejar modales
     const handleOpenTemasModal = () => {
@@ -343,434 +344,7 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
       };
   });
 };
-// Add this component for the Anular y Reemplazar modal
-const AnularReemplazarModal = ({ open, onClose }) => {
-  const [selectedAlternativa, setSelectedAlternativa] = useState(null);
-  const [openEditModal, setOpenEditModal] = useState(false);
-  
-  const handleOpenEditModal = (alternativa = null) => {
-      setSelectedAlternativa(alternativa);
-      setOpenEditModal(true);
-  };
-  
-  const handleCloseEditModal = () => {
-      setSelectedAlternativa(null);
-      setOpenEditModal(false);
-  };
-  
-  const handleSaveAlternativa = (savedAlternativa) => {
-      if (selectedAlternativa) {
-          // Editing existing alternative
-          handleEditTempAlternativa(savedAlternativa);
-      } else {
-          // Adding new alternative
-          handleAddTempAlternativa(savedAlternativa);
-      }
-      handleCloseEditModal();
-  };
-  
-  const handleDeleteAlternativa = (alternativaId) => {
-      Swal.fire({
-          title: '¿Estás seguro?',
-          text: "Esta acción no se puede revertir",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'Sí, eliminar',
-          cancelButtonText: 'Cancelar'
-      }).then((result) => {
-          if (result.isConfirmed) {
-              handleDeleteTempAlternativa(alternativaId);
-              Swal.fire(
-                  'Eliminado',
-                  'La alternativa ha sido eliminada',
-                  'success'
-              );
-          }
-      });
-  };
-  
-  // Filter out alternatives marked as deleted
-  const visibleAlternativas = tempAlternativas.filter(alt => alt._tempStatus !== 'deleted');
-  
-  return (
-      <Dialog
-          open={open}
-          onClose={onClose}
-          maxWidth="lg"
-          fullWidth
-      >
-          <DialogTitle>
-              <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-              }}>
-                  <Typography variant="h6">Anular y Reemplazar Orden</Typography>
-                  <IconButton onClick={onClose} size="small">
-                      <CloseIcon />
-                  </IconButton>
-              </Box>
-          </DialogTitle>
-          <DialogContent>
-              <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                      Esta acción anulará la orden actual y creará una nueva orden con las alternativas modificadas.
-                  </Typography>
-                  <Alert severity="warning" sx={{ mb: 2 }}>
-                      La orden original se marcará como "anulada" y se creará una nueva orden con los cambios realizados.
-                  </Alert>
-              </Box>
-              
-              <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 2
-              }}>
-                  <Typography variant="h6">Alternativas de la Orden</Typography>
-                  <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={<AddIcon />}
-                      onClick={() => handleOpenEditModal()}
-                  >
-                      Agregar Alternativa
-                  </Button>
-              </Box>
-              
-              <TableContainer component={Paper}>
-                  <Table size="small">
-                      <TableHead>
-                          <TableRow>
-                              <TableCell>ID</TableCell>
-                              <TableCell>Detalle</TableCell>
-                              <TableCell>Tipo Item</TableCell>
-                              <TableCell>Tema</TableCell>
-                              <TableCell>Programa</TableCell>
-                              <TableCell>Valor Unitario</TableCell>
-                              <TableCell>Total</TableCell>
-                              <TableCell>Estado</TableCell>
-                              <TableCell>Acciones</TableCell>
-                          </TableRow>
-                      </TableHead>
-                      <TableBody>
-                          {visibleAlternativas.length === 0 ? (
-                              <TableRow>
-                                  <TableCell colSpan={9} align="center">
-                                      No hay alternativas disponibles
-                                  </TableCell>
-                              </TableRow>
-                          ) : (
-                              visibleAlternativas.map((alt) => (
-                                  <TableRow key={alt.id}>
-                                      <TableCell>{alt.id.toString().startsWith('temp_') ? 'Nuevo' : alt.id}</TableCell>
-                                      <TableCell>{alt.detalle || 'Sin detalle'}</TableCell>
-                                      <TableCell>{alt.tipo_item || 'N/A'}</TableCell>
-                                      <TableCell>{alt.Temas?.NombreTema || alt.nombre_tema || 'N/A'}</TableCell>
-                                      <TableCell>{alt.Programas?.descripcion || alt.nombre_programa || 'N/A'}</TableCell>
-                                      <TableCell>{alt.valor_unitario ? `$${alt.valor_unitario.toLocaleString()}` : '$0'}</TableCell>
-                                      <TableCell>{alt.total_bruto ? `$${alt.total_bruto.toLocaleString()}` : '$0'}</TableCell>
-                                      <TableCell>
-                                          <Chip 
-                                              label={alt._tempStatus === 'new' ? 'Nuevo' : alt._tempStatus === 'modified' ? 'Modificado' : 'Existente'} 
-                                              color={alt._tempStatus === 'new' ? 'success' : alt._tempStatus === 'modified' ? 'warning' : 'default'}
-                                              size="small"
-                                          />
-                                      </TableCell>
-                                      <TableCell>
-                                          <IconButton
-                                              size="small"
-                                              color="primary"
-                                              onClick={() => handleOpenEditModal(alt)}
-                                              title="Editar"
-                                          >
-                                              <EditIcon fontSize="small" />
-                                          </IconButton>
-                                          <IconButton
-                                              size="small"
-                                              color="error"
-                                              onClick={() => handleDeleteAlternativa(alt.id)}
-                                              title="Eliminar"
-                                          >
-                                              <DeleteIcon fontSize="small" />
-                                          </IconButton>
-                                      </TableCell>
-                                  </TableRow>
-                              ))
-                          )}
-                      </TableBody>
-                  </Table>
-              </TableContainer>
-          </DialogContent>
-          <DialogActions>
-              <Button onClick={onClose} color="inherit">
-                  Cancelar
-              </Button>
-              <Button 
-                  onClick={handleGuardarYReemplazar} 
-                  color="primary" 
-                  variant="contained"
-                  disabled={loading}
-              >
-                  {loading ? <CircularProgress size={24} /> : 'Guardar y Reemplazar'}
-              </Button>
-          </DialogActions>
-          
-          {/* Modal for editing/adding alternatives */}
-          {openEditModal && (
-              <Dialog
-                  open={openEditModal}
-                  onClose={handleCloseEditModal}
-                  maxWidth="lg"
-                  fullWidth
-              >
-                  <DialogTitle>
-                      <Box sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                      }}>
-                          <Typography variant="h6">
-                              {selectedAlternativa ? 'Editar Alternativa' : 'Agregar Alternativa'}
-                          </Typography>
-                          <IconButton onClick={handleCloseEditModal} size="small">
-                              <CloseIcon />
-                          </IconButton>
-                      </Box>
-                  </DialogTitle>
-                  <DialogContent>
-                      <EditarAlternativaReemplazo
-                          alternativaId={selectedAlternativa?.id}
-                          isCreatingNew={!selectedAlternativa}
-                          initialData={selectedAlternativa || {
-                              id_orden: alternativa.id_orden,
-                              anio: alternativa.anio,
-                              mes: alternativa.mes
-                          }}
-                          onSave={handleSaveAlternativa}
-                          onCancel={handleCloseEditModal}
-                      />
-                  </DialogContent>
-              </Dialog>
-          )}
-      </Dialog>
-  );
-};
-// Add this state for the Anular y Reemplazar modal
-const [openAnularReemplazarModal, setOpenAnularReemplazarModal] = useState(false);
 
-// Add these functions to handle the modal
-const handleOpenAnularReemplazarModal = () => {
-    setIsAnularReemplazarMode(true);
-    setOpenAnularReemplazarModal(true);
-};
-
-const handleCloseAnularReemplazarModal = () => {
-    setIsAnularReemplazarMode(false);
-    setOpenAnularReemplazarModal(false);
-    setTempAlternativas([]);
-};
-// Function to handle the "Guardar y Reemplazar" action
-// Function to handle the "Guardar y Reemplazar" action
-const handleGuardarYReemplazar = async () => {
-  try {
-      setLoading(true);
-      
-      // 1. Get the original order data
-      const { data: ordenOriginal, error: errorOrden } = await supabase
-          .from('orden')
-          .select('*')
-          .eq('id', alternativa.id_orden || alternativa.numerorden)
-          .single();
-      
-      if (errorOrden) throw errorOrden;
-      
-      console.log("Orden original:", ordenOriginal);
-      
-      // 2. Determine the "copia" value for the new order
-      let copiaValue = 2; // Default starting value if empty
-      if (ordenOriginal.copia) {
-          // If the original order already has a copia value, increment it
-          copiaValue = parseInt(ordenOriginal.copia) + 1;
-      }
-      
-      console.log("Valor de copia para la nueva orden:", copiaValue);
-      
-      // 3. Create the new order with the correct fields for OrdenesDePublicidad
-      const nuevaOrden = {
-          numero_correlativo: ordenOriginal.numero_correlativo,
-          id_plan: ordenOriginal.id_plan,
-          id_campania: ordenOriginal.id_campania,
-          id_soporte: ordenOriginal.id_soporte,
-          id_contrato: ordenOriginal.id_contrato,
-          orden_reemplaza: ordenOriginal.id,
-          estado: 'activa',
-          copia: copiaValue.toString(),
-          fecha_registro: new Date().toISOString()
-      };
-      
-      console.log("Nueva orden a crear:", nuevaOrden);
-      
-      const { data: nuevaOrdenData, error: errorNuevaOrden } = await supabase
-          .from('orden')
-          .insert(nuevaOrden)
-          .select()
-          .single();
-      
-      if (errorNuevaOrden) {
-          console.error("Error al crear nueva orden:", errorNuevaOrden);
-          throw errorNuevaOrden;
-      }
-      
-      console.log("Nueva orden creada:", nuevaOrdenData);
-      
-      // 4. Update the original order status to "anulada"
-      const { error: errorUpdateOrden } = await supabase
-          .from('orden')
-          .update({ estado: 'anulada' })
-          .eq('id', ordenOriginal.id);
-      
-      if (errorUpdateOrden) {
-          console.error("Error al anular orden original:", errorUpdateOrden);
-          throw errorUpdateOrden;
-      }
-      
-      // 5. Get plan info to extract anio and mes
-      const { data: planData, error: errorPlan } = await supabase
-          .from('plan')
-          .select('anio, mes')
-          .eq('id', ordenOriginal.id_plan)
-          .single();
-          
-      if (errorPlan) {
-          console.error("Error al obtener información del plan:", errorPlan);
-          throw errorPlan;
-      }
-      
-      // 6. Prepare and save the alternatives with correct fields
-      let alternativasToSave = tempAlternativas.filter(alt => alt._tempStatus !== 'deleted');
-      
-      // Transform alternatives to match the database schema
-      alternativasToSave = alternativasToSave.map(alt => {
-          // Extract only the fields that exist in the alternativa table
-          const { 
-              _tempStatus, 
-              _originalData, 
-              id_orden,
-              id_contrato,
-              Anios, 
-              Meses, 
-              Contratos, 
-              Soportes, 
-              Clasificacion, 
-              Temas, 
-              Programas, 
-              Medios,
-              ...cleanAlt 
-          } = alt;
-          
-          // Remove temporary ID
-          if (cleanAlt.id && cleanAlt.id.toString().startsWith('temp_')) {
-              delete cleanAlt.id;
-          }
-          
-          // Ensure calendar is properly formatted
-          if (cleanAlt.cantidades && Array.isArray(cleanAlt.cantidades)) {
-              cleanAlt.calendar = JSON.stringify(cleanAlt.cantidades);
-              delete cleanAlt.cantidades;
-          } else if (cleanAlt.calendar && typeof cleanAlt.calendar !== 'string') {
-              cleanAlt.calendar = JSON.stringify(cleanAlt.calendar);
-          }
-          
-          // Use the correct field names
-          const alternativaData = {
-              ...cleanAlt,
-              numerorden: nuevaOrdenData.id,
-              anio: planData.anio,
-              mes: planData.mes,
-              id_campania: ordenOriginal.id_campania
-          };
-          
-          // Map id_contrato to num_contrato if it exists
-          if (id_contrato) {
-              alternativaData.num_contrato = id_contrato;
-          }
-          
-          return alternativaData;
-      });
-      
-      console.log("Alternativas preparadas para guardar:", alternativasToSave);
-      
-      // 7. Insert the alternatives
-      const { data: nuevasAlternativas, error: errorAlternativas } = await supabase
-          .from('alternativa')
-          .insert(alternativasToSave)
-          .select();
-      
-      if (errorAlternativas) {
-          console.error("Error al insertar alternativas:", errorAlternativas);
-          throw errorAlternativas;
-      }
-      
-      console.log("Nuevas alternativas creadas:", nuevasAlternativas);
-      
-      // 8. Extract the IDs of the newly created alternatives
-      const alternativasIds = nuevasAlternativas.map(alt => alt.id);
-      console.log("IDs de alternativas creadas:", alternativasIds);
-      
-      // 9. Create entries in plan_alternativas table
-      const planAlternativasEntries = nuevasAlternativas.map(alt => ({
-          id_plan: ordenOriginal.id_plan,
-          id_alternativa: alt.id
-      }));
-      
-      console.log("Entradas plan_alternativas a crear:", planAlternativasEntries);
-      
-      const { error: errorPlanAlternativas } = await supabase
-          .from('plan_alternativas')
-          .insert(planAlternativasEntries);
-      
-      if (errorPlanAlternativas) {
-          console.error("Error al crear entradas en plan_alternativas:", errorPlanAlternativas);
-          throw errorPlanAlternativas;
-      }
-      
-      // 10. Update the alternativas_plan_orden field in the new order with the array of IDs
-      console.log("Actualizando alternativas_plan_orden en la orden con:", alternativasIds);
-      
-      const { error: errorUpdateNuevaOrden } = await supabase
-          .from('orden')
-          .update({ alternativas_plan_orden: alternativasIds })
-          .eq('id', nuevaOrdenData.id);
-      
-      if (errorUpdateNuevaOrden) {
-          console.error("Error al actualizar nueva orden con alternativas:", errorUpdateNuevaOrden);
-          throw errorUpdateNuevaOrden;
-      }
-      
-      // Success message
-      Swal.fire({
-          icon: 'success',
-          title: 'Éxito',
-          text: 'Orden anulada y reemplazada correctamente'
-      });
-      
-      // Close the modal and refresh data
-      onCancel();
-      
-  } catch (error) {
-      console.error('Error al anular y reemplazar orden:', error);
-      Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo anular y reemplazar la orden: ' + (error.message || 'Error desconocido')
-      });
-  } finally {
-      setLoading(false);
-  }
-};
     // Efecto para sincronizar el calendario cuando cambia la alternativa
     useEffect(() => {
       if (alternativa && alternativa.id) {
@@ -826,95 +400,170 @@ const handleGuardarYReemplazar = async () => {
 }, [alternativa?.id]);
     // Funciones para búsqueda y filtrado
     const fetchTemasFiltrados = async () => {
-      try {
-          setLoadingTemas(true);
-          
-          // Primero, si tenemos una campaña seleccionada, obtenemos los IDs de temas relacionados
-          let temasIds = [];
-          if (alternativa.id_campania) {
-              const { data: relacionesTemas, error: errorRelaciones } = await supabase
-                  .from('campania_temas')
-                  .select('id_temas') // Cambiado de 'id_tema' a 'id_temas' según el error
-                  .eq('id_campania', alternativa.id_campania);
-              
-              if (errorRelaciones) throw errorRelaciones;
-              
-              if (relacionesTemas && relacionesTemas.length > 0) {
-                  temasIds = relacionesTemas.map(rel => rel.id_temas); // Cambiado de 'id_tema' a 'id_temas'
-              }
-          }
-          
-          // Ahora construimos la consulta para obtener los temas
-          let query = supabase
-              .from('Temas')
-              .select(`
-                  *,
-                  Calidad(*),
-                  Medios(id, NombredelMedio)
-              `)
-              .order('NombreTema');
-          
-          // Si tenemos IDs de temas relacionados con la campaña, filtramos por ellos
-          if (alternativa.id_campania && temasIds.length > 0) {
-              query = query.in('id_tema', temasIds);
-          }
-          
-          // Filtrar por búsqueda si existe
-          if (searchTema) {
-              query = query.ilike('NombreTema', `%${searchTema}%`);
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          console.log("Temas filtrados:", data); // Para depuración
-          setTemasFiltrados(data || []);
-      } catch (error) {
-          console.error('Error al obtener temas:', error);
-      } finally {
-          setLoadingTemas(false);
-      }
-  };
+        try {
+            setLoadingTemas(true);
+            
+            // Primero, si tenemos una campaña seleccionada, obtenemos los IDs de temas relacionados
+            let temasIds = [];
+            if (alternativa.id_campania) {
+                const { data: relacionesTemas, error: errorRelaciones } = await supabase
+                    .from('campania_temas')
+                    .select('id_temas')
+                    .eq('id_campania', alternativa.id_campania);
+                
+                if (errorRelaciones) throw errorRelaciones;
+                
+                if (relacionesTemas && relacionesTemas.length > 0) {
+                    temasIds = relacionesTemas.map(rel => rel.id_temas);
+                }
+            }
+            
+            // Ahora construimos la consulta para obtener los temas
+            let query = supabase
+                .from('Temas')
+                .select(`
+                  id_tema,
+                  NombreTema,
+                  Duracion,
+                  CodigoMegatime,
+                  id_medio,
+                  id_Calidad,
+                  color,
+                  cooperado,
+                  rubro,
+                  Medios:id_medio (
+                    id,
+                    NombredelMedio
+                  ),
+                  Calidad:id_Calidad (
+                    id,
+                    NombreCalidad
+                  )
+                `)
+                .order('NombreTema');
+            
+            // Obtener el medio del contrato
+            let medioId = null;
+            
+            // Verificar todas las posibles fuentes del ID del medio
+            if (alternativa && alternativa.Contratos && alternativa.Contratos.IdMedios) {
+                medioId = alternativa.Contratos.IdMedios;
+                console.log("Medio ID obtenido de alternativa.Contratos.IdMedios:", medioId);
+            } else if (alternativa && alternativa.medio) {
+                medioId = alternativa.medio;
+                console.log("Medio ID obtenido de alternativa.medio:", medioId);
+            } else if (alternativa && alternativa.Medios && alternativa.Medios.id) {
+                medioId = alternativa.Medios.id;
+                console.log("Medio ID obtenido de alternativa.Medios.id:", medioId);
+            } else if (alternativa && alternativa.num_contrato) {
+                // Si tenemos el ID del contrato pero no el medio, intentamos obtenerlo
+                try {
+                    const { data: contratoData, error: contratoError } = await supabase
+                        .from('Contratos')
+                        .select('IdMedios')
+                        .eq('id', alternativa.num_contrato)
+                        .single();
+                    
+                    if (!contratoError && contratoData) {
+                        medioId = contratoData.IdMedios;
+                        console.log("Medio ID obtenido de consulta a Contratos:", medioId);
+                    }
+                } catch (err) {
+                    console.error("Error al obtener medio del contrato:", err);
+                }
+            }
+            
+            // Si tenemos un ID de medio, filtramos por él
+            if (medioId) {
+                console.log("Aplicando filtro por medio ID:", medioId);
+                query = query.eq('id_medio', medioId);
+            } else {
+                console.log("No se pudo determinar el medio del contrato, mostrando todos los temas");
+            }
+            
+            // Si tenemos IDs de temas relacionados con la campaña, filtramos por ellos
+            if (alternativa.id_campania && temasIds.length > 0) {
+                query = query.in('id_tema', temasIds);
+            }
+            
+            // Filtrar por búsqueda si existe
+            if (searchTema) {
+                query = query.ilike('NombreTema', `%${searchTema}%`);
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) throw error;
+            
+            console.log("Temas filtrados:", data);
+            setTemasFiltrados(data || []);
+        } catch (error) {
+            console.error('Error al obtener temas:', error);
+        } finally {
+            setLoadingTemas(false);
+        }
+      };
   // Función para manejar cambios en los montos
      // Función para manejar cambios en los montos
      const handleMontoChange = (campo, valor) => {
-      setAlternativa(prev => {
-          const valorUnitarioBase = campo === 'valor_unitario' ? valor : prev.valor_unitario;
-          const descuento = campo === 'descuento_plan' ? valor : prev.descuento_plan;
-          const recargo = campo === 'recargo_plan' ? valor : prev.recargo_plan;
-          
-          // Obtener el total de cantidades
-          const totalCantidades = (prev.cantidades || []).reduce((sum, item) => {
-              return sum + (Number(item.cantidad) || 0);
-          }, 0);
-      
-          // Verificar si el medio es TV CABLE o RADIO
-          const medioId = prev.id_medio;
-          const esMediacionEspecial = medioId === 38 || medioId === 35; // TV CABLE o RADIO
-      
-          // Calcular valor unitario ajustado
-          let valorUnitarioAjustado = Number(valorUnitarioBase) || 0;
-          if (esMediacionEspecial && totalCantidades > 0) {
-              valorUnitarioAjustado *= totalCantidades;
-          }
-      
-          const valorBase = valorUnitarioAjustado;
-          const descuentoValor = valorBase * (Number(descuento) / 100) || 0;
-          const recargoValor = valorBase * (Number(recargo) / 100) || 0;
-      
-          const totalBruto = valorBase;
-          const totalNeto = (totalBruto - descuentoValor + recargoValor) * 1.19;
-      
-          return {
-              ...prev,
-              [campo]: valor,
-              total_bruto: Math.round(totalBruto),
-              total_neto: Math.round(totalNeto),
-              total_general: Math.round(totalBruto)
-          };
-      });
-  };
+        setAlternativa(prev => {
+            const valorUnitarioBase = campo === 'valor_unitario' ? valor : prev.valor_unitario;
+            // Corregir los nombres de las variables para que coincidan con los campos de la base de datos
+            const descuento = campo === 'descuento_pl' ? valor : prev.descuento_pl;
+            const recargo = campo === 'recargo_plan' ? valor : prev.recargo_plan;
+            
+            // Obtener el total de cantidades
+            const totalCantidades = (prev.cantidades || []).reduce((sum, item) => {
+                return sum + (Number(item.cantidad) || 0);
+            }, 0);
+        
+            // Verificar si el medio es TV CABLE o RADIO
+            const medioId = prev.id_medio;
+            const esMediacionEspecial = medioId === 38 || medioId === 35; // TV CABLE o RADIO
+        
+            // Calcular valor unitario ajustado
+            let valorUnitarioAjustado = Number(valorUnitarioBase) || 0;
+            if (esMediacionEspecial && totalCantidades > 0) {
+                valorUnitarioAjustado *= totalCantidades;
+            }
+        
+            // Determinar el tipo de contrato (NETO o BRUTO)
+            const tipoGeneracionOrden = prev.Contratos?.id_GeneraracionOrdenTipo || 1; // Por defecto NETO
+            
+            // Aplicar descuento y recargo al valor base
+            const valorBase = valorUnitarioAjustado;
+            const descuentoValor = valorBase * (Number(descuento) / 100) || 0;
+            const recargoValor = valorBase * (Number(recargo) / 100) || 0;
+            const valorAjustado = valorBase - descuentoValor + recargoValor;
+            
+            console.log(`Valor base: ${valorBase}, Descuento: ${descuentoValor}, Recargo: ${recargoValor}, Valor ajustado: ${valorAjustado}`);
+            
+            let totalBruto, totalNeto, totalGeneral;
+            
+            if (tipoGeneracionOrden === 1) { // NETO
+                // De NETO a BRUTO: NETO dividido por 0.85
+                totalNeto = valorAjustado;
+                totalBruto = Math.round(totalNeto / 0.85);
+                totalGeneral = totalBruto;
+            } else { // BRUTO
+                // De BRUTO a NETO: BRUTO multiplicado por 0.85
+                totalBruto = valorAjustado;
+                totalNeto = Math.round(totalBruto * 0.85 * 1.19); // Aplicamos IVA (19%)
+                totalGeneral = totalBruto;
+            }
+            
+            console.log(`Tipo de contrato: ${tipoGeneracionOrden === 1 ? 'NETO' : 'BRUTO'}`);
+            console.log(`Valor ajustado: ${valorAjustado}, Total Bruto: ${totalBruto}, Total Neto: ${totalNeto}`);
+        
+            return {
+                ...prev,
+                [campo]: valor,
+                total_bruto: Math.round(totalBruto),
+                total_neto: Math.round(totalNeto),
+                total_general: Math.round(totalGeneral)
+            };
+        });
+    };
 
    // Función para manejar cambios en las cantidades del calendario
    const handleCantidadChange = (dia, valor) => {
@@ -1386,7 +1035,29 @@ const handleGuardarYReemplazar = async () => {
           console.error('Error al obtener información del plan:', error);
       }
   };
-
+  const calcularValores = (valor, tipoContrato) => {
+    if (!valor || isNaN(parseFloat(valor))) return { bruto: 0, neto: 0 };
+    
+    const valorNumerico = parseFloat(valor);
+    
+    if (tipoContrato === 1) { // NETO
+      // De NETO a BRUTO: NETO dividido por 0.85
+      const bruto = Math.round(valorNumerico / 0.85);
+      return {
+        bruto,
+        neto: valorNumerico,
+        total: bruto // El total general es el bruto en este caso
+      };
+    } else { // BRUTO
+      // De BRUTO a NETO: BRUTO multiplicado por 0.85
+      const neto = Math.round(valorNumerico * 0.85);
+      return {
+        bruto: valorNumerico,
+        neto,
+        total: valorNumerico // El total general es el bruto en este caso
+      };
+    }
+  };
   const fetchAlternativa = async () => {
     try {
         setLoading(true);
@@ -1680,70 +1351,6 @@ const handleGuardarYReemplazar = async () => {
         }));
     };
 
-    // Función para manejar cambios en el calendario
-    const handleCalendarChange = (day, value) => {
-        const cantidad = value === '' ? '' : parseInt(value);
-        
-        setCalendarData(prev => {
-            // Buscar si ya existe una entrada para este día
-            const existingIndex = prev.findIndex(item => item.dia === day);
-            
-            if (cantidad === '' || isNaN(cantidad) || cantidad === 0) {
-                // Si el valor es vacío, no es un número o es cero, eliminar la entrada
-                if (existingIndex >= 0) {
-                    return prev.filter(item => item.dia !== day);
-                }
-                return prev;
-            } else {
-                // Actualizar o agregar el valor
-                if (existingIndex >= 0) {
-                    const newData = [...prev];
-                    newData[existingIndex] = { dia: day, cantidad };
-                    return newData;
-                } else {
-                    return [...prev, { dia: day, cantidad }];
-                }
-            }
-        });
-    };
-
-    // Función para incrementar o decrementar el valor del calendario
-    const handleCalendarIncrement = (day, increment) => {
-        setCalendarData(prev => {
-            // Buscar si ya existe una entrada para este día
-            const existingIndex = prev.findIndex(item => item.dia === day);
-            
-            if (existingIndex >= 0) {
-                // Si existe, actualizar el valor
-                const currentValue = prev[existingIndex].cantidad;
-                const newValue = currentValue + increment;
-                
-                // No permitir valores negativos
-                if (newValue <= 0) {
-                    // Si el nuevo valor es cero o negativo, eliminar la entrada
-                    return prev.filter(item => item.dia !== day);
-                } else {
-                    // Actualizar el valor
-                    const newData = [...prev];
-                    newData[existingIndex] = { dia: day, cantidad: newValue };
-                    return newData;
-                }
-            } else if (increment > 0) {
-                // Si no existe y estamos incrementando, crear una nueva entrada
-                return [...prev, { dia: day, cantidad: increment }];
-            }
-            
-            // Si no existe y estamos decrementando, no hacer nada
-            return prev;
-        });
-    };
-
-    // Obtener la cantidad para un día específico
-    const getDayQuantity = (day) => {
-        const dayEntry = calendarData.find(item => item.dia === day);
-        return dayEntry ? dayEntry.cantidad : '';
-    };
-
    // Update the handleSave function to properly handle boolean values
    const handleSave = async () => {
     try {
@@ -1869,115 +1476,227 @@ const handleGuardarYReemplazar = async () => {
     }
 };
 
-    // Componente para el calendario
-    const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
-      // Asegurarse de que anio y mes sean valores válidos
-      const currentDate = new Date();
-      const validAnio = anio || currentDate.getFullYear();
-      const validMes = mes || currentDate.getMonth() + 1;
-      
-      const dias = getDiasDelMes(validAnio, validMes);
-      
-      const getCantidad = (dia) => {
-          const item = cantidades?.find(c => c.dia === dia);
-          return item ? item.cantidad : '';
-      };
+  // Función para manejar cambios en el calendario
+const handleCalendarioChange = (dia, valor, todasLasCantidades) => {
+    if (todasLasCantidades) {
+        // Si recibimos todas las cantidades (desde auto-llenado o limpiar)
+        setAlternativa(prev => ({
+            ...prev,
+            cantidades: todasLasCantidades
+        }));
+    } else {
+        // Si solo recibimos un cambio individual
+        setAlternativa(prev => {
+            const nuevasCantidades = [...(prev.cantidades || [])];
+            const index = nuevasCantidades.findIndex(c => c.dia === dia);
+            
+            if (index !== -1) {
+                nuevasCantidades[index].cantidad = valor;
+            } else {
+                nuevasCantidades.push({ dia, cantidad: valor });
+            }
+            
+            return {
+                ...prev,
+                cantidades: nuevasCantidades
+            };
+        });
+    }
+};
 
-      const calcularTotal = () => {
-          return (cantidades || []).reduce((sum, item) => {
-              const cantidad = parseInt(item.cantidad) || 0;
-              return sum + cantidad;
-          }, 0);
-      };
-      
-      // Si no hay días, mostrar mensaje informativo
-      if (!dias || dias.length === 0) {
-          return (
-              <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle1" sx={{ mb: 1, color: '#666' }}>
-                      Calendario de Cantidades
-                  </Typography>
-                  <Alert severity="info">
-                      No se pueden mostrar los días del calendario. Verifique que el mes y año sean válidos.
-                  </Alert>
-              </Box>
-          );
-      }
-      
-      return (
-          <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" sx={{ mb: 1, color: '#666' }}>
-                  Calendario de Cantidades
-              </Typography>
-              <TableContainer sx={{ 
-                  maxWidth: '100%',
-                  overflowX: 'auto',
-                  '& .MuiTable-root': {
-                      tableLayout: 'fixed',
-                      minWidth: 'max-content'
-                  }
-              }}>
-                  <Table size="small" sx={{
-                      '& .MuiTableCell-root': {
-                          padding: '4px',
-                          border: '1px solid #e0e0e0',
-                          minWidth: '32px',
-                          maxWidth: '32px'
-                      }
-                  }}>
-                      <TableHead>
-                          <TableRow>
-                              {dias.map(({ dia, nombreDia }) => (
-                                  <TableCell key={dia} align="center" sx={{ backgroundColor: '#f5f5f5' }}>
-                                      <Typography variant="caption" sx={{ fontSize: '0.65rem', display: 'block', mb: 0.5, color: '#666' }}>
-                                          {nombreDia}
-                                      </Typography>
-                                      <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#333' }}>
-                                          {dia}
-                                      </Typography>
-                                  </TableCell>
-                              ))}
-                              <TableCell align="center" sx={{ backgroundColor: '#f5f5f5', minWidth: '40px' }}>
-                                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#333', fontWeight: 'bold' }}>
-                                      Tot
-                                  </Typography>
-                              </TableCell>
-                          </TableRow>
-                      </TableHead>
-                      <TableBody>
-                          <TableRow>
-                              {dias.map(({ dia }) => (
-                                  <TableCell key={dia} align="center" padding="none">
-                                      <input
-                                          type="number"
-                                          value={getCantidad(dia)}
-                                          onChange={(e) => onChange(dia, e.target.value)}
-                                          style={{ 
-                                              width: '28px',
-                                              height: '24px',
-                                              padding: '2px',
-                                              border: '1px solid #e0e0e0',
-                                              borderRadius: '2px',
-                                              textAlign: 'center',
-                                              fontSize: '0.75rem',
-                                              backgroundColor: '#fff'
-                                          }}
-                                          min="0"
-                                      />
-                                  </TableCell>
-                              ))}
-                              <TableCell align="center" sx={{ backgroundColor: '#f8f9fa' }}>
-                                  <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#333' }}>
-                                      {calcularTotal()}
-                                  </Typography>
-                              </TableCell>
-                          </TableRow>
-                      </TableBody>
-                  </Table>
-              </TableContainer>
-          </Box>
-      );
-  };
+// Componente para el calendario 
+const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => { 
+    // Asegurarse de que anio y mes sean valores válidos 
+    const currentDate = new Date(); 
+    const validAnio = anio || currentDate.getFullYear(); 
+    const validMes = mes || currentDate.getMonth() + 1; 
+    
+    const dias = getDiasDelMes(validAnio, validMes); 
+    
+    // Estado para el auto-llenado - Importante: Usar useState para mantener el estado
+    const [autoFillEnabled, setAutoFillEnabled] = useState(false);
+    
+    const getCantidad = (dia) => { 
+        const item = cantidades?.find(c => c.dia === dia); 
+        return item ? item.cantidad : ''; 
+    }; 
+
+    const calcularTotal = () => { 
+        return (cantidades || []).reduce((sum, item) => { 
+            const cantidad = parseInt(item.cantidad) || 0; 
+            return sum + cantidad; 
+        }, 0); 
+    }; 
+    
+    // Función para manejar cambios en un día específico con auto-llenado
+    const handleDayChange = (dia, valor) => {
+        // Crear una copia de las cantidades actuales
+        const nuevasCantidades = [...cantidades];
+        
+        // Encontrar el índice del día actual en el array de días
+        const diaIndex = dias.findIndex(d => d.dia === dia);
+        
+        // Si no se encuentra el día, salir
+        if (diaIndex === -1) {
+            onChange(dia, valor);
+            return;
+        }
+        
+        // Si el auto-llenado está activado, aplicar el valor a todos los días siguientes
+        if (autoFillEnabled) {
+            // Obtener todos los días a partir del día actual
+            const diasSiguientes = dias.slice(diaIndex).map(d => d.dia);
+            
+            // Actualizar el valor para el día actual y todos los siguientes
+            diasSiguientes.forEach(d => {
+                const existingIndex = nuevasCantidades.findIndex(c => c.dia === d);
+                if (existingIndex !== -1) {
+                    nuevasCantidades[existingIndex].cantidad = valor;
+                } else {
+                    nuevasCantidades.push({ dia: d, cantidad: valor });
+                }
+            });
+        } else {
+            // Si el auto-llenado está desactivado, solo actualizar el día específico
+            const existingIndex = nuevasCantidades.findIndex(c => c.dia === dia);
+            if (existingIndex !== -1) {
+                nuevasCantidades[existingIndex].cantidad = valor;
+            } else {
+                nuevasCantidades.push({ dia: dia, cantidad: valor });
+            }
+        }
+        
+        // Llamar al onChange con todas las cantidades actualizadas
+        onChange(dia, valor, nuevasCantidades);
+    };
+    
+    // Función para limpiar el calendario
+    const handleLimpiarCalendario = () => {
+        // Crear un nuevo array de cantidades con valores vacíos para todos los días
+        const cantidadesLimpias = dias.map(d => ({ 
+            dia: d.dia, 
+            cantidad: '' 
+        }));
+        
+        // Llamar al onChange con las cantidades limpias
+        onChange(null, '', cantidadesLimpias);
+    };
+    
+    // Si no hay días, mostrar mensaje informativo 
+    if (!dias || dias.length === 0) { 
+        return ( 
+            <Box sx={{ mt: 2 }}> 
+                <Typography variant="subtitle1" sx={{ mb: 1, color: '#666' }}> 
+                    Calendario de Cantidades 
+                </Typography> 
+                <Alert severity="info"> 
+                    No se pueden mostrar los días del calendario. Verifique que el mes y año sean válidos. 
+                </Alert> 
+            </Box> 
+        ); 
+    } 
+    
+    return ( 
+        <Box sx={{ mt: 2 }}> 
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}> 
+                <Typography variant="subtitle1" sx={{ color: '#666' }}> 
+                    Calendario de Cantidades 
+                </Typography> 
+                <Box sx={{ display: 'flex', alignItems: 'center' }}> 
+                    <FormControlLabel 
+                        control={ 
+                            <Checkbox 
+                                checked={autoFillEnabled} 
+                                onChange={(e) => setAutoFillEnabled(e.target.checked)} 
+                                size="small" 
+                            /> 
+                        } 
+                        label={ 
+                            <Typography variant="caption" sx={{ fontSize: '0.75rem' }}> 
+                                Rellenar automáticamente 
+                            </Typography> 
+                        } 
+                    /> 
+                    <Button 
+                        variant="outlined" 
+                        color="primary" 
+                        size="small" 
+                        onClick={handleLimpiarCalendario} 
+                        sx={{ ml: 1, fontSize: '0.75rem', py: 0.5 }} 
+                    > 
+                        Limpiar 
+                    </Button> 
+                </Box> 
+            </Box> 
+            <TableContainer sx={{ 
+                maxWidth: '100%', 
+                overflowX: 'auto', 
+                '& .MuiTable-root': { 
+                    tableLayout: 'fixed', 
+                    minWidth: 'max-content' 
+                } 
+            }}> 
+                <Table size="small" sx={{ 
+                    '& .MuiTableCell-root': { 
+                        padding: '4px', 
+                        border: '1px solid #e0e0e0', 
+                        minWidth: '32px', 
+                        maxWidth: '32px' 
+                    } 
+                }}> 
+                    <TableHead> 
+                        <TableRow> 
+                            {dias.map(({ dia, nombreDia }) => ( 
+                                <TableCell key={dia} align="center" sx={{ backgroundColor: '#f5f5f5' }}> 
+                                    <Typography variant="caption" sx={{ fontSize: '0.65rem', display: 'block', mb: 0.5, color: '#666' }}> 
+                                        {nombreDia} 
+                                    </Typography> 
+                                    <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#333' }}> 
+                                        {dia} 
+                                    </Typography> 
+                                </TableCell> 
+                            ))} 
+                            <TableCell align="center" sx={{ backgroundColor: '#f5f5f5', minWidth: '40px' }}> 
+                                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#333', fontWeight: 'bold' }}> 
+                                    Tot 
+                                </Typography> 
+                            </TableCell> 
+                        </TableRow> 
+                    </TableHead> 
+                    <TableBody> 
+                        <TableRow> 
+                            {dias.map(({ dia }) => ( 
+                                <TableCell key={dia} align="center" padding="none"> 
+                                    <input 
+                                        type="number" 
+                                        value={getCantidad(dia)} 
+                                        onChange={(e) => handleDayChange(dia, e.target.value)} 
+                                        style={{ 
+                                            width: '28px', 
+                                            height: '24px', 
+                                            padding: '2px', 
+                                            border: '1px solid #e0e0e0', 
+                                            borderRadius: '2px', 
+                                            textAlign: 'center', 
+                                            fontSize: '0.75rem', 
+                                            backgroundColor: '#fff' 
+                                        }} 
+                                        min="0" 
+                                    /> 
+                                </TableCell> 
+                            ))} 
+                            <TableCell align="center" sx={{ backgroundColor: '#f8f9fa' }}> 
+                                <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#333' }}> 
+                                    {calcularTotal()} 
+                                </Typography> 
+                            </TableCell> 
+                        </TableRow> 
+                    </TableBody> 
+                </Table> 
+            </TableContainer> 
+        </Box> 
+    ); 
+};
 const TIPO_ITEMS = [
     'PAUTA LIBRE',
     'AUSPICIO',
@@ -1988,21 +1707,7 @@ const TIPO_ITEMS = [
     'BONIF%',
     'CANJE'
   ];
-    // Calcular el total de cantidades en el calendario
-    const calculateTotalQuantity = () => {
-        return calendarData.reduce((sum, item) => sum + (item.cantidad || 0), 0);
-    };
 
-    // Generar encabezados para el calendario (días de la semana)
-    const generateWeekDayHeaders = () => {
-        // Orden: Lunes, Martes, ..., Domingo
-        const weekDays = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'];
-        return weekDays.map((day, index) => (
-            <TableCell key={index} align="center" sx={{fontSize:'10px', padding: '4px', minWidth: '40px' }}>
-                {day}
-            </TableCell>
-        ));
-    };
 
     if (loading && !alternativa) {
         return (
@@ -2290,104 +1995,108 @@ const TIPO_ITEMS = [
                 </Grid>
                 <Grid item xs={12}>
                     <Grid container spacing={2}>
-                        <Grid item xs={2.4}>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Valor Unitario"
-                                type="number"
-                                value={alternativa.valor_unitario || ''}
-                                onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <MonetizationOnIcon color="primary" />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={2.4}>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Descuento (%)"
-                                type="number"
-                                value={alternativa.descuento_plan || ''}
-                                onChange={(e) => handleMontoChange('descuento_plan', e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <RemoveCircleIcon color="error" />
-                                        </InputAdornment>
-                                    ),
-                                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={2.4}>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Recargo (%)"
-                                type="number"
-                                value={alternativa.recargo_plan || ''}
-                                onChange={(e) => handleMontoChange('recargo_plan', e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <AddCircleIcon color="success" />
-                                        </InputAdornment>
-                                    ),
-                                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={2.4}>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Total Bruto"
-                                value={alternativa.total_bruto || ''}
-                                InputProps={{
-                                    readOnly: true,
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <AccountBalanceWalletIcon color="primary" />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                disabled
-                            />
-                        </Grid>
-                        <Grid item xs={2.4}>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Total Neto"
-                                value={alternativa.total_neto || ''}
-                                InputProps={{
-                                    readOnly: true,
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <ReceiptIcon color="primary" />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                disabled
-                            />
-                        </Grid>
+                    <Grid item xs={12} md={2.4}>
+            <TextField
+                fullWidth
+                label="Valor Unitario"
+                value={alternativa?.valor_unitario || ''}
+                onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <MonetizationOnIcon />
+                        </InputAdornment>
+                    ),
+                }}
+            />
+        </Grid>
+        
+        <Grid item xs={12} md={2.4}>
+            <TextField
+                fullWidth
+                label="Descuento (%)"
+                value={alternativa?.descuento_pl || ''}
+                onChange={(e) => handleMontoChange('descuento_pl', e.target.value)}
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <RemoveCircleIcon />
+                        </InputAdornment>
+                    ),
+                    endAdornment: (
+                        <InputAdornment position="end">
+                            %
+                        </InputAdornment>
+                    ),
+                }}
+            />
+        </Grid>
+        
+        <Grid item xs={12} md={2.4}>
+            <TextField
+                fullWidth
+                label="Recargo (%)"
+                value={alternativa?.recargo_plan || ''}
+                onChange={(e) => handleMontoChange('recargo_plan', e.target.value)}
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <AddCircleIcon />
+                        </InputAdornment>
+                    ),
+                    endAdornment: (
+                        <InputAdornment position="end">
+                            %
+                        </InputAdornment>
+                    ),
+                }}
+            />
+        </Grid>
+        
+        <Grid item xs={12} md={2.4}>
+            <TextField
+                fullWidth
+                label={alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 ? "Total Bruto" : "Total Neto"}
+                value={alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 
+                    ? (alternativa?.total_bruto || 0).toLocaleString() 
+                    : (alternativa?.total_neto || 0).toLocaleString()}
+                InputProps={{
+                    readOnly: true,
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <AccountBalanceWalletIcon />
+                        </InputAdornment>
+                    ),
+                }}
+            />
+        </Grid>
+        
+        <Grid item xs={12} md={2.4}>
+            <TextField
+                fullWidth
+                label="Total General"
+                value={(alternativa?.total_general || 0).toLocaleString()}
+                InputProps={{
+                    readOnly: true,
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <ReceiptIcon />
+                        </InputAdornment>
+                    ),
+                }}
+            />
+        </Grid>
                     </Grid>
                 </Grid>
                 
                      {/* Calendario de cantidades */}
                      <Grid item xs={12}>
-                    <CalendarioAlternativa 
-                        anio={alternativa.anio || (planInfo && planInfo.anio)} 
-                        mes={alternativa.mes || (planInfo && planInfo.mes)} 
-                        cantidades={alternativa.cantidades || []} 
-                        onChange={handleCantidadChange}
-                    />
+                     <CalendarioAlternativa 
+                anio={alternativa.anio} 
+                mes={alternativa.mes} 
+                cantidades={alternativa.cantidades || []} 
+                onChange={handleCalendarioChange} 
+            />
                 </Grid>
             </Grid>
             <Box display="flex" justifyContent="flex-end" mt={3}>
