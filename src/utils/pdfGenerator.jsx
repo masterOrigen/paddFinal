@@ -215,7 +215,12 @@ totalsContainer: {
     color: '#333333'
   }
 });
-const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
+const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
+  // Determinar si es bruto o neto basado en el TipoGeneracionDeOrden del contrato
+  const tipoOrden = alternatives[0]?.Contratos?.TipoGeneracionDeOrden?.id || 1;
+  const esBruto = tipoOrden === 2; // Asumiendo que id=2 es Bruto y id=1 es Neto
+  
+  return (
 	<Document>
 		<Page size={{ width: 800, height:1000  }} orientation="landscape" style={styles.page}>
 			<View style={styles.header}>
@@ -412,12 +417,12 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
 </View>
 
 <View style={styles.totalsContainer}>
-    <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>TOTAL NETO:</Text>
-        <Text style={styles.totalValue}>
-            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0)).toLocaleString('es-CL').split(',')[0]}
-        </Text>
-    </View>
+<View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
+                    <Text style={styles.totalValue}>
+                        ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0)).toLocaleString('es-CL').split(',')[0]}
+                    </Text>
+                </View>
     <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>IVA 19%:</Text>
         <Text style={styles.totalValue}>
@@ -444,7 +449,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => (
         </Page>
     </Document>
 );
-
+};
 export const generateOrderPDF = async (order, alternatives, cliente, campana, plan) => {
 	try {
 		console.log('Debugging PDF Generation Data:');

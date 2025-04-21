@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
+import './Planificacion.css';
 import {
   Container,
   Paper,
   Typography,
   Box,
   Button,
+  Checkbox, 
+  ListItemText, 
+  OutlinedInput,
+  FormHelperText,
+  FormControlLabel,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -30,6 +36,7 @@ import {
   Chip,
   Tooltip
 } from '@mui/material';
+import ModalEditarTema from '../campanas/ModalEditarTema';
 import { 
   Add as AddIcon, 
   Edit as EditIcon, 
@@ -76,7 +83,7 @@ const TIPO_ITEMS = [
 const Alternativas = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+  const [autoFillCantidades, setAutoFillCantidades] = useState(false);
   console.log('Componente Alternativas - ID del plan:', id);
 
   const [loading, setLoading] = useState(true);
@@ -149,14 +156,22 @@ const Alternativas = () => {
   const [contratosFiltrados, setContratosFiltrados] = useState([]);
   const [loadingContratos, setLoadingContratos] = useState(false);
   const [searchContrato, setSearchContrato] = useState('');
-
+  const [openAddSoporteModal, setOpenAddSoporteModal] = useState(false);
   const [openTemasModal, setOpenTemasModal] = useState(false);
   const [openAddTemaModal, setOpenAddTemaModal] = useState(false);
   const [temaSeleccionado, setTemaSeleccionado] = useState(null);
   const [temasFiltrados, setTemasFiltrados] = useState([]);
   const [loadingTemas, setLoadingTemas] = useState(false);
   const [searchTema, setSearchTema] = useState('');
-
+  const [nuevoSoporte, setNuevoSoporte] = useState({
+    nombreIdentficiador: '',
+    bonificacion_ano: 0,
+    escala: 0,
+    id_medio: '',
+    medios: []
+  });
+  const [mediosOptions, setMediosOptions] = useState([]);
+  const [loadingMedios, setLoadingMedios] = useState(false);
   const [openSoportesModal, setOpenSoportesModal] = useState(false);
   const [selectedSoporte, setSelectedSoporte] = useState(null);
   const [allSoportes, setAllSoportes] = useState([]);
@@ -202,7 +217,299 @@ const Alternativas = () => {
     setOpenAddContratoModal(false);
     handleSearchContrato(); // Actualizar la lista después de agregar
   };
+  const handleOpenAddSoporteModal = () => {
+    // Verificar que contratoSeleccionado exista
+    if (!contratoSeleccionado) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Primero debe seleccionar un contrato'
+      });
+      return;
+    }
+    
+    // Verificar que el proveedor exista en el contrato (considerando ambas estructuras posibles)
+    const proveedorId = contratoSeleccionado.proveedor?.id_proveedor || contratoSeleccionado.IdProveedor;
+    
+    if (!proveedorId) {
+      console.log('Contrato sin proveedor válido:', contratoSeleccionado);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'El contrato seleccionado no tiene un proveedor válido'
+      });
+      return;
+    }
+    
+    // Si llegamos aquí, el contrato y el proveedor son válidos
+    console.log('Abriendo modal de soporte con contrato:', contratoSeleccionado);
+    console.log('ID del proveedor identificado:', proveedorId);
+    
+    // Establecer el ID del proveedor para usarlo en la función handleSaveSoporte
+    setProveedorId(proveedorId);
+    
+    // Inicializar el nuevo soporte con el medio del contrato seleccionado
+    const medioId = contratoSeleccionado.medio?.id || contratoSeleccionado.IdMedios;
+    
+    if (medioId) {
+      setNuevoSoporte({
+        nombreIdentficiador: '',
+        bonificacion_ano: 0,
+        escala: 0,
+        id_medio: medioId,
+        medios: [medioId]
+      });
+    } else {
+      setNuevoSoporte({
+        nombreIdentficiador: '',
+        bonificacion_ano: 0,
+        escala: 0,
+        id_medio: '',
+        medios: []
+      });
+    }
+    
+    // Cargar los medios disponibles
+    fetchMedios();
+    setOpenAddSoporteModal(true);
+  };
+  // Función para cerrar el modal de agregar soporte
+  const handleCloseAddSoporteModal = () => {
+    setOpenAddSoporteModal(false);
+    setNuevoSoporte({
+      nombreIdentficiador: '',
+      bonificacion_ano: 0,
+      escala: 0,
+      id_medio: '',
+      medios: []
+    });
+  };
 
+  // Función para cargar los medios disponibles
+  const fetchMedios = async () => {
+    setLoadingMedios(true);
+    try {
+      const { data, error } = await supabase
+        .from('Medios')
+        .select('id, NombredelMedio')
+        .order('NombredelMedio', { ascending: true });
+
+      if (error) throw error;
+      setMediosOptions(data || []);
+    } catch (error) {
+      console.error('Error al cargar medios:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al cargar los medios'
+      });
+    } finally {
+      setLoadingMedios(false);
+    }
+  };
+
+  // Función para guardar el nuevo soporte
+  const handleSaveSoporte = async () => {
+    if (!nuevoSoporte.nombreIdentficiador) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'El nombre del soporte es obligatorio'
+      });
+      return;
+    }
+
+    // Obtener el ID del proveedor del contrato seleccionado
+    const proveedorId = contratoSeleccionado.proveedor?.id_proveedor || contratoSeleccionado.IdProveedor;
+    
+    if (!proveedorId) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'No se pudo identificar el proveedor del contrato'
+      });
+      return;
+    }
+
+
+    // Verificar los medios
+    let mediosToInsert = [];
+    if (contratoSeleccionado && contratoSeleccionado.medio && contratoSeleccionado.medio.id) {
+      // Si hay un medio en el contrato con estructura anidada
+      mediosToInsert = [contratoSeleccionado.medio.id];
+    } else if (contratoSeleccionado && contratoSeleccionado.IdMedios) {
+      // Si hay un medio en el contrato con estructura plana
+      mediosToInsert = [contratoSeleccionado.IdMedios];
+    } else if (nuevoSoporte.medios && nuevoSoporte.medios.length > 0) {
+      // Si no hay medio en el contrato pero hay medios seleccionados
+      mediosToInsert = nuevoSoporte.medios;
+    } else {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Debe seleccionar al menos un medio'
+      });
+      return;
+    }
+
+    try {
+      // 1. Primero, obtener el máximo id_soporte actual para generar uno nuevo manualmente
+      const { data: maxIdData, error: maxIdError } = await supabase
+        .from('Soportes')
+        .select('id_soporte')
+        .order('id_soporte', { ascending: false })
+        .limit(1);
+
+      if (maxIdError) {
+        console.error('Error al obtener el máximo id_soporte:', maxIdError);
+        throw maxIdError;
+      }
+
+      // Calcular el nuevo id_soporte
+      const maxId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id_soporte : 0;
+      const nuevoId = maxId + 1;
+      
+      console.log('Último id_soporte:', maxId);
+      console.log('Nuevo id_soporte a usar:', nuevoId);
+
+      // 2. Insertar el soporte con el id_soporte explícito
+      const soporteData = {
+        id_soporte: nuevoId,
+        nombreIdentficiador: nuevoSoporte.nombreIdentficiador,
+        bonificacion_ano: nuevoSoporte.bonificacion_ano || 0,
+        escala: nuevoSoporte.escala || 0
+      };
+      
+      console.log('Datos a insertar en Soportes:', soporteData);
+      
+      const { data: insertedSoporte, error: soporteError } = await supabase
+        .from('Soportes')
+        .insert([soporteData])
+        .select();
+
+      if (soporteError) {
+        console.error('Error al insertar soporte:', soporteError);
+        throw soporteError;
+      }
+
+      if (!insertedSoporte || insertedSoporte.length === 0) {
+        throw new Error('No se pudo obtener el ID del soporte insertado');
+      }
+
+      const nuevoSoporteId = insertedSoporte[0].id_soporte;
+      console.log('Nuevo soporte creado con ID:', nuevoSoporteId);
+
+      // 3. Insertar relaciones soporte-medio
+      const soporteMediosInserts = mediosToInsert.map(medioId => ({
+        id_soporte: nuevoSoporteId,
+        id_medio: medioId
+      }));
+
+      console.log('Datos a insertar en soporte_medios:', soporteMediosInserts);
+      
+      const { error: soporteMediosError } = await supabase
+        .from('soporte_medios')
+        .insert(soporteMediosInserts);
+
+      if (soporteMediosError) {
+        console.error('Error al insertar soporte_medios:', soporteMediosError);
+        throw soporteMediosError;
+      }
+
+      // 4. Insertar relación proveedor-soporte
+      const proveedorId = contratoSeleccionado.proveedor?.id_proveedor || contratoSeleccionado.IdProveedor;
+      
+      if (!proveedorId) {
+        throw new Error('No se pudo identificar el ID del proveedor');
+      }
+      
+      const proveedorSoporteData = {
+        id_proveedor: proveedorId,
+        id_soporte: nuevoSoporteId
+      };
+      
+      console.log('Datos a insertar en proveedor_soporte:', proveedorSoporteData);
+      
+      const { error: proveedorSoporteError } = await supabase
+        .from('proveedor_soporte')
+        .insert([proveedorSoporteData]);
+
+      if (proveedorSoporteError) {
+        console.error('Error al insertar proveedor_soporte:', proveedorSoporteError);
+        throw proveedorSoporteError;
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: 'Soporte agregado correctamente'
+      });
+
+      // Actualizar la lista de soportes
+      if (contratoSeleccionado) {
+        // Obtener el proveedorId del contrato seleccionado
+        const proveedorId = contratoSeleccionado.proveedor?.id_proveedor || contratoSeleccionado.IdProveedor;
+        
+        const { data: proveedorSoportes, error: soportesError } = await supabase
+          .from('proveedor_soporte')
+          .select(`
+            id_soporte,
+            Soportes!inner (
+              id_soporte,
+              nombreIdentficiador,
+              bonificacion_ano,
+              escala,
+              soporte_medios!inner (
+                Medios!inner (
+                  id,
+                  NombredelMedio
+                )
+              )
+            )
+          `)
+          .eq('id_proveedor', proveedorId);
+  
+        if (soportesError) throw soportesError;
+  
+        const soportesFiltrados = proveedorSoportes.map(item => {
+          const medios = item.Soportes.soporte_medios
+            ? item.Soportes.soporte_medios
+                .map(sm => sm.Medios.NombredelMedio)
+                .join(', ')
+            : '';
+          
+          return {
+            id_soporte: item.Soportes.id_soporte,
+            nombreIdentficiador: item.Soportes.nombreIdentficiador,
+            Medios: medios,
+            bonificacion_ano: item.Soportes.bonificacion_ano,
+            escala: item.Soportes.escala
+          };
+        });
+  
+        setAllSoportes(soportesFiltrados);
+        
+        // Aplicar el filtro por medio del contrato
+        if (contratoSeleccionado.medio) {
+          const soportesPorMedio = soportesFiltrados.filter(soporte => 
+            soporte.Medios.includes(contratoSeleccionado.medio.NombredelMedio)
+          );
+          setSoportes(soportesPorMedio);
+        } else {
+          setSoportes(soportesFiltrados);
+        }
+      }
+  
+      handleCloseAddSoporteModal();
+    } catch (error) {
+      console.error('Error al guardar soporte:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `Error al guardar el soporte: ${error.message || JSON.stringify(error)}`
+      });
+    }
+  };
   const handleCloseModal = () => {
     setOpenModal(false);
     setModoEdicion(false);
@@ -785,16 +1092,14 @@ const Alternativas = () => {
     try {
       setLoading(true);
       
-      // Updated query to include Clasificacion
+      // Updated query to include more detailed Temas and Medios information
       const { data: alternativa, error } = await supabase
         .from('alternativa')
         .select(`
           *,
           Contratos:num_contrato (*,
-            formaPago:id_FormadePago (
-              id,
-              NombreFormadePago
-            )
+            formaPago:id_FormadePago (id, NombreFormadePago),
+          medio:IdMedios (id, NombredelMedio)
           ),
           Soportes:id_soporte (*),
           Programas:id_programa (*),
@@ -816,7 +1121,11 @@ const Alternativas = () => {
       if (error) throw error;
   
       console.log('Alternativa loaded:', alternativa);
-  
+      const contratoConMedio = {
+        ...alternativa.Contratos,
+        medio: alternativa.Contratos?.medio || null
+      };
+      setContratoSeleccionado(contratoConMedio);
       // Set related data including classification
       setContratoSeleccionado(alternativa.Contratos);
       setSelectedSoporte(alternativa.Soportes);
@@ -827,10 +1136,11 @@ const Alternativas = () => {
       if (alternativa.Temas) {
         const temaData = {
           id_tema: alternativa.Temas.id_tema,
-          nombre_tema: alternativa.Temas.NombreTema,
+          NombreTema: alternativa.Temas.NombreTema, // Changed from nombre_tema to NombreTema
           segundos: alternativa.Temas.Duracion,
           id_medio: alternativa.Temas.id_medio,
-          Medios: alternativa.Temas.Medios
+          Medios: alternativa.Temas.Medios,
+          nombreMedio: alternativa.Temas.Medios?.NombredelMedio || ''
         };
         setTemaSeleccionado(temaData);
       }
@@ -839,14 +1149,16 @@ const Alternativas = () => {
       const calendarData = alternativa.calendar || [];
   
       // Set complete alternative data for editing
-      setNuevaAlternativa({
+      setNuevaAlternativa(prev => ({
         ...alternativa,
-        cantidades: calendarData,
+        cantidades: alternativa.calendar || [],
         formaDePago: alternativa.Contratos?.formaPago?.id,
         nombreFormaPago: alternativa.Contratos?.formaPago?.NombreFormadePago,
         segundos: alternativa.Temas?.Duracion || '',
-        id_medio: alternativa.Temas?.id_medio || null
-      });
+        id_medio: alternativa.Contratos?.medio?.id || null,
+        nombreMedio: alternativa.Contratos?.medio?.NombredelMedio || '',
+        Medios: alternativa.Contratos?.medio || null
+      }));
   
       // Set edit mode and open modal
       setEditandoAlternativa(alternativaId);
@@ -960,8 +1272,17 @@ const Alternativas = () => {
       return;
     }
 
-    console.log('Contrato seleccionado con forma de pago:', contrato);
-    setContratoSeleccionado(contrato);
+    // Asegurarnos de que el contrato tenga la estructura correcta con el proveedor
+    const contratoCompleto = {
+      ...contrato,
+      proveedor: contrato.proveedor || { 
+        id_proveedor: contrato.IdProveedor,
+        nombreProveedor: contrato.proveedor?.nombreProveedor 
+      }
+    };
+
+    console.log('Contrato seleccionado con forma de pago:', contratoCompleto);
+    setContratoSeleccionado(contratoCompleto);
     
     setNuevaAlternativa(prev => ({
       ...prev,
@@ -1002,10 +1323,16 @@ const Alternativas = () => {
                 .join(', ')
             : '';
           
+          // Agregar el id_medio para facilitar el filtrado
+          const id_medio = item.Soportes.soporte_medios && 
+                          item.Soportes.soporte_medios.length > 0 ? 
+                          item.Soportes.soporte_medios[0].Medios.id : null;
+          
           return {
             id_soporte: item.Soportes.id_soporte,
             nombreIdentficiador: item.Soportes.nombreIdentficiador,
             Medios: medios,
+            id_medio: id_medio,
             bonificacion_ano: item.Soportes.bonificacion_ano,
             escala: item.Soportes.escala
           };
@@ -1013,7 +1340,17 @@ const Alternativas = () => {
 
       console.log('Soportes filtrados por proveedor:', soportesFiltrados);
       setAllSoportes(soportesFiltrados);
-      setSoportes(soportesFiltrados);
+      
+      // Si el contrato tiene un medio asociado, filtrar los soportes por ese medio
+      if (contrato.medio && contrato.medio.id) {
+        const soportesPorMedio = soportesFiltrados.filter(soporte => 
+          soporte.Medios.includes(contrato.medio.NombredelMedio)
+        );
+        setSoportes(soportesPorMedio);
+      } else {
+        setSoportes(soportesFiltrados);
+      }
+      
       setSoportesFiltrados([]);
     } catch (error) {
       console.error('Error al obtener soportes del proveedor:', error);
@@ -1109,6 +1446,37 @@ const Alternativas = () => {
   };
 
   const handleOpenTemasModal = () => {
+    if (!contratoSeleccionado) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Primero debe seleccionar un contrato'
+      });
+      return;
+    }
+  
+    // Get medium info with fallbacks
+    const medioId = contratoSeleccionado.medio?.id || 
+                   contratoSeleccionado.IdMedios || 
+                   nuevaAlternativa.id_medio;
+  
+    const medioNombre = contratoSeleccionado.medio?.NombredelMedio || 
+                       nuevaAlternativa.nombreMedio || 
+                       contratoSeleccionado.medio?.NombredelMedio;
+  
+    console.log('Media Info:', { medioId, medioNombre, contratoSeleccionado });
+  
+    // Update the alternative with complete media information
+    setNuevaAlternativa(prev => ({
+      ...prev,
+      id_medio: medioId,
+      nombreMedio: medioNombre,
+      Medios: {
+        id: medioId,
+        NombredelMedio: medioNombre
+      }
+    }));
+  
     setOpenTemasModal(true);
     fetchTemasFiltrados();
   };
@@ -1134,6 +1502,9 @@ const Alternativas = () => {
     
     setLoadingTemas(true);
     try {
+      // Get the media ID from the selected contract
+      const medioId = contratoSeleccionado?.IdMedios; // Changed from medio.id to IdMedios
+  
       const { data, error } = await supabase
         .from('campania_temas')
         .select(`
@@ -1150,10 +1521,9 @@ const Alternativas = () => {
           )
         `)
         .eq('id_campania', campaniaId);
-
+  
       if (error) throw error;
-
-      // Transformar los datos para tener una estructura más plana
+  
       const temasFormateados = data?.map(item => ({
         ...item.Temas,
         id_tema: item.id_temas,
@@ -1170,11 +1540,17 @@ const Alternativas = () => {
           NombredelMedio: item.Temas.Medios.NombredelMedio
         } : null
       }))
-      .filter(tema => 
-        tema.nombre_tema?.toLowerCase().includes(searchTema.toLowerCase()) ||
-        tema.descripcion?.toLowerCase().includes(searchTema.toLowerCase())
-      ) || [];
-
+      .filter(tema => {
+        const matchesSearch = 
+          tema.nombre_tema?.toLowerCase().includes(searchTema.toLowerCase()) ||
+          tema.descripcion?.toLowerCase().includes(searchTema.toLowerCase());
+        
+        // Updated media matching logic
+        const matchesMedia = medioId && tema.Medios?.id_medio === medioId;
+  
+        return matchesSearch && matchesMedia;
+      }) || [];
+  
       setTemasFiltrados(temasFormateados);
     } catch (error) {
       console.error('Error al obtener temas:', error);
@@ -1192,7 +1568,7 @@ const Alternativas = () => {
     if (campaniaId && openTemasModal) {
       fetchTemasFiltrados();
     }
-  }, [campaniaId, searchTema, openTemasModal]);
+  }, [campaniaId, searchTema, openTemasModal, contratoSeleccionado?.medio?.id]);
 
   const formatDuracion = (segundos) => {
     if (!segundos) return '-';
@@ -1202,23 +1578,61 @@ const Alternativas = () => {
   };
 
   const handleSearchSoporte = (searchTerm) => {
+    setSearchSoporte(searchTerm);
+    
     if (!searchTerm.trim()) {
-      setSoportes(allSoportes);
-      setSoportesFiltrados([]);
+      // Si la búsqueda está vacía, mostrar todos los soportes que coincidan con el medio del contrato
+      if (contratoSeleccionado && contratoSeleccionado.medio) {
+        const filteredSoportes = allSoportes.filter(soporte => 
+          soporte.Medios.includes(contratoSeleccionado.medio.NombredelMedio)
+        );
+        setSoportes(filteredSoportes);
+        setSoportesFiltrados([]);
+      } else {
+        setSoportes(allSoportes);
+        setSoportesFiltrados([]);
+      }
       return;
     }
 
-    const filtrados = allSoportes.filter(soporte =>
+    // Filtrar basado en el término de búsqueda
+    let filtrados = allSoportes.filter(soporte =>
       soporte.nombreIdentficiador.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      soporte.Medios.toLowerCase().includes(searchTerm.toLowerCase())
+      soporte.Medios.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(soporte.id_soporte).includes(searchTerm)
     );
+    
+    // Filtro adicional por medio si hay un contrato seleccionado
+    if (contratoSeleccionado && contratoSeleccionado.medio) {
+      filtrados = filtrados.filter(soporte => 
+        soporte.Medios.includes(contratoSeleccionado.medio.NombredelMedio)
+      );
+    }
 
-    setSoportes(filtrados);
     setSoportesFiltrados(filtrados);
   };
 
   const handleOpenSoportesModal = () => {
+    if (!contratoSeleccionado) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Primero debe seleccionar un contrato'
+      });
+      return;
+    }
+    
     setOpenSoportesModal(true);
+    
+    // Filtrar soportes basados en el medio del contrato seleccionado
+    if (contratoSeleccionado && contratoSeleccionado.medio) {
+      const filteredSoportes = allSoportes.filter(soporte => 
+        soporte.Medios.includes(contratoSeleccionado.medio.NombredelMedio)
+      );
+      
+      setSoportes(filteredSoportes);
+      setSoportesFiltrados([]);
+    }
   };
 
   const handleCloseSoportesModal = () => {
@@ -1455,6 +1869,14 @@ const Alternativas = () => {
   };
 
   const handleOpenAddTemaModal = () => {
+    if (!contratoSeleccionado?.IdMedios) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Primero debe seleccionar un contrato con medio asociado'
+      });
+      return;
+    }
     setOpenAddTemaModal(true);
   };
 
@@ -1680,37 +2102,60 @@ const Alternativas = () => {
 
   const handleMontoChange = (campo, valor) => {
     setNuevaAlternativa(prev => {
-      const valorUnitarioBase = campo === 'valor_unitario' ? valor : prev.valor_unitario;
-      const descuento = campo === 'descuento_plan' ? valor : prev.descuento_plan;
-      const recargo = campo === 'recargo_plan' ? valor : prev.recargo_plan;
-      
-      // Obtener el total de cantidades
-      const totalCantidades = prev.cantidades.reduce((sum, item) => {
-        return sum + (Number(item.cantidad) || 0);
-      }, 0);
+      const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
+      const valorNumerico = Number(valor) || 0;
+      let totalBruto = 0;
+      let totalNeto = 0;
+      let iva = 0;
+      let totalOrden = 0;
+      let valorUnitarioFinal = valorNumerico;
   
-      // Verificar si el medio es TV CABLE o RADIO
-      const medioId = temaSeleccionado?.id_medio;
-      const esMediacionEspecial = medioId === 38 || medioId === 35; // TV CABLE o RADIO
+      // If changing valor_unitario, calculate totals based on quantities
+      if (campo === 'valor_unitario') {
+        const totalCantidades = prev.cantidades.reduce((sum, item) => {
+          return sum + (Number(item.cantidad) || 0);
+        }, 0);
   
-      // Calcular valor unitario ajustado
-      let valorUnitarioAjustado = Number(valorUnitarioBase) || 0;
-      if (esMediacionEspecial && totalCantidades > 0) {
-        valorUnitarioAjustado *= totalCantidades;
+        if (tipoGeneracionOrden === 1) { // Neto
+          totalNeto = valorNumerico * totalCantidades;
+          totalBruto = Math.round(totalNeto / 0.85);
+        } else { // Bruto
+          totalBruto = valorNumerico * totalCantidades;
+          totalNeto = Math.round(totalBruto * 0.85);
+        }
+      } else {
+        // Your existing calculations for other fields
+        if (tipoGeneracionOrden === 1) {
+          if (campo === 'total_neto') {
+            totalNeto = valorNumerico;
+            totalBruto = Math.round(valorNumerico / 0.85);
+          } else if (campo === 'total_bruto') {
+            totalBruto = valorNumerico;
+            totalNeto = Math.round(valorNumerico * 0.85);
+          }
+        } else {
+          if (campo === 'total_bruto') {
+            totalBruto = valorNumerico;
+            totalNeto = Math.round(valorNumerico * 0.85);
+          } else if (campo === 'total_neto') {
+            totalNeto = valorNumerico;
+            totalBruto = Math.round(valorNumerico / 0.85);
+          }
+        }
       }
   
-      const valorBase = valorUnitarioAjustado;
-      const descuentoValor = valorBase * (Number(descuento) / 100) || 0;
-      const recargoValor = valorBase * (Number(recargo) / 100) || 0;
-  
-      const totalBruto = valorBase;
-      const totalNeto = (totalBruto - descuentoValor + recargoValor) * 1.19;
+      // Calculate IVA and total order
+      iva = Math.round(totalNeto * 0.19);
+      totalOrden = totalNeto + iva;
   
       return {
         ...prev,
-        [campo]: valor,
+        [campo]: valorNumerico,
+        valor_unitario: campo === 'valor_unitario' ? valorNumerico : prev.valor_unitario,
         total_bruto: Math.round(totalBruto),
-        total_neto: Math.round(totalNeto)
+        total_neto: Math.round(totalNeto),
+        iva: Math.round(iva),
+        total_orden: Math.round(totalOrden)
       };
     });
   };
@@ -1718,73 +2163,149 @@ const Alternativas = () => {
   const handleCantidadChange = (dia, valor) => {
     setNuevaAlternativa(prev => {
       let nuevasCantidades = [...prev.cantidades];
-      const index = nuevasCantidades.findIndex(item => item.dia === dia);
       
-      if (valor && valor !== '0') {
-        if (index !== -1) {
-          nuevasCantidades[index] = { dia, cantidad: Number(valor) };
-        } else {
-          nuevasCantidades.push({ dia, cantidad: Number(valor) });
+      // Si autoFillCantidades está activo, aplicar el valor a todos los días
+      if (autoFillCantidades && valor && valor !== '0') {
+        // Crear un array con exactamente 31 días (o los días del mes correspondiente)
+        const diasEnMes = 31; // O usar una función para determinar los días del mes actual
+        nuevasCantidades = [];
+        
+        // Crear explícitamente un objeto para cada día con su valor correspondiente
+        for (let i = 1; i <= diasEnMes; i++) {
+          nuevasCantidades.push({
+            dia: i.toString().padStart(2, '0'),
+            cantidad: Number(valor)
+          });
         }
       } else {
-        if (index !== -1) {
-          nuevasCantidades.splice(index, 1);
+        // Comportamiento original para un solo día
+        const index = nuevasCantidades.findIndex(item => item.dia === dia);
+        
+        if (valor && valor !== '0') {
+          if (index !== -1) {
+            nuevasCantidades[index] = { dia, cantidad: Number(valor) };
+          } else {
+            nuevasCantidades.push({ dia, cantidad: Number(valor) });
+          }
+        } else {
+          if (index !== -1) {
+            nuevasCantidades.splice(index, 1);
+          }
         }
       }
   
-      nuevasCantidades.sort((a, b) => a.dia - b.dia);
+      // Ordenar las cantidades por día
+      nuevasCantidades.sort((a, b) => parseInt(a.dia) - parseInt(b.dia));
   
-      // Recalcular los montos después de actualizar las cantidades
+      // Calcular el total de cantidades usando la función calcularTotal
       const totalCantidades = nuevasCantidades.reduce((sum, item) => {
-        return sum + (Number(item.cantidad) || 0);
+        return sum + Number(item.cantidad || 0);
       }, 0);
   
-      const medioId = temaSeleccionado?.id_medio;
-      const esMediacionEspecial = medioId === 38 || medioId === 35;
+      // Usar la misma lógica de cálculo que handleMontoChange
+      const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
+      const valorUnitario = Number(prev.valor_unitario) || 0;
+      let totalBruto = 0;
+      let totalNeto = 0;
+      let iva = 0;
+      let totalOrden = 0;
   
-      let valorUnitario = Number(prev.valor_unitario) || 0;
-      if (esMediacionEspecial && totalCantidades > 0) {
-        valorUnitario *= totalCantidades;
+      // Calcular totales basados en cantidades
+      if (tipoGeneracionOrden === 1) { // Neto
+        totalNeto = valorUnitario * totalCantidades;
+        totalBruto = Math.round(totalNeto / 0.85);
+      } else { // Bruto
+        totalBruto = valorUnitario * totalCantidades;
+        totalNeto = Math.round(totalBruto * 0.85);
       }
   
-      const descuento = Number(prev.descuento_plan) || 0;
-      const recargo = Number(prev.recargo_plan) || 0;
-  
-      const descuentoValor = valorUnitario * (descuento / 100);
-      const recargoValor = valorUnitario * (recargo / 100);
-  
-      const totalBruto = valorUnitario;
-      const totalNeto = (totalBruto - descuentoValor + recargoValor) * 1.19;
+      // Calcular IVA y total orden
+      iva = Math.round(totalNeto * 0.19);
+      totalOrden = totalNeto + iva;
   
       return {
         ...prev,
         cantidades: nuevasCantidades,
         total_bruto: Math.round(totalBruto),
-        total_neto: Math.round(totalNeto)
+        total_neto: Math.round(totalNeto),
+        iva: Math.round(iva),
+        total_orden: Math.round(totalOrden)
       };
     });
   };
-
+  const handleLimpiarCantidades = () => {
+    setNuevaAlternativa(prev => {
+      return {
+        ...prev,
+        cantidades: [],
+        total_bruto: 0,
+        total_neto: 0,
+        iva: 0,
+        total_orden: 0
+      };
+    });
+  };
   const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
-  const dias = getDiasDelMes(anio, mes);
+    const dias = getDiasDelMes(anio, mes);
     
-  const getCantidad = (dia) => {
-    const item = cantidades?.find(c => c.dia === dia);
-    return item ? item.cantidad : '';
-  };
+    const getCantidad = (dia) => {
+      const item = cantidades?.find(c => c.dia === dia);
+      return item ? item.cantidad : '';
+    };
 
-  const calcularTotal = () => {
-    return (cantidades || []).reduce((sum, item) => {
-      const cantidad = parseInt(item.cantidad) || 0;
-      return sum + cantidad;
-    }, 0);
-  };
+    const calcularTotal = () => { 
+      // Array con el número de días de cada mes (índice 0 = enero, 1 = febrero, etc.)
+      const diasPorMes = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      
+      // Obtener el mes (restando 1 porque en JavaScript los meses van de 0 a 11)
+      const mes = (planData?.mes || nuevaAlternativa.mes) - 1;
+      const anio = planData?.anio || nuevaAlternativa.anio;
+      
+      // Ajustar febrero en años bisiestos
+      if (mes === 1 && ((anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0)) {
+        diasPorMes[1] = 29;
+      }
+      
+      // Número de días en el mes actual
+      const diasEnMes = diasPorMes[mes];
+      
+      // Filtrar las cantidades para incluir solo los días válidos
+      const cantidadesValidas = (cantidades || []).filter((item, index) => index < diasEnMes);
+      
+      const total = cantidadesValidas.reduce((sum, item) => { 
+        const cantidad = parseInt(item.cantidad) || 0; 
+        return sum + cantidad; 
+      }, 0); 
+      
+      return total;
+    };
     
     return (
       <Box sx={{ mt: 2 }}>
-        <Typography variant="subtitle1" sx={{ mb: 1, color: '#666' }}>
-          Calendario de Cantidades
-        </Typography>
+       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+  <Typography variant="h6">Calendario de Cantidades</Typography>
+  <Box display="flex" alignItems="center">
+    <FormControlLabel
+      control={
+        <Checkbox
+          checked={autoFillCantidades}
+          onChange={(e) => setAutoFillCantidades(e.target.checked)}
+          color="primary"
+        />
+      }
+      label="Rellenar automáticamente todas las casillas"
+    />
+    <Button 
+      variant="outlined" 
+      color="secondary" 
+      size="small" 
+      onClick={handleLimpiarCantidades}
+      sx={{ ml: 2 }}
+    >
+      Limpiar
+    </Button>
+  </Box>
+</Box>
         <TableContainer sx={{ 
           maxWidth: '100%',
           overflowX: 'auto',
@@ -1824,22 +2345,28 @@ const Alternativas = () => {
               <TableRow>
                 {dias.map(({ dia }) => (
                   <TableCell key={dia} align="center" padding="none">
-                    <input
-                      type="number"
-                      value={getCantidad(dia)}
-                      onChange={(e) => onChange(dia, e.target.value)}
-                      style={{ 
-                        width: '28px',
-                        height: '24px',
-                        padding: '2px',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '2px',
-                        textAlign: 'center',
-                        fontSize: '0.75rem',
-                        backgroundColor: '#fff'
-                      }}
-                      min="0"
-                    />
+                   <input 
+  type="number" 
+  value={getCantidad(dia)} 
+  onChange={(e) => onChange(dia, e.target.value)} 
+  style={{ 
+    width: '28px', 
+    height: '24px', 
+    padding: '2px', 
+    border: '1px solid #e0e0e0', 
+    borderRadius: '2px', 
+    textAlign: 'center', 
+    fontSize: '0.75rem', 
+    backgroundColor: '#fff',
+    // Estilos para ocultar los punteros en diferentes navegadores
+    WebkitAppearance: 'none',
+    MozAppearance: 'textfield',
+    appearance: 'textfield',
+    margin: 0
+  }} 
+  step="any" 
+  min="0" 
+/>
                   </TableCell>
                 ))}
                 <TableCell align="center" sx={{ backgroundColor: '#f8f9fa' }}>
@@ -2005,11 +2532,9 @@ const Alternativas = () => {
   const tituloModal = modoEdicion ? 'Editar Alternativa' : 'Nueva Alternativa';
 
   const handleTemaChange = (_, newValue) => {
-    // Get the media information from the selected theme
     const selectedMedio = newValue?.Medios;
     
     if (selectedMedio) {
-      // Update visible fields based on media properties
       setVisibleFields({
         duracion: Boolean(selectedMedio.duracion),
         color: Boolean(selectedMedio.color),
@@ -2019,7 +2544,6 @@ const Alternativas = () => {
         rubro: Boolean(selectedMedio.rubro)
       });
     } else {
-      // Reset visible fields if no media is selected
       setVisibleFields({
         duracion: false,
         color: false,
@@ -2029,12 +2553,13 @@ const Alternativas = () => {
         rubro: false
       });
     }
-
+  
     setNuevaAlternativa(prev => ({ 
       ...prev, 
       id_tema: newValue?.id_tema || '',
       segundos: newValue?.segundos || '',
-      id_medio: newValue?.id_medio || null
+      id_medio: newValue?.id_medio || null,
+      nombreMedio: newValue?.Medios?.NombredelMedio || ''
     }));
   };
 
@@ -2409,30 +2934,32 @@ const Alternativas = () => {
                       <Grid item xs={12} sm={4} sx={{ width: '100%' }}>
                         <FormControl fullWidth>
                           <Box sx={{ position: 'relative', width: '100%' }}>
-                            <TextField
-                              label="Tema"
-                              value={temaSeleccionado ? temaSeleccionado.nombre_tema : ''}
-                              InputProps={{
-                                readOnly: true,
-                                endAdornment: (
-                                  <InputAdornment position="end">
-                                    <IconButton
-                                      edge="end"
-                                      onClick={handleOpenTemasModal}
-                                    >
-                                      <SearchIcon />
-                                    </IconButton>
-                                  </InputAdornment>
-                                ),
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <TopicIcon />
-                                  </InputAdornment>
-                                )
-                              }}
-                              onClick={handleOpenTemasModal}
-                              sx={{ cursor: 'pointer', width: '100%' }}
-                            />
+                          <TextField
+  label="Tema"
+  value={temaSeleccionado ? temaSeleccionado.NombreTema : ''} // Changed from nombre_tema to NombreTema
+  InputProps={{
+    readOnly: true,
+    endAdornment: (
+      <InputAdornment position="end">
+        <IconButton
+          edge="end"
+          onClick={() => nuevaAlternativa.num_contrato && handleOpenTemasModal()}
+          disabled={!nuevaAlternativa.num_contrato}
+        >
+          <SearchIcon />
+        </IconButton>
+      </InputAdornment>
+    ),
+    startAdornment: (
+      <InputAdornment position="start">
+        <TopicIcon />
+      </InputAdornment>
+    )
+  }}
+  onClick={() => nuevaAlternativa.num_contrato && handleOpenTemasModal()}
+  sx={{ cursor: nuevaAlternativa.num_contrato ? 'pointer' : 'not-allowed', width: '100%' }}
+  helperText={!nuevaAlternativa.num_contrato ? "Primero seleccione un contrato" : ""}
+/>
                           </Box>
                         </FormControl>
                       </Grid>
@@ -2661,113 +3188,133 @@ const Alternativas = () => {
                       </Grid>
                     </Grid>
                   </Grid>
-                </Grid>
-              </Grid>
-
-              <Grid item xs={12} md={3}>
-                <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8f9fa', height: '100%' }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Montos
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Valor Unitario"
-                        size="small"
-                        fullWidth
-                        type="number"
-                        value={nuevaAlternativa.valor_unitario}
-                        onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <PriceChangeIcon sx={{ fontSize: '1.1rem' }} />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Descuento Plan (%)"
-                        size="small"
-                        fullWidth
-                        type="number"
-                        value={nuevaAlternativa.descuento_plan}
-                        onChange={(e) => handleMontoChange('descuento_plan', e.target.value)}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <DiscountIcon sx={{ fontSize: '1.1rem' }} />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Recargo Plan (%)"
-                        size="small"
-                        fullWidth
-                        type="number"
-                        value={nuevaAlternativa.recargo_plan}
-                        onChange={(e) => handleMontoChange('recargo_plan', e.target.value)}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <TrendingUpIcon sx={{ fontSize: '1.1rem' }} />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Total Bruto"
-                        size="small"
-                        fullWidth
-                        type="number"
-                        value={nuevaAlternativa.total_bruto}
-                        disabled
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <AccountBalanceIcon sx={{ fontSize: '1.1rem' }} />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Total Neto (con IVA)"
-                        size="small"
-                        fullWidth
-                        type="number"
-                        value={nuevaAlternativa.total_neto}
-                        disabled
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <ReceiptIcon sx={{ fontSize: '1.1rem' }} />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
-            </Grid>
-
-            <Box sx={{ mt: 2 }}>
+                  <Grid item xs={12}>       <Box  sx={{ mt: 2 }}>
               <CalendarioAlternativa
                 anio={nuevaAlternativa.anio}
                 mes={nuevaAlternativa.mes}
                 cantidades={nuevaAlternativa.cantidades}
                 onChange={handleCantidadChange}
               />
-            </Box>
+            </Box></Grid>
+                </Grid>
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+              <Paper elevation={0} sx={{ p: 2, bgcolor: '#f8f9fa', height: '100%' }}>
+  <Typography variant="subtitle2" gutterBottom>
+    Montos
+  </Typography>
+  <Grid container spacing={2}>
+    <Grid item xs={12}>
+      <TextField
+        label="Valor Unitario"
+        size="small"
+        fullWidth
+        type="number"
+        value={nuevaAlternativa.valor_unitario}
+        onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <PriceChangeIcon sx={{ fontSize: '1.1rem' }} />
+            </InputAdornment>
+          )
+        }}
+      />
+    </Grid>
+    <Grid item xs={12}>
+      <TextField
+        label="Descuento Plan (%)"
+        size="small"
+        fullWidth
+        type="number"
+        value={nuevaAlternativa.descuento_plan}
+        onChange={(e) => handleMontoChange('descuento_plan', e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <DiscountIcon sx={{ fontSize: '1.1rem' }} />
+            </InputAdornment>
+          )
+        }}
+      />
+    </Grid>
+    <Grid item xs={12}>
+      <TextField
+        label="Recargo Plan (%)"
+        size="small"
+        fullWidth
+        type="number"
+        value={nuevaAlternativa.recargo_plan}
+        onChange={(e) => handleMontoChange('recargo_plan', e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <TrendingUpIcon sx={{ fontSize: '1.1rem' }} />
+            </InputAdornment>
+          )
+        }}
+      />
+    </Grid>
+    <Grid item xs={12}>
+      <TextField
+        label={contratoSeleccionado?.id_GeneraracionOrdenTipo === 1 ? 'TOTAL NETO' : 'TOTAL BRUTO'}
+        size="small"
+        fullWidth
+        type="number"
+        value={contratoSeleccionado?.id_GeneraracionOrdenTipo === 1 ? 
+          nuevaAlternativa.total_neto : 
+          nuevaAlternativa.total_bruto}
+        disabled
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <AccountBalanceIcon sx={{ fontSize: '1.1rem' }} />
+            </InputAdornment>
+          )
+        }}
+      />
+    </Grid>
+    <Grid item xs={12}>
+      <TextField
+        label="IVA 19%"
+        size="small"
+        fullWidth
+        type="number"
+        value={nuevaAlternativa.iva}
+        disabled
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <ReceiptIcon sx={{ fontSize: '1.1rem' }} />
+            </InputAdornment>
+          )
+        }}
+      />
+    </Grid>
+    <Grid item xs={12}>
+      <TextField
+        label="TOTAL ORDEN"
+        size="small"
+        fullWidth
+        type="number"
+        value={nuevaAlternativa.total_orden}
+        disabled
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <ReceiptIcon sx={{ fontSize: '1.1rem' }} />
+            </InputAdornment>
+          )
+        }}
+      />
+    </Grid>
+  </Grid>
+</Paper>
+              </Grid>
+            </Grid>
+
+     
 
           </DialogContent>
           <DialogActions>
@@ -2960,6 +3507,7 @@ Cancelar
             </Box>
           </DialogTitle>
 
+
           <DialogContent>
             <TableContainer component={Paper}>
               <Table size="small">
@@ -2967,10 +3515,12 @@ Cancelar
                   <TableRow>
                     <TableCell>ID</TableCell>
                     <TableCell>Nombre Tema</TableCell>
+                      <TableCell>Medio</TableCell>
                     <TableCell>Descripción</TableCell>
                     <TableCell>Duración</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Calidad</TableCell>
+                  
                     <TableCell>Fecha Creación</TableCell>
                     <TableCell>Fecha Modificación</TableCell>
                     <TableCell>Acciones</TableCell>
@@ -2979,13 +3529,13 @@ Cancelar
                 <TableBody>
                   {loadingTemas ? (
                     <TableRow>
-                      <TableCell colSpan={9} align="center">
+                      <TableCell colSpan={10} align="center">
                         <CircularProgress size={24} />
                       </TableCell>
                     </TableRow>
                   ) : temasFiltrados.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} align="center">
+                      <TableCell colSpan={10} align="center">
                         No se encontraron temas
                       </TableCell>
                     </TableRow>
@@ -2999,6 +3549,9 @@ Cancelar
                       >
                         <TableCell>{tema.id_tema}</TableCell>
                         <TableCell>{tema.nombre_tema}</TableCell>
+                        <TableCell>
+                          {tema.Medios?.NombredelMedio || 'N/A'}
+                        </TableCell>
                         <TableCell>{tema.descripcion}</TableCell>
                         <TableCell>{formatDuracion(tema.duracion)}</TableCell>
                         <TableCell>
@@ -3011,6 +3564,7 @@ Cancelar
                         <TableCell>
                           {tema.Calidad?.NombreCalidad || 'N/A'}
                         </TableCell>
+                       
                         <TableCell>{new Date(tema.fecha_creacion).toLocaleDateString()}</TableCell>
                         <TableCell>{new Date(tema.fecha_modificacion).toLocaleDateString()}</TableCell>
                         <TableCell>
@@ -3036,79 +3590,225 @@ Cancelar
         </Dialog>
 
         <Dialog 
-          open={openSoportesModal} 
-          onClose={handleCloseSoportesModal}
-          maxWidth="md"
+    open={openSoportesModal} 
+    onClose={handleCloseSoportesModal}
+    maxWidth="md"
+    fullWidth
+  >
+    <DialogTitle>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 2
+      }}>
+        <Typography variant="h6">Seleccionar Soporte</Typography>
+        <Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleOpenAddSoporteModal}
+            size="small"
+            sx={{ mr: 1 }}
+          >
+            Nuevo Soporte
+          </Button>
+          <IconButton onClick={handleCloseSoportesModal} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </Box>
+      <TextField
+        label="Buscar Soporte"
+        variant="outlined"
+        fullWidth
+        value={searchSoporte}
+        onChange={(e) => handleSearchSoporte(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          )
+        }}
+        size="small"
+      />
+      {contratoSeleccionado && contratoSeleccionado.medio && (
+        <Typography variant="subtitle2" color="primary" sx={{ mt: 1 }}>
+          Filtrando soportes para el medio: {contratoSeleccionado.medio.NombredelMedio}
+        </Typography>
+      )}
+    </DialogTitle>
+    <DialogContent>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>ID</TableCell>
+              <TableCell>Nombre</TableCell>
+              <TableCell>Bonificación Año</TableCell>
+              <TableCell>Escala</TableCell>
+              <TableCell>Medios</TableCell>
+              <TableCell>Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loadingSoportes ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <CircularProgress size={24} />
+                </TableCell>
+              </TableRow>
+            ) : (soportesFiltrados.length > 0 ? soportesFiltrados : soportes).length > 0 ? (
+              (soportesFiltrados.length > 0 ? soportesFiltrados : soportes).map((soporte) => (
+                <TableRow key={soporte.id_soporte}>
+                  <TableCell>{soporte.id_soporte}</TableCell>
+                  <TableCell>{soporte.nombreIdentficiador}</TableCell>
+                  <TableCell>{soporte.bonificacion_ano}</TableCell>
+                  <TableCell>{soporte.escala}</TableCell>
+                  <TableCell>{soporte.Medios}</TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleSeleccionarSoporte(soporte)}
+                      title="Seleccionar"
+                    >
+                      <CheckIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  {contratoSeleccionado && contratoSeleccionado.medio ? 
+                    `No hay soportes para el medio "${contratoSeleccionado.medio.NombredelMedio}"` : 
+                    "No se encontraron soportes"}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </DialogContent>
+  </Dialog>
+
+  {/* Agregar el modal para crear un nuevo soporte */}
+  {/* Modificar el modal para crear un nuevo soporte */}
+  <Dialog
+    open={openAddSoporteModal}
+    onClose={handleCloseAddSoporteModal}
+    maxWidth="sm"
+    fullWidth
+  >
+    <DialogTitle>
+      Nuevo Soporte
+      <IconButton
+        aria-label="close"
+        onClick={handleCloseAddSoporteModal}
+        sx={{
+          position: 'absolute',
+          right: 8,
+          top: 8,
+        }}
+      >
+        <CloseIcon />
+      </IconButton>
+    </DialogTitle>
+    <DialogContent>
+      <Box sx={{ mt: 2 }}>
+        <TextField
+          label="Nombre del Soporte"
           fullWidth
-        >
-          <DialogTitle>
-            Seleccionar Soporte
-            <IconButton
-              aria-label="close"
-              onClick={handleCloseSoportesModal}
-              sx={{
-                position: 'absolute',
-                right: 8,
-                top: 8,
+          value={nuevoSoporte.nombreIdentficiador}
+          onChange={(e) => setNuevoSoporte({ ...nuevoSoporte, nombreIdentficiador: e.target.value })}
+          sx={{ mb: 2 }}
+          required
+        />
+        <TextField
+          label="Bonificación Año"
+          fullWidth
+          type="number"
+          value={nuevoSoporte.bonificacion_ano}
+          onChange={(e) => setNuevoSoporte({ ...nuevoSoporte, bonificacion_ano: e.target.value })}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          label="Escala"
+          fullWidth
+          type="number"
+          value={nuevoSoporte.escala}
+          onChange={(e) => setNuevoSoporte({ ...nuevoSoporte, escala: e.target.value })}
+          sx={{ mb: 2 }}
+        />
+        
+        {/* Modificar el selector de medios para que esté bloqueado si hay un medio en el contrato */}
+        {contratoSeleccionado && contratoSeleccionado.medio ? (
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="medios-select-label">Medio</InputLabel>
+            <Select
+              labelId="medios-select-label"
+              value={[contratoSeleccionado.medio.id]}
+              input={<OutlinedInput label="Medio" />}
+              disabled={true}
+              renderValue={() => contratoSeleccionado.medio.NombredelMedio}
+            >
+              <MenuItem value={contratoSeleccionado.medio.id}>
+                {contratoSeleccionado.medio.NombredelMedio}
+              </MenuItem>
+            </Select>
+            <FormHelperText>
+              El medio está preseleccionado según el contrato y no puede ser modificado
+            </FormHelperText>
+          </FormControl>
+        ) : (
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="medios-select-label">Medios</InputLabel>
+            <Select
+              labelId="medios-select-label"
+              multiple
+              value={nuevoSoporte.medios}
+              onChange={(e) => setNuevoSoporte({ ...nuevoSoporte, medios: e.target.value })}
+              input={<OutlinedInput label="Medios" />}
+              renderValue={(selected) => {
+                const selectedMedios = mediosOptions.filter(medio => selected.includes(medio.id));
+                return selectedMedios.map(medio => medio.NombredelMedio).join(', ');
+              }}
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 224,
+                    width: 250,
+                  },
+                },
               }}
             >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ mb: 2 }}>
-              <TextField
-                label="Buscar Soporte"
-                variant="outlined"
-                fullWidth
-                onChange={(e) => handleSearchSoporte(e.target.value)}
-                sx={{ mb: 2 }}
-              />
-            </Box>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Nombre</TableCell>
-                    <TableCell>Bonificación Año</TableCell>
-                    <TableCell>Escala</TableCell>
-                    <TableCell>Medios</TableCell>
-                    <TableCell>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {(soportesFiltrados.length > 0 ? soportesFiltrados : soportes).map((soporte) => (
-                    <TableRow key={soporte.id_soporte}>
-                      <TableCell>{soporte.id_soporte}</TableCell>
-                      <TableCell>{soporte.nombreIdentficiador}</TableCell>
-                      <TableCell>{soporte.bonificacion_ano}</TableCell>
-                      <TableCell>{soporte.escala}</TableCell>
-                      <TableCell>{soporte.Medios}</TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleSeleccionarSoporte(soporte)}
-                          title="Seleccionar"
-                        >
-                          <CheckIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(soportesFiltrados.length === 0 && soportes.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center">
-                        No se encontraron soportes
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </DialogContent>
-        </Dialog>
+              {loadingMedios ? (
+                <MenuItem disabled>
+                  <CircularProgress size={20} />
+                </MenuItem>
+              ) : (
+                mediosOptions.map((medio) => (
+                  <MenuItem key={medio.id} value={medio.id}>
+                    <Checkbox checked={nuevoSoporte.medios.indexOf(medio.id) > -1} />
+                    <ListItemText primary={medio.NombredelMedio} />
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+          </FormControl>
+        )}
+      </Box>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={handleCloseAddSoporteModal}>Cancelar</Button>
+      <Button onClick={handleSaveSoporte} variant="contained" color="primary">
+        Guardar
+      </Button>
+    </DialogActions>
+  </Dialog>
 
         <Dialog 
           open={openProgramasModal} 
@@ -3470,12 +4170,14 @@ Cancelar
             </IconButton>
           </DialogTitle>
           <DialogContent>
-            <ModalAgregarTema
-              open={openAddTemaModal}
-              onClose={handleCloseAddTemaModal}
-              onTemaAdded={handleTemaAdded}
-              idCampania={campaniaId}
-            />
+          <ModalAgregarTema
+  open={openAddTemaModal}
+  onClose={handleCloseAddTemaModal}
+  onTemaAdded={handleTemaAdded}
+  idCampania={campaniaId}
+  medioId={contratoSeleccionado?.IdMedios}
+  medioNombre={contratoSeleccionado?.medio?.NombredelMedio}
+/>
           </DialogContent>
         </Dialog>
 
