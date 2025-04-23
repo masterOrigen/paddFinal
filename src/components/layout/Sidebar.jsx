@@ -55,6 +55,20 @@ const Sidebar = () => {
     ]
     },
     {
+    id: 'reportes',
+    icon: 'fas fa-chart-bar',
+    text: 'Reportes',
+    submenu: [
+    { text: 'Reporte Orden de Compra', link: '/reportes/ordendecompra' },
+    { text: 'Reporte Diario de Órdenes', link: '/reportes/diarioordenes' },
+    { text: 'Detalle por Alternativa', link: '/reportes/detalleporalternativa' },
+    {text: 'Informe de Inversión', link: '/reportes/informeinversion' },
+    // { text: 'Inversión por Cliente', link: '/reportes/inversionporcliente' },
+    // { text: 'Rendimiento de Campañas', link: '/reportes/rendimientocampanas' },
+    // { text: 'Análisis de Medios', link: '/reportes/analisismedios' }
+    ]
+    },
+    {
     id: 'informaciones',
     icon: 'fas fa-copy',
     text: 'Informaciones',

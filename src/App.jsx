@@ -24,6 +24,14 @@ import Alternativas from './pages/planificacion/Alternativas';
 import CrearOrden from './pages/ordenes/CrearOrden';
 import ListadoUsuarios from './pages/usuarios/ListadoUsuarios';
 import MiPerfil from './pages/perfil/MiPerfil';
+import ReporteOrdenDeCompra from './pages/reportes/ReporteOrdenDeCompra';
+import InformeInversion from './pages/reportes/InformeInversion';
+import ReporteInversionPorCliente from './pages/reportes/ReporteInversionPorCliente';
+import RendimientoCampanas from './pages/reportes/RendimientoCampanas';
+import AnalisisMedios from './pages/reportes/AnalisisMedios';
+import EfectividadProveedores from './pages/reportes/EfectividadProveedores';
+import ReporteDiarioOrdenes from './pages/reportes/ReporteDiarioOrdenes';
+import DetallePorAlternativa from './pages/reportes/DetallePorAlternativa';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import './App.css';
@@ -75,6 +83,14 @@ function App() {
                   <Route path="/contratos/view/:id" element={<ViewContrato />} />
                   <Route path="/ordenes/crear" element={<CrearOrden />} />
                   <Route path="/ordenes/revisar" element={<RevisarOrden />} />
+                  <Route path="/reportes/ordendecompra" element={<ReporteOrdenDeCompra />} />
+                  <Route path="/reportes/diarioordenes" element={<ReporteDiarioOrdenes />} />
+                  <Route path="/reportes/informeinversion" element={<InformeInversion />} />
+                  <Route path="/reportes/inversionporcliente" element={<ReporteInversionPorCliente />} />
+                  <Route path="/reportes/rendimientocampanas" element={<RendimientoCampanas />} />
+                  <Route path="/reportes/analisismedios" element={<AnalisisMedios />} />
+                  <Route path="/reportes/efectividadproveedores" element={<EfectividadProveedores />} />
+                  <Route path="/reportes/detalleporalternativa" element={<DetallePorAlternativa />} />
                   <Route path="/usuarios" element={<ListadoUsuarios />} />
                   <Route path="/perfil" element={<MiPerfil />} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />

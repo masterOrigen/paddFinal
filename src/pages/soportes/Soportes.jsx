@@ -413,6 +413,7 @@ const Soportes = () => {
 
       <div className="data-grid-container">
         <DataGrid
+          getRowId={(row) => row.id_soporte}
           rows={filteredRows}
           columns={columns}
           pageSize={pageSize}
