@@ -880,6 +880,7 @@ const ViewSoporte = () => {
                 </Box>
                 <Box sx={{ height: 400, width: '100%' }}>
                   <DataGrid
+                    getRowId={(row) => row.id_programa}
                     rows={programas}
                     columns={programasColumns}
                     pageSize={5}
