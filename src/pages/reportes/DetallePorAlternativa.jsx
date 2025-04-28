@@ -42,6 +42,8 @@ import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SearchIcon from '@mui/icons-material/Search';
+import Swal from 'sweetalert2';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 const ReporteOrdenDeCompra = () => {
   const [loading, setLoading] = useState(false);
@@ -50,7 +52,8 @@ const ReporteOrdenDeCompra = () => {
   const [filtros, setFiltros] = useState({
     cliente: '',
     fechaInicio: null,
-    fechaFin: null
+    fechaFin: null,
+    campania: '' // Agregar campaña al estado de filtros
   });
   const [clientes, setClientes] = useState([]);
   const [campanas, setCampanas] = useState([]);
@@ -135,14 +138,17 @@ const ReporteOrdenDeCompra = () => {
     }
   };
 
-  const fetchCampanas = async () => {
+  const fetchCampanas = async (idCliente = null) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('Campania')
         .select('id_campania, NombreCampania, Presupuesto')
         .order('NombreCampania');
-
+      if (idCliente) {
+        query = query.eq('id_Cliente', idCliente);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       setCampanas(data || []);
     } catch (error) {
@@ -157,6 +163,10 @@ const ReporteOrdenDeCompra = () => {
       ...prev,
       [campo]: valor
     }));
+    if (campo === 'cliente') {
+      fetchCampanas(valor);
+      setFiltros(prev => ({ ...prev, campania: '' })); // Limpiar campaña seleccionada
+    }
   };
 
   const buscarOrdenes = async () => {
@@ -197,6 +207,11 @@ const ReporteOrdenDeCompra = () => {
       // Aplicar filtro de cliente
       if (filtros.cliente) {
         query = query.eq('Campania.id_Cliente', filtros.cliente);
+      }
+
+      // Aplicar filtro de campaña
+      if (filtros.campania) {
+        query = query.eq('Campania.id_campania', filtros.campania);
       }
 
       // Aplicar filtro de fecha inicio
@@ -299,7 +314,8 @@ const ReporteOrdenDeCompra = () => {
     setFiltros({
       cliente: '',
       fechaInicio: null,
-      fechaFin: null
+      fechaFin: null,
+      campania: '' // Agregar campaña al limpiar filtros
     });
   };
 
@@ -1239,7 +1255,12 @@ const ReporteOrdenDeCompra = () => {
       
       // Verificar que haya un cliente seleccionado
       if (!filtros.cliente) {
-        alert('Por favor seleccione un cliente para generar el informe');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Cliente requerido',
+          text: 'Por favor seleccione un cliente para generar el informe',
+          confirmButtonColor: '#1976d2',
+        });
         setLoadingExport(false);
         return;
       }
@@ -1281,6 +1302,10 @@ const ReporteOrdenDeCompra = () => {
         query = query.eq('Campania.id_Cliente', filtros.cliente);
       }
 
+      if (filtros.campania) {
+        query = query.eq('Campania.id_campania', filtros.campania);
+      }
+
       if (filtros.fechaInicio) {
         const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
         query = query.gte('fechaCreacion', fechaInicioFormateada);
@@ -1296,7 +1321,12 @@ const ReporteOrdenDeCompra = () => {
       if (error) throw error;
       
       if (ordenes.length === 0) {
-        alert('No se encontraron órdenes con los filtros seleccionados');
+        Swal.fire({
+          icon: 'info',
+          title: 'Sin resultados',
+          text: 'No se encontraron órdenes con los filtros seleccionados',
+          confirmButtonColor: '#1976d2',
+        });
         setLoadingExport(false);
         return;
       }
@@ -1361,6 +1391,7 @@ const ReporteOrdenDeCompra = () => {
         // Para cada alternativa, procesar su calendario y crear filas
         for (const alt of alternativas) {
           // Procesar calendario si existe
+          let filasGeneradas = false;
           if (alt.calendar) {
             try {
               let calendarData = alt.calendar;
@@ -1368,22 +1399,44 @@ const ReporteOrdenDeCompra = () => {
                 calendarData = JSON.parse(calendarData);
               }
               
-              let fechasExhibicion = [];
-              
               // Extraer las fechas del calendario
               if (Array.isArray(calendarData)) {
                 // Nuevo formato de array con {dia, cantidad}
                 calendarData.forEach(item => {
                   const anio = alt.Anios?.years || orden.plan?.Anios?.years;
                   const mes = alt.Meses?.Id || orden.plan?.Meses?.Id;
-                  
                   if (anio && mes && item.dia) {
                     const fecha = new Date(anio, mes - 1, item.dia);
-                    const fechaFormateada = format(fecha, 'yyyy-MM-dd');
-                    
-                    // Agregar la fecha tantas veces como indique la cantidad
-                    for (let i = 0; i < item.cantidad; i++) {
-                      fechasExhibicion.push(fechaFormateada);
+                    const fechaFormateada = format(fecha, 'dd/MM/yyyy');
+                    for (let i = 0; i < (item.cantidad || 1); i++) {
+                      filasInforme.push({
+                        ...{
+                          'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
+                          'Mes': orden.plan?.Meses?.Nombre || orden.plan?.Meses?.Id || '',
+                          'N° de Ctto.': orden.Contratos?.num_contrato || '',
+                          'N° de Orden': orden.numero_correlativo || '',
+                          'Version': orden.copia || '1',
+                          'Medio': alt.Medios?.NombredelMedio || '',
+                          'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || '',
+                          'Soporte': alt.Soportes?.nombreIdentficiador || orden.Soportes?.nombreIdentficiador || '',
+                          'Campana': orden.Campania?.NombreCampania || '',
+                          'Plan de Medios': orden.plan?.nombre_plan || '',
+                          'Producto': orden.Campania?.Productos?.NombreDelProducto || '',
+                          'Tema': alt.Temas?.NombreTema || '',
+                          'Seg': alt.segundos || '',
+                          'Prog./Elem./Formato': alt.Programas ? `${alt.Programas.descripcion}` : '',
+                          'Inversion Neta': formatCurrency(alt.valor_unitario || 0),
+                          'Agen.Creativa': '',
+                          'Cod. Univ. Aviso': alt.id || '',
+                          'Cod. Univ. Prog.': alt.Programas?.codigo_programa || '',
+                          'Calidad': alt.Clasificacion?.NombreClasificacion || '',
+                          'Cod.Usu.': orden.usuario_registro?.id || orden.OrdenesUsuarios?.[0]?.Usuarios?.id_usuario || '0',
+                          'Nombre Usuario': orden.usuario_registro?.nombre || orden.OrdenesUsuarios?.[0]?.Usuarios?.Nombre || '',
+                          'Grupo Usuario': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || ''
+                        },
+                        'Día': fechaFormateada
+                      });
+                      filasGeneradas = true;
                     }
                   }
                 });
@@ -1392,54 +1445,48 @@ const ReporteOrdenDeCompra = () => {
                 calendarData.days.forEach(dia => {
                   const anio = alt.Anios?.years || orden.plan?.Anios?.years;
                   const mes = alt.Meses?.Id || orden.plan?.Meses?.Id;
-                  
                   if (anio && mes && dia) {
                     const fecha = new Date(anio, mes - 1, dia);
-                    const fechaFormateada = format(fecha, 'yyyy-MM-dd');
-                    fechasExhibicion.push(fechaFormateada);
+                    const fechaFormateada = format(fecha, 'dd/MM/yyyy');
+                    filasInforme.push({
+                      ...{
+                        'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
+                        'Mes': orden.plan?.Meses?.Nombre || orden.plan?.Meses?.Id || '',
+                        'N° de Ctto.': orden.Contratos?.num_contrato || '',
+                        'N° de Orden': orden.numero_correlativo || '',
+                        'Version': orden.copia || '1',
+                        'Medio': alt.Medios?.NombredelMedio || '',
+                        'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || '',
+                        'Soporte': alt.Soportes?.nombreIdentficiador || orden.Soportes?.nombreIdentficiador || '',
+                        'Campana': orden.Campania?.NombreCampania || '',
+                        'Plan de Medios': orden.plan?.nombre_plan || '',
+                        'Producto': orden.Campania?.Productos?.NombreDelProducto || '',
+                        'Tema': alt.Temas?.NombreTema || '',
+                        'Seg': alt.segundos || '',
+                        'Prog./Elem./Formato': alt.Programas ? `${alt.Programas.descripcion}` : '',
+                        'Inversion Neta': formatCurrency(alt.valor_unitario || 0),
+                        'Agen.Creativa': '',
+                        'Cod. Univ. Aviso': alt.id || '',
+                        'Cod. Univ. Prog.': alt.Programas?.codigo_programa || '',
+                        'Calidad': alt.Clasificacion?.NombreClasificacion || '',
+                        'Cod.Usu.': orden.usuario_registro?.id || orden.OrdenesUsuarios?.[0]?.Usuarios?.id_usuario || '0',
+                        'Nombre Usuario': orden.usuario_registro?.nombre || orden.OrdenesUsuarios?.[0]?.Usuarios?.Nombre || '',
+                        'Grupo Usuario': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || ''
+                      },
+                      'Día': fechaFormateada
+                    });
+                    filasGeneradas = true;
                   }
                 });
               }
-              
-              // Si no hay fechas, agregar al menos una fila
-              if (fechasExhibicion.length === 0) {
-                fechasExhibicion.push('');
-              }
-              
-              // Crear una fila por cada fecha de exhibición
-              fechasExhibicion.forEach(fechaExhibicion => {
-                filasInforme.push({
-                  'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
-                  'Mes': orden.plan?.Meses?.Nombre || orden.plan?.Meses?.Id || '',
-                  'N° de Ctto.': orden.Contratos?.num_contrato || '',
-                  'N° de Orden': orden.numero_correlativo || '',
-                  'Version': orden.copia || '1',
-                  'Medio': alt.Medios?.NombredelMedio || '',
-                  'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || '',
-                  'Soporte': alt.Soportes?.nombreIdentficiador || orden.Soportes?.nombreIdentficiador || '',
-                  'Campana': orden.Campania?.NombreCampania || '',
-                  'Plan de Medios': orden.plan?.nombre_plan || '',
-                  'Producto': orden.Campania?.Productos?.NombreDelProducto || '',
-                  'Tema': alt.Temas?.NombreTema || '',
-                  'Seg': alt.segundos || '',
-                  'Prog./Elem./Formato': alt.Programas ? `${alt.Programas.descripcion}` : '',
-                  'Fecha Exhib./Pub.': fechaExhibicion,
-                  'Inversion Neta': formatCurrency(alt.valor_unitario || 0),
-                  'Agen.Creativa': '',
-                  'Cod. Univ. Aviso': alt.id || '',
-                  'Cod. Univ. Prog.': alt.Programas?.codigo_programa || '',
-                  'Calidad': alt.Clasificacion?.NombreClasificacion || '',
-                  'Cod.Usu.': orden.usuario_registro?.id || orden.OrdenesUsuarios?.[0]?.Usuarios?.id_usuario || '0',
-                  'Nombre Usuario': orden.usuario_registro?.nombre || orden.OrdenesUsuarios?.[0]?.Usuarios?.Nombre || '',
-                  'Grupo Usuario': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || ''
-                });
-              });
-              
             } catch (e) {
-              console.error('Error al procesar calendario:', e);
-              // Error al procesar calendario para alternativa
-              // Agregar una fila sin fecha de exhibición
-              filasInforme.push({
+              // Si hay error, no se generan filas por día
+            }
+          }
+          if (!filasGeneradas) {
+            // Si no hay días, agregar una fila sin día
+            filasInforme.push({
+              ...{
                 'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
                 'Mes': orden.plan?.Meses?.Nombre || orden.plan?.Meses?.Id || '',
                 'N° de Ctto.': orden.Contratos?.num_contrato || '',
@@ -1453,8 +1500,7 @@ const ReporteOrdenDeCompra = () => {
                 'Producto': orden.Campania?.Productos?.NombreDelProducto || '',
                 'Tema': alt.Temas?.NombreTema || '',
                 'Seg': alt.segundos || '',
-                'Prog./Elem./Formato': alt.Programas ? ` ${alt.Programas.descripcion}` : '',
-                'Fecha Exhib./Pub.': '',
+                'Prog./Elem./Formato': alt.Programas ? `${alt.Programas.descripcion}` : '',
                 'Inversion Neta': formatCurrency(alt.valor_unitario || 0),
                 'Agen.Creativa': '',
                 'Cod. Univ. Aviso': alt.id || '',
@@ -1463,41 +1509,20 @@ const ReporteOrdenDeCompra = () => {
                 'Cod.Usu.': orden.usuario_registro?.id || orden.OrdenesUsuarios?.[0]?.Usuarios?.id_usuario || '0',
                 'Nombre Usuario': orden.usuario_registro?.nombre || orden.OrdenesUsuarios?.[0]?.Usuarios?.Nombre || '',
                 'Grupo Usuario': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || ''
-              });
-            }
-          } else {
-            // Si no hay calendario, agregar una fila sin fecha de exhibición
-            filasInforme.push({
-              'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
-              'Mes': orden.plan?.Meses?.Nombre || orden.plan?.Meses?.Id || '',
-              'N° de Ctto.': orden.Contratos?.num_contrato || '',
-              'N° de Orden': orden.numero_correlativo || '',
-              'Version': orden.copia || '1',
-              'Medio': alt.Medios?.NombredelMedio || '',
-              'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || '',
-              'Soporte': alt.Soportes?.nombreIdentficiador || orden.Soportes?.nombreIdentficiador || '',
-              'Campana': orden.Campania?.NombreCampania || '',
-              'Plan de Medios': orden.plan?.nombre_plan || '',
-              'Producto': orden.Campania?.Productos?.NombreDelProducto || '',
-              'Tema': alt.Temas?.NombreTema || '',
-              'Seg': alt.segundos || '',
-              'Prog./Elem./Formato': alt.Programas?.descripcion || '',
-              'Fecha Exhib./Pub.': '',
-              'Inversion Neta': formatCurrency(alt.valor_unitario || 0),
-              'Agen.Creativa': '',
-              'Cod. Univ. Aviso': alt.id || '',
-              'Cod. Univ. Prog.': alt.Programas?.codigo_programa || '',
-              'Calidad': alt.Clasificacion?.NombreClasificacion || '',
-              'Cod.Usu.': orden.usuario_registro?.id || orden.OrdenesUsuarios?.[0]?.Usuarios?.id_usuario || '0',
-              'Nombre Usuario': orden.usuario_registro?.nombre || orden.OrdenesUsuarios?.[0]?.Usuarios?.Nombre || '',
-              'Grupo Usuario': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || ''
+              },
+              'Día': ''
             });
           }
         }
       }
       
       if (filasInforme.length === 0) {
-        alert('No se encontraron datos para el informe con los filtros seleccionados');
+        Swal.fire({
+          icon: 'info',
+          title: 'Sin datos',
+          text: 'No se encontraron datos para el informe con los filtros seleccionados',
+          confirmButtonColor: '#1976d2',
+        });
         setLoadingExport(false);
         return;
       }
@@ -1507,6 +1532,76 @@ const ReporteOrdenDeCompra = () => {
         ? ordenes[0].plan.Anios.years 
         : new Date().getFullYear();
       
+      // Si no se selecciona campaña específica, agrupar por campaña y crear una hoja por cada campaña
+      if (!filtros.campania) {
+        // Agrupar filas por campaña
+        const filasPorCampana = filasInforme.reduce((acc, fila) => {
+          const campana = fila['Campana'] || 'Sin Campaña';
+          if (!acc[campana]) acc[campana] = [];
+          acc[campana].push(fila);
+          return acc;
+        }, {});
+
+        const wb = XLSX.utils.book_new();
+        const headers = [
+          'CLIENTE', 'Mes', 'N° de Ctto.', 'N° de Orden', 'Version', 'Medio', 'Proveedor',
+          'Soporte', 'Campana', 'Plan de Medios', 'Producto', 'Tema', 'Seg', 'Prog./Elem./Formato',
+          'Día', 'Inversion Neta', 'Agen.Creativa', 'Cod. Univ. Aviso', 'Cod. Univ. Prog.',
+          'Calidad', 'Cod.Usu.', 'Nombre Usuario', 'Grupo Usuario'
+        ];
+        Object.entries(filasPorCampana).forEach(([campana, filas]) => {
+          // Crear hoja para la campaña
+          const ws = XLSX.utils.aoa_to_sheet([]);
+          const titulo = `INFORME DE INVERSIÓN ${campana} ${anio}`;
+          XLSX.utils.sheet_add_aoa(ws, [[titulo]], { origin: 'A1' });
+          XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A2' });
+          for (let i = 0; i < filas.length; i++) {
+            const fila = filas[i];
+            const valores = headers.map(header => fila[header] || '');
+            XLSX.utils.sheet_add_aoa(ws, [valores], { origin: `A${i + 3}` });
+          }
+          if (!ws['!merges']) ws['!merges'] = [];
+          ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 22 } });
+          if (!ws['!cols']) ws['!cols'] = [];
+          ws['!cols'][0] = { wch: 25 };
+          ws['!cols'][1] = { wch: 5 };
+          ws['!cols'][2] = { wch: 15 };
+          ws['!cols'][3] = { wch: 12 };
+          ws['!cols'][4] = { wch: 10 };
+          ws['!cols'][5] = { wch: 15 };
+          ws['!cols'][6] = { wch: 20 };
+          ws['!cols'][7] = { wch: 20 };
+          ws['!cols'][8] = { wch: 20 };
+          ws['!cols'][9] = { wch: 20 };
+          ws['!cols'][10] = { wch: 20 };
+          ws['!cols'][11] = { wch: 20 };
+          ws['!cols'][12] = { wch: 5 };
+          ws['!cols'][13] = { wch: 25 };
+          ws['!cols'][14] = { wch: 15 };
+          ws['!cols'][15] = { wch: 15 };
+          ws['!cols'][16] = { wch: 15 };
+          ws['!cols'][17] = { wch: 15 };
+          ws['!cols'][18] = { wch: 15 };
+          ws['!cols'][19] = { wch: 15 };
+          ws['!cols'][20] = { wch: 10 };
+          ws['!cols'][21] = { wch: 20 };
+          ws['!cols'][22] = { wch: 20 };
+          XLSX.utils.book_append_sheet(wb, ws, campana.substring(0, 31));
+        });
+        // Generar nombre con fecha actual
+        const fechaActual = format(new Date(), 'dd-MM-yyyy');
+        XLSX.writeFile(wb, `informe_inversion_${nombreCliente.replace(/\s+/g, '_').toLowerCase()}_${fechaActual}.xlsx`);
+        Swal.fire({
+          icon: 'success',
+          title: '¡Informe generado!',
+          text: 'El archivo Excel se ha descargado correctamente.',
+          showConfirmButton: false,
+          timer: 1800
+        });
+        setLoadingExport(false);
+        return;
+      }
+      
       // Crear y descargar el archivo Excel
       const wb = XLSX.utils.book_new();
       
@@ -1514,7 +1609,8 @@ const ReporteOrdenDeCompra = () => {
       const headers = [
         'CLIENTE', 'Mes', 'N° de Ctto.', 'N° de Orden', 'Version', 'Medio', 'Proveedor',
         'Soporte', 'Campana', 'Plan de Medios', 'Producto', 'Tema', 'Seg', 'Prog./Elem./Formato',
-        'Fecha Exhib./Pub.', 'Inversion Neta', 'Agen.Creativa', 'Cod. Univ. Aviso', 'Cod. Univ. Prog.',
+        'Día', // Nueva columna Día
+        'Inversion Neta', 'Agen.Creativa', 'Cod. Univ. Aviso', 'Cod. Univ. Prog.',
         'Calidad', 'Cod.Usu.', 'Nombre Usuario', 'Grupo Usuario'
       ];
       
@@ -1557,7 +1653,7 @@ const ReporteOrdenDeCompra = () => {
       ws['!cols'][11] = { wch: 20 }; // Tema
       ws['!cols'][12] = { wch: 5 }; // Seg
       ws['!cols'][13] = { wch: 25 }; // Prog./Elem./Formato
-      ws['!cols'][14] = { wch: 15 }; // Fecha Exhib./Pub.
+      ws['!cols'][14] = { wch: 15 }; // Día
       ws['!cols'][15] = { wch: 15 }; // Inversion Neta
       ws['!cols'][16] = { wch: 15 }; // Agen.Creativa
       ws['!cols'][17] = { wch: 15 }; // Cod. Univ. Aviso
@@ -1573,9 +1669,21 @@ const ReporteOrdenDeCompra = () => {
       const fechaActual = format(new Date(), 'dd-MM-yyyy');
       XLSX.writeFile(wb, `informe_inversion_${nombreCliente.replace(/\s+/g, '_').toLowerCase()}_${fechaActual}.xlsx`);
       
-      alert('Informe generado exitosamente');
+      // Mostrar SweetAlert de éxito
+      Swal.fire({
+        icon: 'success',
+        title: '¡Informe generado!',
+        text: 'El archivo Excel se ha descargado correctamente.',
+        showConfirmButton: false,
+        timer: 1800
+      });
     } catch (error) {
-      alert('Error al generar el informe: ' + (error.message || 'Error desconocido'));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al generar el informe: ' + (error.message || 'Error desconocido'),
+        confirmButtonColor: '#1976d2'
+      });
       console.error('Error al generar informe de inversión detallado:', error);
     } finally {
       setLoadingExport(false);
@@ -1626,6 +1734,10 @@ const ReporteOrdenDeCompra = () => {
       // Aplicar filtros
       if (filtros.cliente) {
         query = query.eq('Campania.id_Cliente', filtros.cliente);
+      }
+
+      if (filtros.campania) {
+        query = query.eq('Campania.id_campania', filtros.campania);
       }
 
       if (filtros.fechaInicio) {
@@ -1868,8 +1980,13 @@ const ReporteOrdenDeCompra = () => {
       setOpenPreview(true);
       
     } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error al generar la vista previa: ' + (error.message || 'Error desconocido'),
+        confirmButtonColor: '#1976d2',
+      });
       console.error('Error al generar vista previa del informe:', error);
-      alert('Error al generar la vista previa: ' + (error.message || 'Error desconocido'));
     } finally {
       setLoadingExport(false);
     }
@@ -2036,7 +2153,7 @@ const ReporteOrdenDeCompra = () => {
           textTransform: 'uppercase', 
           letterSpacing: '0.5px' 
         }}>
-          Reporte de Detalle por Alternativa
+          Reporte diario inversión por cliente
         </Typography>
         <Box sx={{ 
           width: '80px', 
@@ -2054,96 +2171,126 @@ const ReporteOrdenDeCompra = () => {
           Filtros
         </Typography>
         
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-              <InputLabel id="cliente-label">Cliente</InputLabel>
-              <Select
-                labelId="cliente-label"
-                id="cliente-select"
-                value={filtros.cliente || ''}
-                onChange={(e) => handleFiltroChange('cliente', e.target.value)}
-                label="Cliente"
-                displayEmpty
-              >
-                <MenuItem value="">
-                  <em>Todos los clientes</em>
-                </MenuItem>
-                {clientes.map((cliente) => (
-                  <MenuItem key={cliente.id_cliente} value={cliente.id_cliente}>
-                    {cliente.nombreCliente}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <DatePicker
-                label="Fecha Inicio"
-                value={filtros.fechaInicio}
-                onChange={(newValue) => handleFiltroChange('fechaInicio', newValue)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
-                format="dd/MM/yyyy"
-              />
-            </LocalizationProvider>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <DatePicker
-                label="Fecha Fin"
-                value={filtros.fechaFin}
-                onChange={(newValue) => handleFiltroChange('fechaFin', newValue)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
-                format="dd/MM/yyyy"
-              />
-            </LocalizationProvider>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="contained"
-              onClick={buscarOrdenes}
-              disabled={loading}
-              startIcon={<SearchIcon />}
-              sx={{ 
-                height: 40, 
-                width: '100%',
-                background: 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
-                boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)'
-              }}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Buscar'}
-            </Button>
-          </Grid>
-        </Grid>
-        
-        <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 2 }}>
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<AssessmentIcon />}
-              onClick={generarInformeInversionDetallado}
-              disabled={loadingExport}
-              sx={{ 
-                px: 4, 
-                py: 1.5, 
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                background: 'linear-gradient(45deg, #9c27b0 30%, #d500f9 90%)',
-                boxShadow: '0 4px 6px rgba(156, 39, 176, 0.4)',
-                '&:hover': {
-                  boxShadow: '0 6px 10px rgba(156, 39, 176, 0.6)',
-                  transform: 'translateY(-2px)',
-                  transition: 'all 0.3s'
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <Select
+              labelId="cliente-label"
+              id="cliente-select"
+              value={filtros.cliente || ''}
+              onChange={(e) => handleFiltroChange('cliente', e.target.value)}
+              displayEmpty
+              placeholder="Todos los clientes"
+              sx={{
+                '& .MuiSelect-select': {
+                  paddingY: '8px',
                 }
               }}
             >
-              {loadingExport ? <CircularProgress size={24} color="inherit" /> : 'Informe de Inversión'}
-            </Button>
-          </Box>
-        </Grid>
+              <MenuItem value="">
+                Todos los clientes
+              </MenuItem>
+              {clientes.map((cliente) => (
+                <MenuItem key={cliente.id_cliente} value={cliente.id_cliente}>
+                  {cliente.nombreCliente}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <Select
+              labelId="campania-label"
+              id="campania-select"
+              value={filtros.campania || ''}
+              onChange={(e) => handleFiltroChange('campania', e.target.value)}
+              displayEmpty
+              placeholder="Todas las campañas"
+              sx={{
+                '& .MuiSelect-select': {
+                  paddingY: '8px',
+                }
+              }}
+            >
+              <MenuItem value="">
+                Todas las campañas
+              </MenuItem>
+              {campanas.map((campana) => (
+                <MenuItem key={campana.id_campania} value={campana.id_campania}>
+                  {campana.NombreCampania}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+            <DatePicker
+              value={filtros.fechaInicio}
+              onChange={(newValue) => handleFiltroChange('fechaInicio', newValue)}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  sx: { minWidth: 140 },
+                  placeholder: "Fecha Inicio",
+                  InputLabelProps: { shrink: false }
+                }
+              }}
+              format="dd/MM/yyyy"
+            />
+          </LocalizationProvider>
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+            <DatePicker
+              value={filtros.fechaFin}
+              onChange={(newValue) => handleFiltroChange('fechaFin', newValue)}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  sx: { minWidth: 140 },
+                  placeholder: "Fecha Fin",
+                  InputLabelProps: { shrink: false }
+                }
+              }}
+              format="dd/MM/yyyy"
+            />
+          </LocalizationProvider>
+          <Button
+            variant="contained"
+            onClick={buscarOrdenes}
+            disabled={loading}
+            startIcon={<SearchIcon />}
+            sx={{ 
+              height: 40, 
+              minWidth: 48,
+              borderRadius: '8px',
+              background: 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
+              boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)'
+            }}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : ''}
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<FileDownloadIcon />}
+            onClick={generarInformeInversionDetallado}
+            disabled={loadingExport}
+            className="detalle-boton-excel"
+            sx={{
+              height: 40,
+              minWidth: 48,
+              borderRadius: '8px',
+              background: 'linear-gradient(45deg, #43a047 30%, #66bb6a 90%)',
+              color: '#fff',
+              boxShadow: '0 4px 6px rgba(67, 160, 71, 0.2)',
+              ml: { md: 1 },
+              '&:hover': {
+                background: 'linear-gradient(45deg, #388e3c 30%, #43a047 90%)',
+                boxShadow: '0 6px 10px rgba(67, 160, 71, 0.3)',
+                transform: 'translateY(-2px)',
+                transition: 'all 0.3s'
+              }
+            }}
+          >
+            {/* Solo el icono, sin texto */}
+          </Button>
+        </Box>
       </Paper>
       
       <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
@@ -2254,5 +2401,7 @@ const ReporteOrdenDeCompra = () => {
     </Container>
   );
 };
+
+
 
 export default ReporteOrdenDeCompra;

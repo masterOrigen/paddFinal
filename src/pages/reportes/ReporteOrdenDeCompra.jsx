@@ -323,7 +323,17 @@ const ReporteOrdenDeCompra = () => {
                 label="Fecha Inicio"
                 value={filtros.fechaInicio}
                 onChange={(newValue) => handleFiltroChange('fechaInicio', newValue)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: "small",
+                    sx: {
+                      '& .MuiInputBase-input': {
+                        textAlign: 'left'
+                      }
+                    }
+                  }
+                }}
                 format="dd/MM/yyyy"
               />
             </LocalizationProvider>
@@ -335,7 +345,17 @@ const ReporteOrdenDeCompra = () => {
                 label="Fecha Fin"
                 value={filtros.fechaFin}
                 onChange={(newValue) => handleFiltroChange('fechaFin', newValue)}
-                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: "small",
+                    sx: {
+                      '& .MuiInputBase-input': {
+                        textAlign: 'left'
+                      }
+                    }
+                  }
+                }}
                 format="dd/MM/yyyy"
               />
             </LocalizationProvider>
