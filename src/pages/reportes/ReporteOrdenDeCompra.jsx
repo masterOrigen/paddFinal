@@ -28,6 +28,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { es } from 'date-fns/locale';
 import './ReporteOrdenDeCompra.css';
 import { Pagination } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 const ReporteOrdenDeCompra = () => {
   const [loading, setLoading] = useState(false);
@@ -35,7 +36,9 @@ const ReporteOrdenDeCompra = () => {
   const [filtros, setFiltros] = useState({
     cliente: '',
     campana: '',
-    estado: ''
+    estado: '',
+    fechaInicio: null,
+    fechaFin: null
   });
   const [clientes, setClientes] = useState([]);
   const [campanas, setCampanas] = useState([]);
@@ -153,6 +156,20 @@ const ReporteOrdenDeCompra = () => {
         query = query.eq('estado', filtros.estado);
       }
 
+      // Aplicar filtro de fecha inicio
+      if (filtros.fechaInicio) {
+        const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
+        query = query.gte('fechaCreacion', fechaInicioFormateada);
+        console.log("Filtrando desde:", fechaInicioFormateada);
+      }
+
+      // Aplicar filtro de fecha fin
+      if (filtros.fechaFin) {
+        const fechaFinFormateada = format(new Date(filtros.fechaFin), 'yyyy-MM-dd');
+        query = query.lte('fechaCreacion', fechaFinFormateada);
+        console.log("Filtrando hasta:", fechaFinFormateada);
+      }
+
       const { data, error } = await query.order('fechaCreacion', { ascending: false });
 
       if (error) throw error;
@@ -168,7 +185,9 @@ const ReporteOrdenDeCompra = () => {
     setFiltros({
       cliente: '',
       campana: '',
-      estado: ''
+      estado: '',
+      fechaInicio: null,
+      fechaFin: null
     });
   };
 
@@ -248,7 +267,7 @@ const ReporteOrdenDeCompra = () => {
         </Typography>
         
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth size="small">
               <InputLabel>Cliente</InputLabel>
               <Select
@@ -265,13 +284,14 @@ const ReporteOrdenDeCompra = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={3}>
-            <FormControl fullWidth size="small" disabled={!filtros.cliente}>
+          <Grid item xs={12} sm={6} md={4}>
+            <FormControl fullWidth size="small">
               <InputLabel>Campaña</InputLabel>
               <Select
                 value={filtros.campana}
                 label="Campaña"
                 onChange={(e) => handleFiltroChange('campana', e.target.value)}
+                disabled={!filtros.cliente}
               >
                 <MenuItem value="">Todas</MenuItem>
                 {filteredCampanas.map((campana) => (
@@ -282,7 +302,7 @@ const ReporteOrdenDeCompra = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth size="small">
               <InputLabel>Estado</InputLabel>
               <Select
@@ -291,28 +311,59 @@ const ReporteOrdenDeCompra = () => {
                 onChange={(e) => handleFiltroChange('estado', e.target.value)}
               >
                 <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="anulada">Anulada</MenuItem>
                 <MenuItem value="activa">Activa</MenuItem>
+                <MenuItem value="anulada">Anulada</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={3} sx={{ display: 'flex', gap: 1 }}>
+          
+          <Grid item xs={12} sm={6} md={4}>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+              <DatePicker
+                label="Fecha Inicio"
+                value={filtros.fechaInicio}
+                onChange={(newValue) => handleFiltroChange('fechaInicio', newValue)}
+                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
+                format="dd/MM/yyyy"
+              />
+            </LocalizationProvider>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={4}>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+              <DatePicker
+                label="Fecha Fin"
+                value={filtros.fechaFin}
+                onChange={(newValue) => handleFiltroChange('fechaFin', newValue)}
+                renderInput={(params) => <TextField {...params} fullWidth size="small" />}
+                format="dd/MM/yyyy"
+              />
+            </LocalizationProvider>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               variant="contained"
               onClick={buscarOrdenes}
               disabled={loading}
-              sx={{ width: 180 , height: 40}}
+              sx={{ mr: 1, height: 40 }}
               fullWidth
             >
               {loading ? <CircularProgress size={24} /> : 'Buscar'}
             </Button>
+            
+            <Button
+              variant="outlined"
+              onClick={limpiarFiltros}
+              sx={{ height: 40 }}
+              fullWidth
+            >
+              Limpiar
+            </Button>
           </Grid>
         </Grid>
         
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-          <Button variant="outlined" onClick={limpiarFiltros}>
-            Limpiar filtros
-          </Button>
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
           {ordenes.length > 0 && (
             <Button variant="contained" color="success" onClick={exportarExcel}>
               Exportar a Excel
