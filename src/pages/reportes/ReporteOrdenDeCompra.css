@@ -59,3 +59,13 @@
   text-align: center;
   color: #666;
 }
+
+.MuiTextField-root {
+    margin-bottom: 0px !important;
+}
+.css-1jsm74t-MuiButton-startIcon {
+margin: 0 !important;
+}
+.css-pzw97e-MuiButtonBase-root-MuiButton-root {
+  margin-left: -10px !important;
+}

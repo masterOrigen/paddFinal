@@ -121,7 +121,14 @@ const ReporteOrdenDeCompra = () => {
           plan (id, nombre_plan, anio, mes,
             Anios!anio (id, years),
             Meses (Id, Nombre)
-          )
+          ),
+          Programas:id_programa (id, descripcion),
+          Clasificacion (id, NombreClasificacion),
+          Temas (id_tema, NombreTema),
+          Soportes (id_soporte, nombreIdentficiador),
+          Anios (id, years),
+          Meses (Id, Nombre),
+          Medios (id, "NombredelMedio")
         `);
 
       // Aplicar filtro de cliente
@@ -561,13 +568,13 @@ const ReporteOrdenDeCompra = () => {
           copia,
           horario_inicio,
           horario_fin,
-          Programas (id, Nombre),
+          Programas:id_programa (id, descripcion),
           Clasificacion (id, NombreClasificacion),
           Temas (id_tema, NombreTema),
           Soportes (id_soporte, nombreIdentficiador),
           Anios (id, years),
           Meses (Id, Nombre),
-          Medios (id, nombre)
+          Medios (id, "NombredelMedio")
         `)
         .eq('id', id)
         .limit(1)
@@ -626,13 +633,13 @@ const ReporteOrdenDeCompra = () => {
           copia,
           horario_inicio,
           horario_fin,
-          Programas (id, Nombre),
+          Programas:id_programa (id, descripcion),
           Clasificacion (id, NombreClasificacion),
           Temas (id_tema, NombreTema),
           Soportes (id_soporte, nombreIdentficiador),
           Anios (id, years),
           Meses (Id, Nombre),
-          Medios (id, nombre)
+          Medios (id, "NombredelMedio")
         `)
         .eq('id', 159)
         .limit(1)
