@@ -141,18 +141,25 @@ const ReporteOrdenDeCompra = () => {
   const fetchCampanas = async (idCliente = null) => {
     try {
       setLoading(true);
+      
+      // Consultamos las campañas donde c_orden es true
       let query = supabase
         .from('Campania')
         .select('id_campania, NombreCampania, Presupuesto')
+        .eq('c_orden', true)
         .order('NombreCampania');
+
+      // Si hay un cliente seleccionado, filtramos por ese cliente
       if (idCliente) {
         query = query.eq('id_Cliente', idCliente);
       }
+
       const { data, error } = await query;
       if (error) throw error;
+      
       setCampanas(data || []);
     } catch (error) {
-      // Error al cargar campañas
+      console.error('Error al cargar campañas:', error);
     } finally {
       setLoading(false);
     }
@@ -2172,7 +2179,7 @@ const ReporteOrdenDeCompra = () => {
         </Typography>
         
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+          <FormControl size="small" sx={{ minWidth: 320 }}>
             <Select
               labelId="cliente-label"
               id="cliente-select"
@@ -2196,7 +2203,7 @@ const ReporteOrdenDeCompra = () => {
               ))}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+          <FormControl size="small" sx={{ minWidth: 320 }}>
             <Select
               labelId="campania-label"
               id="campania-select"
@@ -2227,7 +2234,7 @@ const ReporteOrdenDeCompra = () => {
               slotProps={{
                 textField: {
                   size: "small",
-                  sx: { minWidth: 140 },
+                  sx: { minWidth: 320 },
                   placeholder: "Fecha Inicio",
                   InputLabelProps: { shrink: false }
                 }
@@ -2242,7 +2249,7 @@ const ReporteOrdenDeCompra = () => {
               slotProps={{
                 textField: {
                   size: "small",
-                  sx: { minWidth: 140 },
+                  sx: { minWidth: 320 },
                   placeholder: "Fecha Fin",
                   InputLabelProps: { shrink: false }
                 }

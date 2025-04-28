@@ -90,6 +90,7 @@ const ReporteOrdenDeCompra = () => {
       const { data, error } = await supabase
         .from('Campania')
         .select('id_campania, NombreCampania, Presupuesto, id_Cliente')
+        .eq('c_orden', true)
         .order('NombreCampania');
 
       if (error) throw error;
