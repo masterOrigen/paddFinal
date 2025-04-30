@@ -32,6 +32,7 @@ import AnalisisMedios from './pages/reportes/AnalisisMedios';
 import EfectividadProveedores from './pages/reportes/EfectividadProveedores';
 import ReporteDiarioOrdenes from './pages/reportes/ReporteDiarioOrdenes';
 import DetallePorAlternativa from './pages/reportes/DetallePorAlternativa';
+import InformeInversionClienteBruto from './pages/reportes/InformeInversionClienteBruto';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import './App.css';
@@ -91,6 +92,7 @@ function App() {
                   <Route path="/reportes/analisismedios" element={<AnalisisMedios />} />
                   <Route path="/reportes/efectividadproveedores" element={<EfectividadProveedores />} />
                   <Route path="/reportes/detalleporalternativa" element={<DetallePorAlternativa />} />
+                  <Route path="/reportes/informeinversionclientebruto" element={<InformeInversionClienteBruto />} />
                   <Route path="/usuarios" element={<ListadoUsuarios />} />
                   <Route path="/perfil" element={<MiPerfil />} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
