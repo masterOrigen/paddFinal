@@ -296,7 +296,8 @@ const InformeInversionClienteBruto = () => {
                 slotProps={{
                   textField: {
                     size: "small",
-                    sx: { minWidth: 350 },
+                    fullWidth: true,
+                    sx: { width: '100%' },
                     placeholder: "Fecha Inicio",
                     InputLabelProps: { shrink: false }
                   }
@@ -314,7 +315,8 @@ const InformeInversionClienteBruto = () => {
                 slotProps={{
                   textField: {
                     size: "small",
-                    sx: { minWidth: 350 },
+                    fullWidth: true,
+                    sx: { width: '100%' },
                     placeholder: "Fecha Fin",
                     InputLabelProps: { shrink: false }
                   }
