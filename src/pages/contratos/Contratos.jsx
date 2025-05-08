@@ -271,7 +271,7 @@ const Contratos = () => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>ID</TableCell>
+
                             <TableCell>Nombre de Contrato</TableCell>
                             <TableCell>Cliente</TableCell>
                             <TableCell>Proveedor</TableCell>
@@ -286,7 +286,6 @@ const Contratos = () => {
                     <TableBody>
                         {filteredContratos.map((contrato) => (
                             <TableRow key={contrato.id}>
-                                <TableCell>{contrato.id}</TableCell>
                                 <TableCell>{contrato.NombreContrato}</TableCell>
                                 <TableCell>{contrato.cliente?.nombreCliente}</TableCell>
                                 <TableCell>{contrato.proveedor?.nombreProveedor}</TableCell>

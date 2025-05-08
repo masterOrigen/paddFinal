@@ -318,7 +318,7 @@ const Campanas = () => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>ID</TableCell>
+                          
                             <TableCell>Cliente</TableCell>
                             <TableCell>Nombre de campaña</TableCell>
                             <TableCell>Agencia</TableCell>
@@ -333,7 +333,7 @@ const Campanas = () => {
                     <TableBody>
                         {filteredCampanas.map((campana) => (
                             <TableRow key={campana.id_campania}>
-                                <TableCell>{campana.id_campania}</TableCell>
+                                
                                 <TableCell>{campana.Clientes?.nombreCliente}</TableCell>
                                 <TableCell>{campana.NombreCampania}</TableCell>
                                 <TableCell>{campana.Agencias?.NombreIdentificador}</TableCell>
