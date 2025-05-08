@@ -37,3 +37,6 @@
 .action-buttons .delete-button {
     color: #f44336;
 }
+.MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorSuccess.MuiIconButton-sizeSmall.css-rqujvj-MuiButtonBase-root-MuiIconButton-root {
+    margin-right: 10px;
+  }
