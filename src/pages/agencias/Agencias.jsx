@@ -478,20 +478,20 @@ const Agencias = () => {
       const { error } = await supabase
         .from('Agencias')
         .insert([{
-          NombreIdentificador: newAgencia.NombreIdentificador,
-          RazonSocial: newAgencia.RazonSocial,
-          NombreDeFantasia: newAgencia.NombreDeFantasia,
+          NombreIdentificador: newAgencia.NombreIdentificador || null,
+          RazonSocial: newAgencia.RazonSocial || null,
+          NombreDeFantasia: newAgencia.NombreDeFantasia || null,
           RutAgencia: newAgencia.RutAgencia,
-          Giro: newAgencia.Giro,
-          NombreRepresentanteLegal: newAgencia.NombreRepresentanteLegal,
+          Giro: newAgencia.Giro || null,
+          NombreRepresentanteLegal: newAgencia.NombreRepresentanteLegal || null,
           rutRepresentante: newAgencia.rutRepresentante,
-          DireccionAgencia: newAgencia.DireccionAgencia,
-          Region: newAgencia.Region,
-          Comuna: newAgencia.Comuna,
+          DireccionAgencia: newAgencia.DireccionAgencia || null,
+          Region: newAgencia.Region || null,
+          Comuna: newAgencia.Comuna || null,
           telCelular: newAgencia.telCelular,
           telFijo: newAgencia.telFijo,
           Email: newAgencia.Email,
-          codigo_megatime: newAgencia.codigo_megatime,
+          codigo_megatime: newAgencia.codigo_megatime || null,
           estado: newAgencia.estado
         }]);
 
@@ -528,12 +528,12 @@ const Agencias = () => {
           NombreRepresentanteLegal: selectedAgencia.NombreRepresentanteLegal,
           rutRepresentante: selectedAgencia.rutRepresentante,
           DireccionAgencia: selectedAgencia.DireccionAgencia,
-          Region: selectedAgencia.Region,
-          Comuna: selectedAgencia.Comuna,
+          Region: selectedAgencia.Region || null,
+          Comuna: selectedAgencia.Comuna || null,
           telCelular: selectedAgencia.telCelular,
           telFijo: selectedAgencia.telFijo,
           Email: selectedAgencia.Email,
-          codigo_megatime: selectedAgencia.codigo_megatime,
+          codigo_megatime: selectedAgencia.codigo_megatime || null,
           estado: selectedAgencia.estado
         })
         .eq('id', selectedAgencia.id);
