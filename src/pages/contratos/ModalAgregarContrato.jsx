@@ -47,8 +47,8 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
     const [loading, setLoading] = useState(false);
     const [clientes, setClientes] = useState([]);
     const [proveedores, setProveedores] = useState([]);
+    const [proveedoresFiltrados, setProveedoresFiltrados] = useState([]);
     const [medios, setMedios] = useState([]);
-    const [mediosFiltrados, setMediosFiltrados] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
     const [formasPago, setFormasPago] = useState([]);
     const [tiposOrden, setTiposOrden] = useState([]);
@@ -67,10 +67,13 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
                     setClientes(clientesData);
                 }
 
-                const [proveedoresResponse, formasPagoResponse, tiposOrdenResponse] = await Promise.all([
+                const [proveedoresResponse, mediosResponse, formasPagoResponse, tiposOrdenResponse] = await Promise.all([
                     supabase.from('Proveedores')
                         .select('id_proveedor, nombreProveedor')
                         .eq('estado', true),
+                    supabase.from('Medios')
+                        .select('id, NombredelMedio')
+                        .eq('Estado', true),
                     supabase.from('FormaDePago')
                         .select('id, NombreFormadePago'),
                     supabase.from('TipoGeneracionDeOrden')
@@ -78,10 +81,12 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
                 ]);
 
                 if (proveedoresResponse.error) throw new Error('Error al cargar proveedores: ' + proveedoresResponse.error.message);
+                if (mediosResponse.error) throw new Error('Error al cargar medios: ' + mediosResponse.error.message);
                 if (formasPagoResponse.error) throw new Error('Error al cargar formas de pago: ' + formasPagoResponse.error.message);
                 if (tiposOrdenResponse.error) throw new Error('Error al cargar tipos de orden: ' + tiposOrdenResponse.error.message);
 
                 setProveedores(proveedoresResponse.data || []);
+                setMedios(mediosResponse.data || []);
                 setFormasPago(formasPagoResponse.data || []);
                 setTiposOrden(tiposOrdenResponse.data || []);
 
@@ -110,84 +115,84 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
     }, [open, clienteId, disableClienteSelect]);
 
     useEffect(() => {
-        if (formData.IdProveedor) {
-            fetchMediosByProveedor(parseInt(formData.IdProveedor));
+        if (formData.IdMedios) {
+            fetchProveedoresByMedio(parseInt(formData.IdMedios));
         } else {
-            setMediosFiltrados([]);
+            setProveedoresFiltrados([]);
         }
-    }, [formData.IdProveedor]);
+    }, [formData.IdMedios]);
 
-    const fetchMediosByProveedor = async (proveedorId) => {
+    const fetchProveedoresByMedio = async (medioId) => {
         try {
-            if (!proveedorId) {
-                setMediosFiltrados([]);
+            if (!medioId) {
+                setProveedoresFiltrados([]);
                 return;
             }
 
-            // Primero obtenemos los soportes del proveedor
-            const { data: soportesData, error: soportesError } = await supabase
-                .from('proveedor_soporte')
+            // Primero obtenemos los soportes asociados al medio
+            const { data: soporteMediosData, error: soporteMediosError } = await supabase
+                .from('soporte_medios')
                 .select('id_soporte')
-                .eq('id_proveedor', proveedorId);
+                .eq('id_medio', medioId);
 
-            if (soportesError) throw soportesError;
+            if (soporteMediosError) throw soporteMediosError;
 
-            if (!soportesData || soportesData.length === 0) {
-                console.log('No hay soportes asociados a este proveedor');
-                setMediosFiltrados([]);
+            if (!soporteMediosData || soporteMediosData.length === 0) {
+                console.log('No hay soportes asociados a este medio');
+                setProveedoresFiltrados([]);
                 return;
             }
 
             // Filtramos cualquier id_soporte que sea null
-            const soporteIds = soportesData
+            const soporteIds = soporteMediosData
                 .map(s => s.id_soporte)
                 .filter(id => id != null);
 
             if (soporteIds.length === 0) {
-                console.log('No hay soportes válidos asociados a este proveedor');
-                setMediosFiltrados([]);
+                console.log('No hay soportes válidos asociados a este medio');
+                setProveedoresFiltrados([]);
                 return;
             }
 
-            // Obtenemos los medios asociados a estos soportes
-            const { data: mediosData, error: mediosError } = await supabase
-                .from('soporte_medios')
+            // Obtenemos los proveedores asociados a estos soportes
+            const { data: proveedorSoporteData, error: proveedorSoporteError } = await supabase
+                .from('proveedor_soporte')
                 .select(`
-                    id_medio,
-                    Medios!inner (
-                        id,
-                        NombredelMedio,
-                        Estado
+                    id_proveedor,
+                    Proveedores!inner (
+                        id_proveedor,
+                        nombreProveedor,
+                        estado
                     )
                 `)
                 .in('id_soporte', soporteIds);
 
-            if (mediosError) throw mediosError;
+            if (proveedorSoporteError) throw proveedorSoporteError;
 
-            // Transformamos los datos para tener un formato más simple y filtramos por Estado
-            const mediosProcesados = mediosData
-                .filter(item => item.Medios && item.Medios.Estado) // Solo medios activos
+            // Transformamos los datos para tener un formato más simple y filtramos por estado
+            const proveedoresProcesados = proveedorSoporteData
+                .filter(item => item.Proveedores && item.Proveedores.estado) // Solo proveedores activos
                 .map(item => ({
-                    id: item.Medios.id,
-                    NombredelMedio: item.Medios.NombredelMedio
+                    id_proveedor: item.Proveedores.id_proveedor,
+                    nombreProveedor: item.Proveedores.nombreProveedor
                 }))
-                .filter((medio, index, self) => // Eliminamos duplicados
-                    index === self.findIndex((m) => m.id === medio.id)
+                .filter((proveedor, index, self) => // Eliminamos duplicados
+                    index === self.findIndex((p) => p.id_proveedor === proveedor.id_proveedor)
                 );
 
-            setMediosFiltrados(mediosProcesados);
+            setProveedoresFiltrados(proveedoresProcesados);
             
-            if (mediosProcesados.length === 0) {
-                console.log('No hay medios activos asociados a los soportes de este proveedor');
+            if (proveedoresProcesados.length === 0) {
+                console.log('No hay proveedores activos asociados a los soportes de este medio');
             }
         } catch (error) {
-            console.error('Error al cargar medios:', error);
+            console.error('Error al cargar proveedores:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Error al cargar los medios'
+                text: 'Error al cargar los proveedores'
             });
-            setMediosFiltrados([]);
+            setProveedoresFiltrados([]);
         }
     };
 
@@ -198,10 +203,11 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
             [name]: value
         }));
 
-        if (name === 'IdProveedor') {
+        // Si cambia el medio, resetear el proveedor
+        if (name === 'IdMedios') {
             setFormData(prev => ({
                 ...prev,
-                IdMedios: '' // Resetear el id del medio
+                IdProveedor: ''
             }));
         }
     };
@@ -331,39 +337,17 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
                                 )}
                             </TextField>
                         </Grid>
-                        <Grid item xs={12}>
+                        {/* Primero seleccionar el Medio */}
+                        <Grid item xs={12} sm={6}>
                             <TextField
-                                select
                                 fullWidth
-                                label="Proveedor"
-                                name="IdProveedor"
-                                value={formData.IdProveedor}
-                                onChange={handleChange}
-                                disabled={loading}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <StorefrontIcon />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            >
-                                {proveedores.map((proveedor) => (
-                                    <MenuItem key={proveedor.id_proveedor} value={proveedor.id_proveedor}>
-                                        {proveedor.nombreProveedor}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
                                 select
-                                fullWidth
                                 label="Medio"
                                 name="IdMedios"
                                 value={formData.IdMedios}
                                 onChange={handleChange}
-                                disabled={!formData.IdProveedor || loading}
+                                required
+                                margin="normal"
                                 InputProps={{
                                     startAdornment: (
                                         <InputAdornment position="start">
@@ -372,17 +356,41 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
                                     ),
                                 }}
                             >
-                                {mediosFiltrados.length > 0 ? (
-                                    mediosFiltrados.map((medio) => (
-                                        <MenuItem key={medio.id} value={medio.id}>
-                                            {medio.NombredelMedio}
-                                        </MenuItem>
-                                    ))
-                                ) : (
-                                    <MenuItem disabled value="">
-                                        No existen medios asociados
+                                <MenuItem value="">Seleccionar Medio</MenuItem>
+                                {medios.map((medio) => (
+                                    <MenuItem key={medio.id} value={medio.id}>
+                                        {medio.NombredelMedio}
                                     </MenuItem>
-                                )}
+                                ))}
+                            </TextField>
+                        </Grid>
+
+                        {/* Luego seleccionar el Proveedor filtrado por el Medio */}
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                select
+                                label="Proveedor"
+                                name="IdProveedor"
+                                value={formData.IdProveedor}
+                                onChange={handleChange}
+                                required
+                                disabled={!formData.IdMedios}
+                                margin="normal"
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <StorefrontIcon />
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            >
+                                <MenuItem value="">Seleccionar Proveedor</MenuItem>
+                                {proveedoresFiltrados.map((proveedor) => (
+                                    <MenuItem key={proveedor.id_proveedor} value={proveedor.id_proveedor}>
+                                        {proveedor.nombreProveedor}
+                                    </MenuItem>
+                                ))}
                             </TextField>
                         </Grid>
                         <Grid item xs={12}>
