@@ -412,16 +412,16 @@ const Soportes = () => {
       </div>
 
       <div className="data-grid-container">
-        <DataGrid
-          getRowId={(row) => row.id_soporte}
-          rows={filteredRows}
-          columns={columns}
-          pageSize={pageSize}
-          onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
-          rowsPerPageOptions={[5, 10, 25]}
-          disableSelectionOnClick
-          loading={loading}
-          autoHeight
+      <DataGrid
+  getRowId={(row) => row.id}
+  rows={filteredRows}
+  columns={columns}
+  pageSize={pageSize}
+  onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
+  rowsPerPageOptions={[5, 10, 25]}
+  disableSelectionOnClick
+  loading={loading}
+  autoHeight
           localeText={{
             noRowsLabel: 'No hay datos para mostrar',
             footerRowSelected: count => `${count} fila${count !== 1 ? 's' : ''} seleccionada${count !== 1 ? 's' : ''}`,
