@@ -201,14 +201,42 @@ export default function Medios() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { error } = await supabase
-        .from('Medios')
-        .upsert([
-          {
-            ...medioForm,
-            id: medioForm.id || undefined
-          }
-        ], { onConflict: 'id' });
+      let operation;
+      
+      if (medioForm.id) {
+        // Actualización de un medio existente
+        operation = supabase
+          .from('Medios')
+          .update({
+            NombredelMedio: medioForm.NombredelMedio,
+            codigo: medioForm.codigo,
+            Estado: medioForm.Estado,
+            duracion: medioForm.duracion,
+            codigo_megatime: medioForm.codigo_megatime,
+            color: medioForm.color,
+            calidad: medioForm.calidad,
+            cooperado: medioForm.cooperado,
+            rubro: medioForm.rubro
+          })
+          .eq('id', medioForm.id);
+      } else {
+        // Inserción de un nuevo medio
+        operation = supabase
+          .from('Medios')
+          .insert([{
+            NombredelMedio: medioForm.NombredelMedio,
+            codigo: medioForm.codigo || null,
+            Estado: medioForm.Estado,
+            duracion: medioForm.duracion,
+            codigo_megatime: medioForm.codigo_megatime,
+            color: medioForm.color,
+            calidad: medioForm.calidad,
+            cooperado: medioForm.cooperado,
+            rubro: medioForm.rubro
+          }]);
+      }
+      
+      const { error } = await operation;
 
       if (error) throw error;
 
