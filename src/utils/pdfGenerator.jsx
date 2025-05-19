@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { pdf } from '@react-pdf/renderer';
-
+import { supabase } from '../config/supabase.js';
 const styles = StyleSheet.create({
   page: {
     padding: 15,
@@ -227,6 +227,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 				<Text style={styles.headerText}>RUT {cliente?.RUT}</Text>
         <View style={styles.titleContainer}>
     <Text style={styles.title}>
+        {order?.estado === 'anulada' ? <Text style={{color: 'red'}}>ANULADA </Text> : ''}
         ORDEN DE PUBLICIDAD {order?.numero_correlativo}
         {order?.orden_remplaza ? ` - ${order?.copia}` : ''}
     </Text>
@@ -237,9 +238,12 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         </Text>
     )}
 </View>
-				<View style={styles.yearContainer}>
-					<Text style={styles.yearText}>AÑO /{new Date().getFullYear()}</Text>
-				</View>
+<View style={styles.yearContainer}>
+  <Text style={styles.yearText}>
+    {alternatives[0].nombreMedio || 
+     'MEDIO'} / AÑO /{new Date().getFullYear()}
+  </Text>
+</View>
 			</View>
 
 			<View style={styles.infoContainer}>
@@ -247,6 +251,10 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>CLIENTE:</Text>
 								<Text style={styles.infoValue}>{cliente?.nombreCliente}</Text>
+							</View>
+              <View style={styles.rowex}>
+								<Text style={styles.infoLabel}>RAZON SOCIAL:</Text>
+								<Text style={styles.infoValue}>{cliente?.razonSocial}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>RUT:</Text>
@@ -274,7 +282,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>N° CONTRATO:</Text>
-								<Text style={styles.infoValue}>{alternatives[0]?.Contratos?.id}</Text>
+								<Text style={styles.infoValue}>{alternatives[0]?.Contratos?.NombreContrato}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>FORMA DE PAGO:</Text>
@@ -288,7 +296,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 
 				<View style={[styles.infoColumn2, styles.centerColumn]}>
 					<Text style={styles.infoText3}><Text style={styles.infoLabel3}>CAMPAÑA:</Text> {campana?.NombreCampania}</Text>
-					<Text style={styles.infoText3}><Text style={styles.infoLabel3}>PLAN DE MEDIOS:</Text> {campana?.NombreCampania}</Text>
+					<Text style={styles.infoText3}><Text style={styles.infoLabel3}>PLAN DE MEDIOS:</Text> {alternatives[0].nombreMedio}</Text>
 					{order?.Descuento1 > 0 && (
 						<Text style={styles.infoText}>
 							<Text style={styles.infoLabel3}>DESCUENTO:</Text> ${order?.Descuento1?.toLocaleString('es-CL')}
@@ -458,7 +466,26 @@ export const generateOrderPDF = async (order, alternatives, cliente, campana, pl
 		console.log('Cliente:', cliente);
 		console.log('Campaña:', campana);
 		console.log('Plan:', plan);
-		
+    if (alternatives && alternatives.length > 0 && alternatives[0].medio) {
+      try {
+        // Obtener el nombre del medio desde la base de datos
+        const { data: medioData, error } = await supabase
+          .from('Medios')
+          .select('NombredelMedio')
+          .eq('id', alternatives[0].medio)
+          .single();
+          
+        if (!error && medioData) {
+          // Agregar el nombre del medio a la primera alternativa para usarlo en el PDF
+          alternatives[0].nombreMedio = medioData.NombredelMedio;
+          console.log('Nombre del medio obtenido:', medioData.NombredelMedio);
+        } else {
+          console.error('Error o sin datos al obtener el medio:', error);
+        }
+      } catch (error) {
+        console.error('Error al obtener el nombre del medio:', error);
+      }
+    }
 		const blob = await pdf(
 			<OrderDocument 
 				order={order} 
