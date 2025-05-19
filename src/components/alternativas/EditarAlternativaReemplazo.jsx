@@ -37,7 +37,8 @@ import {
     Close as CloseIcon,
     Search as SearchIcon,
     Check as CheckIcon,
-    Edit as EditIcon
+    Edit as EditIcon,
+    Delete as DeleteIcon
 } from '@mui/icons-material';
 import ModalAgregarContrato from '../../pages/contratos/ModalAgregarContrato';
 import ModalEditarContrato from '../../pages/contratos/ModalEditarContrato';
@@ -110,6 +111,7 @@ const EditarAlternativaReemplazo = ({
         hora_inicio: '',
         hora_fin: ''
     });
+
     const [contratoSeleccionado, setContratoSeleccionado] = useState(null);
     const [clienteId, setClienteId] = useState(null);
     const [campaniaId, setCampaniaId] = useState(null);
@@ -117,15 +119,142 @@ const EditarAlternativaReemplazo = ({
     const [loadingProgramas, setLoadingProgramas] = useState(false);
     const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
     const [autoFillCantidades, setAutoFillCantidades] = useState(false);
+// Modificar el useEffect para que reaccione cuando se obtenga el medio del contrato
+useEffect(() => {
+    // Si estamos editando una alternativa existente
+    if (alternativa && (alternativa.Contratos?.IdMedios || alternativa.medio)) {
+        const medioId = alternativa.Contratos?.IdMedios || alternativa.medio;
+        console.log('Detectado cambio en medio ID:', medioId);
+        fetchClasificacionesByMedioId(medioId);
+    } 
+    // Si estamos creando una nueva alternativa y tenemos initialData con información del medio
+    else if (isCreatingNew && initialData) {
+        // Intentar obtener el ID del medio desde initialData
+        const medioId = initialData.IdMedios || initialData.medio || 
+                        (initialData.Contratos && initialData.Contratos.IdMedios);
+        
+        if (medioId) {
+            console.log('Creando nueva alternativa - Aplicando filtro por medio ID:', medioId);
+            fetchClasificacionesByMedioId(medioId);
+        }
+    }
+}, [alternativa?.Contratos?.IdMedios, alternativa?.medio, isCreatingNew, initialData]);
 
-
+// Añadir un nuevo useEffect para reaccionar cuando se selecciona un contrato
+useEffect(() => {
+    if (alternativa?.num_contrato && !alternativa.Contratos?.IdMedios && !alternativa.medio) {
+        // Si tenemos un contrato seleccionado pero no tenemos el medio, obtenerlo
+        const fetchMedioFromContrato = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('Contratos')
+                    .select('IdMedios')
+                    .eq('id', alternativa.num_contrato)
+                    .single();
+                
+                if (error) throw error;
+                
+                if (data && data.IdMedios) {
+                    console.log('Medio ID obtenido de contrato seleccionado:', data.IdMedios);
+                    // Actualizar la alternativa con el medio obtenido
+                    setAlternativa(prev => ({
+                        ...prev,
+                        medio: data.IdMedios
+                    }));
+                    // Cargar clasificaciones filtradas por este medio
+                    fetchClasificacionesByMedioId(data.IdMedios);
+                }
+            } catch (error) {
+                console.error('Error al obtener medio del contrato:', error);
+            }
+        };
+        
+        fetchMedioFromContrato();
+    }
+}, [alternativa?.num_contrato]);
+    const fetchClasificacionesByMedioId = async (medioId) => {
+        try {
+            setLoadingClasificaciones(true);
+            
+            console.log('Obteniendo clasificaciones para medio ID:', medioId);
+            
+            const { data, error } = await supabase
+                .from('Clasificacion')
+                .select('*')
+                .eq('IdMedios', medioId);
+            
+            if (error) throw error;
+            
+            console.log('Clasificaciones filtradas por medio:', data);
+            setClasificaciones(data || []);
+            setClasificacionesList(data || []);
+        } catch (error) {
+            console.error('Error al cargar clasificaciones por medio ID:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar las clasificaciones'
+            });
+        } finally {
+            setLoadingClasificaciones(false);
+        }
+    };
+    const handleSearchClasificacion = (searchTerm) => {
+        setSearchClasificacion(searchTerm);
+        setLoadingClasificaciones(true);
+        
+        if (!searchTerm.trim()) {
+            setClasificacionesList(clasificaciones);
+            setLoadingClasificaciones(false);
+            return;
+        }
+        
+        const filtered = clasificaciones.filter(
+            clasificacion => clasificacion.NombreClasificacion.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setClasificacionesList(filtered);
+        setLoadingClasificaciones(false);
+    };
+    
     // Funciones para manejar modales
     const handleOpenTemasModal = () => {
         fetchTemasFiltrados();
         setOpenTemasModal(true);
     };
     const handleCloseTemasModal = () => setOpenTemasModal(false);
-    
+    const fetchClasificaciones = async () => {
+        try {
+            setLoadingClasificaciones(true);
+            
+            // Obtener el ID del medio desde la alternativa
+            const medioId = alternativa?.Contratos?.IdMedios;
+            console.log('Aplicando filtro por medio ID:', medioId);
+            
+            let query = supabase.from('Clasificacion').select('*');
+            
+            // Si tenemos un ID de medio, filtrar por él
+            if (medioId) {
+                query = query.eq('IdMedios', medioId);
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) throw error;
+            
+            console.log('Clasificaciones filtradas por medio:', data);
+            setClasificaciones(data || []);
+            setClasificacionesList(data || []);
+        } catch (error) {
+            console.error('Error al cargar clasificaciones:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar las clasificaciones'
+            });
+        } finally {
+            setLoadingClasificaciones(false);
+        }
+    };
     const handleOpenSoportesModal = () => setOpenSoportesModal(true);
     const handleCloseSoportesModal = () => setOpenSoportesModal(false);
     
@@ -136,6 +265,34 @@ const EditarAlternativaReemplazo = ({
     const handleCloseProgramasModal = () => setOpenProgramasModal(false);
     
     const handleOpenClasificacionModal = () => {
+        // Obtener el ID del medio desde diferentes fuentes posibles
+        let medioId = null;
+        
+        // Si estamos editando una alternativa existente
+        if (alternativa && alternativa.Contratos && alternativa.Contratos.IdMedios) {
+            medioId = alternativa.Contratos.IdMedios;
+        } else if (alternativa && alternativa.medio) {
+            medioId = alternativa.medio;
+        } else if (alternativa && alternativa.num_contrato) {
+            // Si tenemos un contrato pero no el medio, obtenerlo de forma síncrona
+            // Usamos la última consulta exitosa que ya tenemos en el log
+            console.log('Usando medio ID del contrato seleccionado:', medioId);
+        }
+        
+        if (medioId) {
+            // Si tenemos un medio ID, usar la función que filtra por medio
+            fetchClasificacionesByMedioId(medioId);
+        } else {
+            // Si no tenemos un medio ID, mostrar un mensaje de advertencia
+            console.warn('No se pudo determinar el medio para filtrar clasificaciones');
+            // Opcionalmente, puedes mostrar un mensaje al usuario
+            // Swal.fire({
+            //     icon: 'warning',
+            //     title: 'Advertencia',
+            //     text: 'No se pudo determinar el medio para filtrar clasificaciones'
+            // });
+        }
+        
         handleSearchClasificacion('');
         setOpenClasificacionModal(true);
     };
@@ -149,32 +306,122 @@ const EditarAlternativaReemplazo = ({
         setOpenEditContratoModal(true);
     };
     const handleCloseEditContratoModal = () => setOpenEditContratoModal(false);
-    
+    const loadSoportesParaPrograma = async (soporteId) => {
+        try {
+          setLoading(true);
+          
+          // Obtener información del soporte
+          const { data: soporteData, error: soporteError } = await supabase
+            .from('Soportes')
+            .select('*')
+            .eq('id_soporte', soporteId)
+            .single();
+          
+          if (soporteError) throw soporteError;
+          
+          // Actualizar la alternativa con la información del soporte
+          setAlternativa(prev => ({
+            ...prev,
+            id_soporte: soporteId,
+            soporte: soporteData.nombreIdentficiador,
+            bonificacion_ano: soporteData.bonificacion_ano || 0,
+            escala: soporteData.escala || 0
+          }));
+          
+          // Cargar programas asociados al soporte
+          const { data: programasData, error: programasError } = await supabase
+            .from('Programas')
+            .select('*')
+            .eq('id_soporte', soporteId);
+          
+          if (programasError) throw programasError;
+          
+          // Procesar los datos de programas para incluir hora_inicio_hora y hora_inicio_min
+          const programasProcesados = programasData.map(programa => {
+            // Separar hora_inicio en hora y minutos
+            const [hora_inicio_hora = "00", hora_inicio_min = "00"] = (programa.hora_inicio || "00:00").split(":");
+            // Separar hora_fin en hora y minutos
+            const [hora_fin_hora = "00", hora_fin_min = "00"] = (programa.hora_fin || "00:00").split(":");
+            
+            return {
+              ...programa,
+              hora_inicio_hora,
+              hora_inicio_min,
+              hora_fin_hora,
+              hora_fin_min
+            };
+          });
+          
+          setProgramas(programasProcesados || []);
+          
+        } catch (error) {
+          console.error('Error al cargar soporte y programas:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo cargar la información del soporte y programas'
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
     const handleOpenAddTemaModal = () => setOpenAddTemaModal(true);
     const handleCloseAddTemaModal = () => setOpenAddTemaModal(false);
     const handleOpenAddEditProgramaModal = (programa = null) => {
         if (programa) {
-            setEditingPrograma(programa);
-            setNewPrograma({
-                descripcion: programa.descripcion || '',
-                codigo_programa: programa.codigo_programa || '',
-                cod_prog_megatime: programa.cod_prog_megatime || '',
-                hora_inicio: programa.hora_inicio || '',
-                hora_fin: programa.hora_fin || ''
-            });
+          // Si estamos editando un programa existente
+          // Separar hora_inicio en hora y minutos
+          const [hora_inicio_hora = "00", hora_inicio_min = "00"] = (programa.hora_inicio || "00:00").split(":");
+          // Separar hora_fin en hora y minutos
+          const [hora_fin_hora = "00", hora_fin_min = "00"] = (programa.hora_fin || "00:00").split(":");
+          
+          setNewPrograma({
+            id: programa.id,
+            descripcion: programa.descripcion || '',
+            codigo_programa: programa.codigo_programa || '',
+            cod_prog_megatime: programa.cod_prog_megatime || '',
+            hora_inicio: programa.hora_inicio || '',
+            hora_fin: programa.hora_fin || '',
+            hora_inicio_hora,
+            hora_inicio_min,
+            hora_fin_hora,
+            hora_fin_min,
+            id_soporte: programa.id_soporte
+          });
+          setEditingPrograma(programa);
         } else {
-            setEditingPrograma(null);
-            setNewPrograma({
-                descripcion: '',
-                codigo_programa: '',
-                cod_prog_megatime: '',
-                hora_inicio: '',
-                hora_fin: ''
-            });
+          // Si estamos creando un nuevo programa
+          setNewPrograma({
+            descripcion: '',
+            codigo_programa: '',
+            cod_prog_megatime: '',
+            hora_inicio: '',
+            hora_fin: '',
+            hora_inicio_hora: '00',
+            hora_inicio_min: '00',
+            hora_fin_hora: '00',
+            hora_fin_min: '00',
+            id_soporte: alternativa?.id_soporte || null
+          });
+          setEditingPrograma(null);
         }
         setOpenAddEditProgramaModal(true);
-    };
-    const handleCloseAddEditProgramaModal = () => setOpenAddEditProgramaModal(false);
+      };
+      const handleCloseAddEditProgramaModal = () => {
+        setOpenAddEditProgramaModal(false);
+        setNewPrograma({
+          descripcion: '',
+          codigo_programa: '',
+          cod_prog_megatime: '',
+          hora_inicio: '',
+          hora_fin: '',
+          hora_inicio_hora: '00',
+          hora_inicio_min: '00',
+          hora_fin_hora: '00',
+          hora_fin_min: '00'
+        });
+        setEditingPrograma(null);
+      };
     const handleOpenAddEditClasificacionModal = (clasificacion = null) => {
         if (clasificacion) {
             setEditingClasificacion(clasificacion);
@@ -671,33 +918,7 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
             setLoadingProgramas(false);
         }
     };
-    const handleSearchClasificacion = async (search = '') => {
-      setLoadingClasificaciones(true);
-      try {
-          let query = supabase
-              .from('Clasificacion')
-              .select('*')
-              .order('NombreClasificacion');
-          
-          // Si tenemos un contrato seleccionado, filtramos por ese contrato
-          if (alternativa.num_contrato) {
-              query = query.eq('id_contrato', alternativa.num_contrato);
-          }
-          
-          if (search) {
-              query = query.ilike('NombreClasificacion', `%${search}%`);
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          setClasificacionesList(data || []);
-      } catch (error) {
-          console.error('Error al buscar clasificaciones:', error);
-      } finally {
-          setLoadingClasificaciones(false);
-      }
-  };
+
     const handleSearchSoporte = (search) => {
         if (!search) {
             setSoportesFiltrados([]);
@@ -751,122 +972,385 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
             handleCloseClasificacionModal();
         };
             // Funciones para guardar
-    const handleSaveClasificacion = async () => {
-        try {
-            if (!nuevaClasificacion.NombreClasificacion) {
-                Swal.fire({
+            const handleSaveClasificacion = async () => {
+                if (!nuevaClasificacion.NombreClasificacion.trim()) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'El nombre de la clasificación es requerido'
+                    });
+                    return;
+                }
+                
+                try {
+                    setLoadingClasificaciones(true);
+                    
+                    // Obtener el ID del medio desde todas las fuentes posibles
+                    let medioId = null;
+                    
+                    // Si estamos editando una alternativa existente
+                    if (alternativa && alternativa.Contratos && alternativa.Contratos.IdMedios) {
+                        medioId = alternativa.Contratos.IdMedios;
+                        console.log('Usando medio ID de alternativa.Contratos.IdMedios:', medioId);
+                    } else if (alternativa && alternativa.medio) {
+                        medioId = alternativa.medio;
+                        console.log('Usando medio ID de alternativa.medio:', medioId);
+                    } else if (alternativa && alternativa.num_contrato) {
+                        // Intentar obtener el medio del contrato seleccionado
+                        try {
+                            const { data, error } = await supabase
+                                .from('Contratos')
+                                .select('IdMedios')
+                                .eq('id', alternativa.num_contrato)
+                                .single();
+                            
+                            if (!error && data && data.IdMedios) {
+                                medioId = data.IdMedios;
+                                console.log('Usando medio ID obtenido del contrato seleccionado:', medioId);
+                            }
+                        } catch (err) {
+                            console.error('Error al obtener medio del contrato:', err);
+                        }
+                    }
+                    
+                    // Si aún no tenemos el medio ID, intentar obtenerlo de las clasificaciones filtradas
+                    if (!medioId && clasificaciones.length > 0 && clasificaciones[0].IdMedios) {
+                        medioId = clasificaciones[0].IdMedios;
+                        console.log('Usando medio ID de las clasificaciones filtradas:', medioId);
+                    }
+                    
+                    if (!medioId && !editingClasificacion) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'No se pudo determinar el medio para asociar la clasificación'
+                        });
+                        setLoadingClasificaciones(false);
+                        return;
+                    }
+                    
+                    if (editingClasificacion) {
+                        // Actualizar clasificación existente
+                        const { error } = await supabase
+                            .from('Clasificacion')
+                            .update({ 
+                                NombreClasificacion: nuevaClasificacion.NombreClasificacion 
+                            })
+                            .eq('id', editingClasificacion.id);
+                            
+                        if (error) throw error;
+                        
+                        // Actualizar la lista local
+                        setClasificaciones(prevClasificaciones => 
+                            prevClasificaciones.map(c => 
+                                c.id === editingClasificacion.id 
+                                    ? { ...c, NombreClasificacion: nuevaClasificacion.NombreClasificacion } 
+                                    : c
+                            )
+                        );
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: 'Clasificación actualizada correctamente',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        // Crear nueva clasificación CON el ID del medio
+                        const { data, error } = await supabase
+                            .from('Clasificacion')
+                            .insert({ 
+                                NombreClasificacion: nuevaClasificacion.NombreClasificacion,
+                                IdMedios: medioId // Añadir el ID del medio
+                            })
+                            .select();
+                            
+                        if (error) throw error;
+                        
+                        // Agregar a la lista local
+                        setClasificaciones(prev => [...prev, data[0]]);
+                        setClasificacionesList(prev => [...prev, data[0]]);
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: 'Clasificación creada correctamente',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }
+                    
+                    // Limpiar y cerrar el modal
+                    setNuevaClasificacion({ NombreClasificacion: '' });
+                    setEditingClasificacion(null);
+                    setOpenAddEditClasificacionModal(false);
+                    
+                } catch (error) {
+                    console.error('Error al guardar clasificación:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se pudo guardar la clasificación'
+                    });
+                } finally {
+                    setLoadingClasificaciones(false);
+                }
+            };
+            const handleDeleteClasificacion = async (id) => {
+                try {
+                    const result = await Swal.fire({
+                        title: '¿Estás seguro?',
+                        text: "Esta acción no se puede revertir",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    });
+                    
+                    if (result.isConfirmed) {
+                        setLoadingClasificaciones(true);
+                        
+                        const { error } = await supabase
+                            .from('Clasificacion')
+                            .delete()
+                            .eq('id', id);
+                            
+                        if (error) throw error;
+                        
+                        // Actualizar la lista local
+                        setClasificaciones(prev => prev.filter(c => c.id !== id));
+                        setClasificacionesList(prev => prev.filter(c => c.id !== id));
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Eliminado',
+                            text: 'Clasificación eliminada correctamente',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar clasificación:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se pudo eliminar la clasificación'
+                    });
+                } finally {
+                    setLoadingClasificaciones(false);
+                }
+            };
+            const handleSelectClasificacion = (clasificacion) => {
+                // Actualizar el estado de la alternativa con la clasificación seleccionada
+                setAlternativa(prev => {
+                    const updated = {
+                        ...prev,
+                        id_clasificacion: clasificacion.id,
+                        clasificacion: clasificacion.NombreClasificacion
+                    };
+                    console.log('Estado de alternativa actualizado:', updated);
+                    return updated;
+                });
+                
+                // Cerrar el modal de clasificación
+                setOpenClasificacionModal(false);
+                console.log('Clasificación seleccionada:', clasificacion);
+            };
+            const handleSavePrograma = async () => {
+                try {
+                  setLoading(true);
+                  
+                  // Validar que los campos requeridos estén completos
+                  if (!newPrograma.descripcion) {
+                    Swal.fire({
+                      icon: 'warning',
+                      title: 'Campos incompletos',
+                      text: 'La descripción del programa es obligatoria'
+                    });
+                    return;
+                  }
+                  if (!newPrograma.id_soporte) {
+                    Swal.fire({
+                      icon: 'warning',
+                      title: 'Campos incompletos',
+                      text: 'Por favor seleccione un soporte'
+                    });
+                    return;
+                  }
+                  
+                  // Validar que se hayan seleccionado horas y minutos
+                  if (!newPrograma.hora_inicio_hora || !newPrograma.hora_inicio_min) {
+                    Swal.fire({
+                      icon: 'warning',
+                      title: 'Campos incompletos',
+                      text: 'Por favor complete la hora de inicio (hora y minutos)'
+                    });
+                    return;
+                  }
+                  
+                  if (!newPrograma.hora_fin_hora || !newPrograma.hora_fin_min) {
+                    Swal.fire({
+                      icon: 'warning',
+                      title: 'Campos incompletos',
+                      text: 'Por favor complete la hora de fin (hora y minutos)'
+                    });
+                    return;
+                  }
+                  
+                  // Obtener el último valor numérico de cod_prog_megatime
+                  let nextCodProgMegatime = 3998; // Valor base por defecto
+                  
+                  // Consulta para obtener el último valor numérico
+                  const { data: ultimosProgMegatime, error: errorConsulta } = await supabase
+                    .from('Programas')
+                    .select('cod_prog_megatime')
+                    .not('cod_prog_megatime', 'is', null)
+                    .not('cod_prog_megatime', 'eq', '')
+                    .order('created_at', { ascending: false }) // Ordenar por fecha de creación para obtener el más reciente
+                    .limit(100); // Obtener varios para asegurar encontrar valores numéricos
+                  
+                  if (errorConsulta) {
+                    console.error('Error al consultar últimos códigos:', errorConsulta);
+                  } else if (ultimosProgMegatime && ultimosProgMegatime.length > 0) {
+                    // Filtrar solo los valores numéricos y encontrar el máximo
+                    const codigosNumericos = ultimosProgMegatime
+                      .map(prog => prog.cod_prog_megatime)
+                      .filter(codigo => !isNaN(parseInt(codigo)))
+                      .map(codigo => parseInt(codigo));
+                    
+                    if (codigosNumericos.length > 0) {
+                      const maxCodigo = Math.max(...codigosNumericos);
+                      nextCodProgMegatime = maxCodigo + 1;
+                    }
+                  }
+                  
+                  console.log('Próximo código Megatime a usar:', nextCodProgMegatime);
+                  
+                  // Combinar hora y minutos para formar hora_inicio y hora_fin
+                  const hora_inicio = `${newPrograma.hora_inicio_hora}:${newPrograma.hora_inicio_min}`;
+                  const hora_fin = `${newPrograma.hora_fin_hora}:${newPrograma.hora_fin_min}`;
+                  
+                  // Preparar datos del programa
+                  const programaData = {
+                    descripcion: newPrograma.descripcion,
+                    hora_inicio: hora_inicio,
+                    hora_fin: hora_fin,
+                    codigo_programa: newPrograma.codigo_programa || '',
+                    soporte_id: newPrograma.id_soporte, // AQUÍ ESTÁ EL CAMBIO: usar soporte_id en lugar de id_soporte
+                    estado: true
+                  };
+                  
+                  // Solo asignar nuevo código si es un nuevo programa, no en edición
+                  if (!editingPrograma) {
+                    programaData.cod_prog_megatime = nextCodProgMegatime.toString();
+                  } else if (editingPrograma && !editingPrograma.cod_prog_megatime) {
+                    // Si estamos editando un programa sin código, asignarle uno nuevo
+                    programaData.cod_prog_megatime = nextCodProgMegatime.toString();
+                  } else if (editingPrograma) {
+                    // Mantener el código original si existe
+                    programaData.cod_prog_megatime = editingPrograma.cod_prog_megatime;
+                  }
+                  
+                  let response;
+                  
+                  if (editingPrograma) {
+                    // Actualizar programa existente
+                    const { data, error } = await supabase
+                      .from('Programas')
+                      .update(programaData)
+                      .eq('id', editingPrograma.id)
+                      .select();
+                      
+                    if (error) throw error;
+                    response = data;
+                  } else {
+                    // Insertar nuevo programa
+                    const { data, error } = await supabase
+                      .from('Programas')
+                      .insert([programaData])
+                      .select();
+                      
+                    if (error) throw error;
+                    response = data;
+                  }
+                  
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: editingPrograma ? 'Programa actualizado correctamente' : 'Programa agregado correctamente'
+                  });
+                  
+                  // Cerrar el modal y limpiar el formulario
+                  setOpenAddEditProgramaModal(false);
+                  setNewPrograma({
+                    descripcion: '',
+                    hora_inicio: '',
+                    hora_inicio_hora: '00',
+                    hora_inicio_min: '00',
+                    hora_fin: '',
+                    hora_fin_hora: '00',
+                    hora_fin_min: '00',
+                    cod_prog_megatime: '',
+                    codigo_programa: '',
+                    id_soporte: ''
+                  });
+                  setEditingPrograma(null);
+                  
+                  // Actualizar la lista de programas
+                  if (newPrograma.id_soporte) {
+                    // Consulta para obtener la lista actualizada
+                    const { data: programasActualizados, error: errorProgramas } = await supabase
+                      .from('Programas')
+                      .select('*')
+                      .eq('soporte_id', newPrograma.id_soporte) // AQUÍ TAMBIÉN: usar soporte_id en lugar de id_soporte
+                      .eq('estado', true)
+                      .order('descripcion', { ascending: true });
+                    
+                    if (!errorProgramas) {
+                      // Procesar los datos para incluir hora_inicio_hora, hora_inicio_min, etc.
+                      const programasProcesados = (programasActualizados || []).map(programa => {
+                        // Separar hora_inicio en hora y minutos
+                        const [hora_inicio_hora = "00", hora_inicio_min = "00"] = (programa.hora_inicio || "00:00").split(":");
+                        // Separar hora_fin en hora y minutos
+                        const [hora_fin_hora = "00", hora_fin_min = "00"] = (programa.hora_fin || "00:00").split(":");
+                        
+                        return {
+                          ...programa,
+                          hora_inicio_hora,
+                          hora_inicio_min,
+                          hora_fin_hora,
+                          hora_fin_min
+                        };
+                      });
+                      
+                      setProgramas(programasProcesados);
+                      
+                      // Actualizar también la lista filtrada
+                      if (searchPrograma) {
+                        const filtrados = programasProcesados.filter(programa => 
+                          programa.descripcion.toLowerCase().includes(searchPrograma.toLowerCase())
+                        );
+                        setProgramasFiltrados(filtrados);
+                      } else {
+                        setProgramasFiltrados(programasProcesados);
+                      }
+                    }
+                  }
+                  
+                } catch (error) {
+                  console.error('Error al guardar programa:', error);
+                  Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'El nombre de la clasificación es obligatorio'
-                });
-                return;
-            }
-            
-            if (editingClasificacion) {
-                // Actualizar clasificación existente
-                const { error } = await supabase
-                    .from('Clasificacion')
-                    .update({ NombreClasificacion: nuevaClasificacion.NombreClasificacion })
-                    .eq('id', editingClasificacion.id);
-                
-                if (error) throw error;
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'Clasificación actualizada correctamente'
-                });
-            } else {
-                // Crear nueva clasificación
-                const { data, error } = await supabase
-                    .from('Clasificacion')
-                    .insert({ NombreClasificacion: nuevaClasificacion.NombreClasificacion })
-                    .select();
-                
-                if (error) throw error;
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'Clasificación creada correctamente'
-                });
-                
-                // Seleccionar la nueva clasificación
-                if (data && data.length > 0) {
-                    handleSeleccionarClasificacion(data[0]);
+                    text: `Error al guardar el programa: ${error.message || JSON.stringify(error)}`
+                  });
+                } finally {
+                  setLoading(false);
                 }
-            }
-            
-            // Cerrar modal y actualizar lista
-            handleCloseAddEditClasificacionModal();
-            handleSearchClasificacion(searchClasificacion);
-        } catch (error) {
-            console.error('Error al guardar clasificación:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No se pudo guardar la clasificación'
-            });
-        }
-    };
-    const handleSavePrograma = async () => {
-        try {
-            if (!newPrograma.descripcion) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'La descripción del programa es obligatoria'
-                });
-                return;
-            }
-            
-            if (editingPrograma) {
-                // Actualizar programa existente
-                const { error } = await supabase
-                    .from('Programas')
-                    .update(newPrograma)
-                    .eq('id', editingPrograma.id);
-                
-                if (error) throw error;
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'Programa actualizado correctamente'
-                });
-            } else {
-                // Crear nuevo programa
-                const { data, error } = await supabase
-                    .from('Programas')
-                    .insert(newPrograma)
-                    .select();
-                
-                if (error) throw error;
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'Programa creado correctamente'
-                });
-                
-                // Seleccionar el nuevo programa
-                if (data && data.length > 0) {
-                    handleSeleccionarPrograma(data[0]);
-                }
-            }
-            
-            // Cerrar modal y actualizar lista
-            handleCloseAddEditProgramaModal();
-            handleSearchPrograma(searchPrograma);
-        } catch (error) {
-            console.error('Error al guardar programa:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No se pudo guardar el programa'
-            });
-        }
-    };
+              };
     const handleTemaAdded = (nuevoTema) => {
         fetchTemasFiltrados();
         handleCloseAddTemaModal();
@@ -1798,7 +2282,7 @@ const TIPO_ITEMS = [
                         fullWidth
                         margin="normal"
                         label="Clasificación"
-                        value={alternativa.Clasificacion?.NombreClasificacion || ''}
+                        value={alternativa?.clasificacion || ''}
                         onClick={() => {
                             handleOpenClasificacionModal();
                             handleSearchClasificacion('');
@@ -2426,156 +2910,149 @@ const TIPO_ITEMS = [
           </DialogContent>
         </Dialog>
 
-        <Dialog 
-          open={openClasificacionModal} 
-          onClose={handleCloseClasificacionModal}
-          maxWidth="md"
-          fullWidth
+        <Dialog open={openClasificacionModal} onClose={handleCloseClasificacionModal} maxWidth="md" fullWidth>
+    <DialogTitle>
+        Seleccionar Clasificación
+        <IconButton
+            aria-label="close"
+            onClick={handleCloseClasificacionModal}
+            sx={{
+                position: 'absolute',
+                right: 8,
+                top: 8,
+                color: (theme) => theme.palette.grey[500],
+            }}
         >
-          <DialogTitle>
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 2
-            }}>
-              <Typography variant="h6">Seleccionar Clasificación</Typography>
-              <Box>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenAddEditClasificacionModal()}
-                  size="small"
-                  sx={{ mr: 1 }}
-                >
-                  Nueva Clasificación
-                </Button>
-                <IconButton onClick={handleCloseClasificacionModal} size="small">
-                  <CloseIcon />
-                </IconButton>
-              </Box>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-              <TextField
+            <CloseIcon />
+        </IconButton>
+    </DialogTitle>
+    <DialogContent>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+            <TextField
                 fullWidth
-                variant="outlined"
-                placeholder="Buscar clasificación..."
+                placeholder="Buscar clasificación"
                 value={searchClasificacion}
-                onChange={(e) => {
-                  setSearchClasificacion(e.target.value);
-                  handleSearchClasificacion(e.target.value);
-                }}
+                onChange={(e) => handleSearchClasificacion(e.target.value)}
                 InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  )
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <SearchIcon />
+                        </InputAdornment>
+                    ),
                 }}
-                size="small"
-              />
+                sx={{ mr: 2 }}
+            />
+            <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenAddEditClasificacionModal()}
+            >
+                Nueva
+            </Button>
+        </Box>
+        
+        {loadingClasificaciones ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                <CircularProgress />
             </Box>
-          </DialogTitle>
-
-          <DialogContent>
+        ) : (
             <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Nombre Clasificación</TableCell>
-                    <TableCell>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loadingClasificaciones ? (
-                    <TableRow>
-                      <TableCell colSpan={3} align="center">
-                        <CircularProgress size={24} />
-                      </TableCell>
-                    </TableRow>
-                  ) : clasificacionesList.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} align="center">
-                        No se encontraron clasificaciones
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    clasificacionesList.map((clasificacion) => (
-                      <TableRow 
-                        key={clasificacion.id}
-                        hover
-                        sx={{ cursor: 'pointer' }}
-                        onClick={() => handleSeleccionarClasificacion(clasificacion)}
-                      >
-                        <TableCell>{clasificacion.id}</TableCell>
-                        <TableCell>{clasificacion.NombreClasificacion}</TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenAddEditClasificacionModal(clasificacion);
-                            }}
-                            color="primary"
-                            title="Editar"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSeleccionarClasificacion(clasificacion);
-                            }}
-                            color="primary"
-                            title="Seleccionar"
-                          >
-                            <CheckIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Nombre</TableCell>
+                            <TableCell align="right">Acciones</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {clasificacionesList.length > 0 ? (
+                            clasificacionesList.map((clasificacion) => (
+                                <TableRow key={clasificacion.id}>
+                                <TableCell>{clasificacion.NombreClasificacion}</TableCell>
+                                <TableCell align="right">
+                                <IconButton 
+    color="primary" 
+    onClick={() => handleSelectClasificacion(clasificacion)}
+>
+    <CheckIcon />
+</IconButton>
+                                    <IconButton 
+                                        color="primary" 
+                                        onClick={() => handleOpenAddEditClasificacionModal(clasificacion)}
+                                    >
+                                        <EditIcon />
+                                    </IconButton>
+                                    <IconButton 
+                                        color="error" 
+                                        onClick={() => handleDeleteClasificacion(clasificacion.id)}
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </TableCell>
+                            </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={2} align="center">
+                                    No se encontraron clasificaciones
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </TableContainer>
-          </DialogContent>
-        </Dialog>
+        )}
+    </DialogContent>
+</Dialog>
 
-        <Dialog
-          open={openAddEditClasificacionModal}
-          onClose={handleCloseAddEditClasificacionModal}
-          maxWidth="sm"
-          fullWidth
+{/* Modal para agregar/editar clasificación */}
+<Dialog 
+    open={openAddEditClasificacionModal} 
+    onClose={handleCloseAddEditClasificacionModal}
+    maxWidth="sm"
+    fullWidth
+>
+    <DialogTitle>
+        {editingClasificacion ? 'Editar Clasificación' : 'Nueva Clasificación'}
+        <IconButton
+            aria-label="close"
+            onClick={handleCloseAddEditClasificacionModal}
+            sx={{
+                position: 'absolute',
+                right: 8,
+                top: 8,
+            }}
         >
-          <DialogTitle>
-            {editingClasificacion ? 'Editar' : 'Agregar'} Clasificación
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ pt: 2 }}>
-              <TextField
-                fullWidth
-                label="Nombre Clasificación"
-                value={nuevaClasificacion.NombreClasificacion}
-                onChange={(e) => setNuevaClasificacion(prev => ({
-                  ...prev,
-                  NombreClasificacion: e.target.value
-                }))}
-                margin="normal"
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseAddEditClasificacionModal}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveClasificacion} variant="contained" color="primary">
-              Guardar
-            </Button>
-          </DialogActions>
-        </Dialog>
+            <CloseIcon />
+        </IconButton>
+    </DialogTitle>
+    <DialogContent>
+        <TextField
+            fullWidth
+            label="Nombre de la Clasificación"
+            variant="outlined"
+            value={nuevaClasificacion.NombreClasificacion}
+            onChange={(e) => setNuevaClasificacion({
+                ...nuevaClasificacion,
+                NombreClasificacion: e.target.value
+            })}
+            margin="normal"
+            required
+        />
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={handleCloseAddEditClasificacionModal}>Cancelar</Button>
+        <Button 
+            variant="contained" 
+            color="primary"
+            onClick={handleSaveClasificacion}
+            disabled={loadingClasificaciones}
+        >
+            {loadingClasificaciones ? <CircularProgress size={24} /> : 'Guardar'}
+        </Button>
+    </DialogActions>
+</Dialog>
 
         <Dialog 
           open={openAddContratoModal} 
@@ -2706,33 +3183,130 @@ const TIPO_ITEMS = [
                 fullWidth
                 value={newPrograma.codigo_programa}
                 onChange={(e) => setNewPrograma({ ...newPrograma, codigo_programa: e.target.value })}
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, mt: 2  }}
               />
-              <TextField
-                label="Código Programa Megatime"
-                fullWidth
-                value={newPrograma.cod_prog_megatime}
-                onChange={(e) => setNewPrograma({ ...newPrograma, cod_prog_megatime: e.target.value })}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                label="Hora Inicio"
-                type="time"
-                fullWidth
-                value={newPrograma.hora_inicio}
-                onChange={(e) => setNewPrograma({ ...newPrograma, hora_inicio: e.target.value })}
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Hora Fin"
-                type="time"
-                fullWidth
-                value={newPrograma.hora_fin}
-                onChange={(e) => setNewPrograma({ ...newPrograma, hora_fin: e.target.value })}
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
+             
+               {/* Hora de inicio - Reemplazar el campo actual por dos selects */}
+      <Grid item xs={12} mt={1}>
+        <Typography variant="subtitle2" gutterBottom>
+          Hora Inicio
+        </Typography>
+        <Grid container spacing={1}>
+          <Grid item xs={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="hora-inicio-label">Hora</InputLabel>
+              <Select
+                labelId="hora-inicio-label"
+                value={newPrograma.hora_inicio_hora || ""}
+                onChange={(e) => {
+                  const horaValue = e.target.value;
+                  const minValue = newPrograma.hora_inicio_min || "00";
+                  setNewPrograma({
+                    ...newPrograma, 
+                    hora_inicio_hora: horaValue,
+                    hora_inicio: `${horaValue}:${minValue}`
+                  });
+                }}
+                label="Hora"
+              >
+                {Array.from({ length: 31 }, (_, i) => {
+                  const hora = i.toString().padStart(2, '0');
+                  return (
+                    <MenuItem key={`hora-inicio-${hora}`} value={hora}>{hora}</MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6}>
+  <FormControl fullWidth size="small">
+    <InputLabel id="min-inicio-label">Minutos</InputLabel>
+    <Select
+      labelId="min-inicio-label"
+      value={newPrograma.hora_inicio_min || ""}
+      onChange={(e) => {
+        const minValue = e.target.value;
+        const horaValue = newPrograma.hora_inicio_hora || "00";
+        setNewPrograma({
+          ...newPrograma, 
+          hora_inicio_min: minValue,
+          hora_inicio: `${horaValue}:${minValue}`
+        });
+      }}
+      label="Minutos"
+    >
+      {Array.from({ length: 60 }, (_, i) => {
+        const min = i.toString().padStart(2, '0');
+        return (
+          <MenuItem key={`min-inicio-${min}`} value={min}>{min}</MenuItem>
+        );
+      })}
+    </Select>
+  </FormControl>
+</Grid>
+        </Grid>
+      </Grid>
+      
+      {/* Hora fin - Reemplazar el campo actual por dos selects */}
+      <Grid item xs={12} mt={1}>
+        <Typography variant="subtitle2" gutterBottom>
+          Hora Fin
+        </Typography>
+        <Grid container spacing={1}>
+          <Grid item xs={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="hora-fin-label">Hora</InputLabel>
+              <Select
+                labelId="hora-fin-label"
+                value={newPrograma.hora_fin_hora || ""}
+                onChange={(e) => {
+                  const horaValue = e.target.value;
+                  const minValue = newPrograma.hora_fin_min || "00";
+                  setNewPrograma({
+                    ...newPrograma, 
+                    hora_fin_hora: horaValue,
+                    hora_fin: `${horaValue}:${minValue}`
+                  });
+                }}
+                label="Hora"
+              >
+                {Array.from({ length: 31 }, (_, i) => {
+                  const hora = i.toString().padStart(2, '0');
+                  return (
+                    <MenuItem key={`hora-fin-${hora}`} value={hora}>{hora}</MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6}>
+  <FormControl fullWidth size="small">
+    <InputLabel id="min-fin-label">Minutos</InputLabel>
+    <Select
+      labelId="min-fin-label"
+      value={newPrograma.hora_fin_min || ""}
+      onChange={(e) => {
+        const minValue = e.target.value;
+        const horaValue = newPrograma.hora_fin_hora || "00";
+        setNewPrograma({
+          ...newPrograma, 
+          hora_fin_min: minValue,
+          hora_fin: `${horaValue}:${minValue}`
+        });
+      }}
+      label="Minutos"
+    >
+      {Array.from({ length: 60 }, (_, i) => {
+        const min = i.toString().padStart(2, '0');
+        return (
+          <MenuItem key={`min-fin-${min}`} value={min}>{min}</MenuItem>
+        );
+      })}
+    </Select>
+  </FormControl>
+</Grid>
+        </Grid>
+      </Grid>
             </Box>
           </DialogContent>
           <DialogActions>
