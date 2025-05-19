@@ -129,9 +129,10 @@ const ReporteOrdenDeCompra = () => {
               Grupos (id_grupo, nombre_grupo)
             )
           ),
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto,Presupuesto,
+          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
             Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto)
+            Productos!id_Producto (id, NombreDelProducto),
+            Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia)
           ),
           Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
             FormaDePago (id, NombreFormadePago),
@@ -222,7 +223,7 @@ const ReporteOrdenDeCompra = () => {
     'Campaña': orden.Campania?.NombreCampania || '',
     'OC Cliente': orden.numero_correlativo || '',
     'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
-    'Age.Crea': orden.usuario_registro?.nombre || '',
+    'Age.Crea': orden.Campania?.Agencia?.NombreIdentificador || orden.Campania?.Agencia?.NombreDeFantasia || 'ORIGEN COMUNICACIONES',
     'Inversion neta': orden.Campania?.Presupuesto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.Campania.Presupuesto) : '',
     'N° Fact.Prov.': '',
     'Fecha Fact.Prov.': '',
@@ -454,7 +455,7 @@ const ReporteOrdenDeCompra = () => {
                       <TableCell>{orden.Campania?.NombreCampania || 'NA'}</TableCell>
                       <TableCell>{orden.numero_correlativo || 'NA'}</TableCell>
                       <TableCell>{orden.Campania?.Productos?.NombreDelProducto || 'NA'}</TableCell>
-                      <TableCell>{orden.usuario_registro?.nombre || 'NA'}</TableCell>
+                      <TableCell>{orden.Campania?.Agencia?.NombreIdentificador || orden.Campania?.Agencia?.NombreDeFantasia || 'ORIGEN COMUNICACIONES'}</TableCell>
                       <TableCell>{orden.Campania?.Presupuesto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.Campania.Presupuesto) : 'NA'}</TableCell>
                       <TableCell>{'NA'}</TableCell>
                       <TableCell>{'NA'}</TableCell>

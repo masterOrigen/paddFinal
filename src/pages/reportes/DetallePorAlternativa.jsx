@@ -2158,7 +2158,8 @@ const ReporteOrdenDeCompra = () => {
           color: '#1976d2', 
           mb: 1, 
           textTransform: 'uppercase', 
-          letterSpacing: '0.5px' 
+          letterSpacing: '0.5px',
+          fontSize: '1.5rem'
         }}>
           Reporte diario inversión por cliente
         </Typography>
