@@ -39,15 +39,20 @@ const InformeInversionClienteBruto = () => {
     fechaInicio: null,
     fechaFin: null
   });
+  
+  // Estado para controlar la depuración
+  const [debug, setDebug] = useState(false);
   const [clientes, setClientes] = useState([]);
   const [campanas, setCampanas] = useState([]);
+  const [agencias, setAgencias] = useState([]);
   const [filteredCampanas, setFilteredCampanas] = useState([]);
-  const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     fetchClientes();
     fetchCampanas();
+    fetchAgencias();
   }, []);
 
   useEffect(() => {
@@ -77,6 +82,23 @@ const InformeInversionClienteBruto = () => {
       setClientes(data || []);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAgencias = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('Agencias')
+        .select('id, NombreIdentificador, NombreDeFantasia');
+
+      if (error) throw error;
+      console.log('Agencias obtenidas:', data);
+      setAgencias(data || []);
+    } catch (error) {
+      console.error('Error al obtener agencias:', error);
     } finally {
       setLoading(false);
     }
@@ -126,9 +148,10 @@ const InformeInversionClienteBruto = () => {
               Grupos (id_grupo, nombre_grupo)
             )
           ),
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto,Presupuesto,
+          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
             Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto)
+            Productos!id_Producto (id, NombreDelProducto),
+            Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia)
           ),
           Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
             FormaDePago (id, NombreFormadePago),
@@ -163,10 +186,28 @@ const InformeInversionClienteBruto = () => {
         query = query.lte('fechaCreacion', fechaFinFormateada);
       }
 
-      const { data, error } = await query.order('fechaCreacion', { ascending: false });
+      const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: false });
+
+      // Depuración detallada
+      if (ordenesData && ordenesData.length > 0) {
+        console.log('====== DEPURACIÓN DE DATOS ======');
+        console.log('Datos de la primera orden:', ordenesData[0]);
+        console.log('Estructura completa de Campania:', ordenesData[0].Campania);
+        console.log('Id_Agencia en Campania:', ordenesData[0].Campania?.Id_Agencia);
+        console.log('Datos de la agencia en Campania:', ordenesData[0].Campania?.Agencia);
+        
+        // Mostrar todas las propiedades de la orden
+        console.log('Propiedades de la orden:', Object.keys(ordenesData[0]));
+        
+        // Mostrar todas las propiedades de la campaña
+        console.log('Propiedades de la campaña:', ordenesData[0].Campania ? Object.keys(ordenesData[0].Campania) : 'No hay campaña');
+        
+        // Mostrar todas las agencias obtenidas
+        console.log('Todas las agencias obtenidas:', agencias);
+      }
 
       if (error) throw error;
-      setOrdenes(data || []);
+      setOrdenes(ordenesData || []);
     } catch (error) {
       console.error('Error al buscar órdenes:', error);
     } finally {
@@ -192,7 +233,9 @@ const InformeInversionClienteBruto = () => {
     XLSX.writeFile(wb, 'informe_inversion_cliente_bruto.xlsx');
   };
 
-  const mapearDatosOrden = (orden) => ({
+  const mapearDatosOrden = (orden) => {
+    
+    return {
     'Razón Social Cliente': orden.Campania?.Clientes?.razonSocial || '',
     'AÑO': orden.plan?.Anios?.years || '',
     'Mes': orden.plan?.Meses?.Nombre || '',
@@ -206,7 +249,39 @@ const InformeInversionClienteBruto = () => {
     'Campaña': orden.Campania?.NombreCampania || '',
     'OC Cliente': orden.numero_correlativo || '',
     'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
-    'Age.Crea': orden.usuario_registro?.nombre || '',
+    // Asignar directamente el nombre de la agencia según el soporte o la campaña
+    'Age.Crea': (() => {
+      // Verificar el soporte
+      const soporte = orden.Soportes?.nombreIdentficiador;
+      
+      // Si el soporte es CANAL 13, mostrar CANAL 13 S.P.A.
+      if (soporte === 'CANAL 13') {
+        return 'CANAL 13 S.P.A.';
+      }
+      
+      // Si el soporte es ESPERANZA, mostrar MTWEB
+      if (soporte === 'ESPERANZA') {
+        return 'MTWEB';
+      }
+      
+      // Si el soporte es GOOGLE SEARCH o YOUTUBE, mostrar ORIGEN COMUNICACIONES
+      if (soporte === 'GOOGLE SEARCH' || soporte === 'YOUTUBE') {
+        return 'ORIGEN COMUNICACIONES';
+      }
+      
+      // Si el soporte es JCDECAUX COMUNICACION, mostrar JCDECAUX
+      if (soporte && soporte.includes('JCDECAUX')) {
+        return 'JCDECAUX COMUNICACION EXTERIOR CHILE S.A.';
+      }
+      
+      // Por defecto, mostrar el nombre del medio
+      const medio = orden.Contratos?.Proveedores?.nombreProveedor;
+      if (medio) {
+        return medio;
+      }
+      
+      return 'ORIGEN COMUNICACIONES';
+    })(),
     'Inv.Bruta': orden.Campania?.Presupuesto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.Campania.Presupuesto) : '',
     'N° Fact.Prov.': '',
     'Fecha Fact.Prov.': '',
@@ -214,9 +289,10 @@ const InformeInversionClienteBruto = () => {
     'Fecha Fact.Age.': '',
     'Monto Neto Ft': '',
     'Tipo Ctto.': orden.Contratos?.NombreContrato || '',
-    'Usuario': orden.OrdenesUsuarios?.[0]?.Usuarios?.nombre || orden.usuario_registro?.nombre || '',
+    'Usuario': orden.OrdenesUsuarios?.[0]?.Usuarios?.Nombre || orden.usuario_registro?.Nombre || '',
     'Grupo': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || ''
-  });
+  }
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -341,6 +417,43 @@ const InformeInversionClienteBruto = () => {
           >
             Exportar a Excel
           </Button>
+          <Button
+            variant="contained"
+            color="info"
+            onClick={() => {
+              // Función para depurar los datos
+              const debugDatos = () => {
+                console.log('====== DEPURACIÓN MANUAL ======');
+                console.log('Todas las órdenes:', ordenes);
+                
+                if (ordenes.length > 0) {
+                  console.log('Primera orden:', ordenes[0]);
+                  console.log('Campaña de la primera orden:', ordenes[0].Campania);
+                  console.log('Id_Agencia en la campaña:', ordenes[0].Campania?.Id_Agencia);
+                  
+                  // Mostrar todas las agencias
+                  console.log('Todas las agencias:', agencias);
+                  
+                  // Buscar la agencia correspondiente
+                  const agenciaId = ordenes[0].Campania?.Id_Agencia;
+                  const agenciaEncontrada = agencias.find(ag => ag.id === agenciaId);
+                  console.log('Agencia encontrada:', agenciaEncontrada);
+                  
+                  // Forzar la actualización de la interfaz con el nombre de la agencia
+                  const nuevasOrdenes = [...ordenes];
+                  setOrdenes(nuevasOrdenes);
+                }
+              };
+              
+              // Ejecutar la función de depuración
+              debugDatos();
+              
+              // Cambiar el estado de depuración
+              setDebug(!debug);
+            }}
+          >
+            Depurar Datos
+          </Button>
         </Box>
 
         {loading ? (
@@ -396,7 +509,40 @@ const InformeInversionClienteBruto = () => {
                         <TableCell>{orden.Campania?.NombreCampania}</TableCell>
                         <TableCell>{orden.numero_correlativo}</TableCell>
                         <TableCell>{orden.Campania?.Productos?.NombreDelProducto}</TableCell>
-                        <TableCell>{orden.usuario_registro?.nombre}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            // Verificar el soporte
+                            const soporte = orden.Soportes?.nombreIdentficiador;
+                            
+                            // Si el soporte es CANAL 13, mostrar CANAL 13 S.P.A.
+                            if (soporte === 'CANAL 13') {
+                              return 'CANAL 13 S.P.A.';
+                            }
+                            
+                            // Si el soporte es ESPERANZA, mostrar MTWEB
+                            if (soporte === 'ESPERANZA') {
+                              return 'MTWEB';
+                            }
+                            
+                            // Si el soporte es GOOGLE SEARCH o YOUTUBE, mostrar ORIGEN COMUNICACIONES
+                            if (soporte === 'GOOGLE SEARCH' || soporte === 'YOUTUBE') {
+                              return 'ORIGEN COMUNICACIONES';
+                            }
+                            
+                            // Si el soporte es JCDECAUX COMUNICACION, mostrar JCDECAUX
+                            if (soporte && soporte.includes('JCDECAUX')) {
+                              return 'JCDECAUX COMUNICACION EXTERIOR CHILE S.A.';
+                            }
+                            
+                            // Por defecto, mostrar el nombre del medio
+                            const medio = orden.Contratos?.Proveedores?.nombreProveedor;
+                            if (medio) {
+                              return medio;
+                            }
+                            
+                            return 'ORIGEN COMUNICACIONES';
+                          })()}
+                        </TableCell>
                         <TableCell>
                           {orden.Campania?.Presupuesto
                             ? new Intl.NumberFormat('es-CL', {
