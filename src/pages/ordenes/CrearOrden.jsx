@@ -355,16 +355,18 @@ const handleCrearOrden = async () => {
       const soporteId = alt.Soportes?.id_soporte;
       const contratoId = alt.Contratos?.id;
       const proveedorId = alt.Contratos?.IdProveedor;
+      const tipoItem = alt.tipo_item;
       
       // Crear una clave única combinando soporte, contrato y proveedor
-      const grupoKey = `${soporteId}-${contratoId}-${proveedorId}`;
+      const grupoKey = `${soporteId}-${contratoId}-${proveedorId}-${tipoItem}`;
       
       if (!acc[grupoKey]) {
         acc[grupoKey] = {
           alternativas: [],
           soporte: alt.Soportes,
           contrato: alt.Contratos,
-          proveedor: alt.Contratos?.Proveedores
+          proveedor: alt.Contratos?.Proveedores,
+          tipo_item: alt.tipo_item
         };
       }
       acc[grupoKey].alternativas.push(alt);
@@ -397,7 +399,8 @@ const handleCrearOrden = async () => {
           } : null,
           // Solo incluir los campos que existen en la tabla
           id_soporte: grupo.soporte?.id_soporte,
-          id_contrato: grupo.contrato?.id
+          id_contrato: grupo.contrato?.id,
+          estado: 'activa'
         })
         .select()
         .single();
