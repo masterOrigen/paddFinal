@@ -347,17 +347,27 @@ const ViewSoporte = () => {
         .from('Programas')
         .select('*, c_orden')
         .eq('soporte_id', id);
-
+  
       if (error) throw error;
-
+  
       console.log('Programas fetched:', data);
       
       if (data) {
-        const programasFormateados = data.map(prog => ({
-          ...prog,
-          hora_inicio: prog.hora_inicio || '-',
-          hora_fin: prog.hora_fin || '-'
-        }));
+        const programasFormateados = data.map(prog => {
+          // Validar formato de hora
+          const validarHora = (hora) => {
+            if (!hora) return '';
+            // Verificar si la hora tiene un formato válido (HH:MM)
+            const regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+            return regex.test(hora) ? hora : '';
+          };
+          
+          return {
+            ...prog,
+            hora_inicio: validarHora(prog.hora_inicio),
+            hora_fin: validarHora(prog.hora_fin)
+          };
+        });
         console.log('Programas formateados:', programasFormateados);
         setProgramas(programasFormateados);
       } else {
@@ -370,6 +380,7 @@ const ViewSoporte = () => {
         title: 'Error',
         text: 'Error al cargar los programas'
       });
+      setProgramas([]);
     }
   };
 
@@ -428,22 +439,41 @@ const ViewSoporte = () => {
       field: 'actions',
       headerName: 'Acciones',
       flex: 1,
-      renderCell: (params) => (
-        <Box>
-          <IconButton 
-            color="primary" 
-            onClick={() => startEditPrograma(params.row)}
-          >
-            <EditIcon />
-          </IconButton>
-          <IconButton 
-            color="error" 
-            onClick={() => handleDeletePrograma(params.row.id)}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Box>
-      )
+      renderCell: (params) => {
+        // Verificar si el programa tiene c_orden = true
+        const isOrdenCreada = params.row.c_orden === true;
+        
+        return (
+          <Box>
+            <IconButton 
+              color="primary" 
+              onClick={() => startEditPrograma(params.row)}
+              disabled={isOrdenCreada}
+              sx={{ 
+                opacity: isOrdenCreada ? 0.5 : 1,
+                '&:hover': {
+                  backgroundColor: isOrdenCreada ? 'transparent' : undefined
+                }
+              }}
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton 
+              color="error" 
+              onClick={() => handleDeletePrograma(params.row.id)}
+              disabled={isOrdenCreada}
+              sx={{ 
+                opacity: isOrdenCreada ? 0.5 : 1,
+                '&:hover': {
+                  backgroundColor: isOrdenCreada ? 'transparent' : undefined
+                }
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        );
+      }
     }
   ];
 
@@ -523,12 +553,43 @@ const ViewSoporte = () => {
       });
     }
   };
+  // Función para obtener el último código de programa megatime
+  const fetchLastCodProgMegatime = async () => {
+    try {
+      // Consultar el último valor de cod_prog_megatime
+      const { data, error } = await supabase
+        .from('Programas')
+        .select('cod_prog_megatime')
+        .order('cod_prog_megatime', { ascending: false })
+        .limit(1);
 
-  // Función para guardar un nuevo programa
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Convertir a número y sumar 1
+        const lastCode = parseInt(data[0].cod_prog_megatime || '4000');
+        const nextCode = lastCode + 1;
+        return nextCode.toString();
+      } else {
+        // Si no hay datos, comenzar desde 4001
+        return '4001';
+      }
+    } catch (error) {
+      console.error('Error al obtener último código:', error);
+      // En caso de error, asignar un valor predeterminado
+      return '4001';
+    }
+  };
+
   const handleSavePrograma = async () => {
     try {
       const nextId = await getNextProgramaId();
-      const { codigo_programa, descripcion, hora_inicio, hora_fin, cod_prog_megatime, estado } = programaForm;
+      
+      // Obtener el siguiente código megatime
+      const nextCodProgMegatime = await fetchLastCodProgMegatime();
+      
+      // Actualizar el formulario con el nuevo código
+      const { codigo_programa, descripcion, hora_inicio, hora_fin, estado } = programaForm;
       
       console.log('Saving programa with hours:', { hora_inicio, hora_fin });
 
@@ -538,7 +599,7 @@ const ViewSoporte = () => {
         descripcion,
         hora_inicio,
         hora_fin,
-        cod_prog_megatime,
+        cod_prog_megatime: nextCodProgMegatime, // Usar el código generado automáticamente
         estado,
         soporte_id: id
       };
@@ -633,6 +694,27 @@ const ViewSoporte = () => {
   // Función para eliminar un programa
   const handleDeletePrograma = async (programaId) => {
     try {
+      // Primero verificar si el programa tiene c_orden = true
+      const { data: programa, error: fetchError } = await supabase
+        .from('Programas')
+        .select('c_orden')
+        .eq('id', programaId)
+        .single();
+  
+      if (fetchError) throw fetchError;
+  
+      // Si c_orden es true, mostrar mensaje y no permitir la eliminación
+      if (programa.c_orden === true) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No se puede eliminar',
+          text: 'Este registro no se puede eliminar ya que forma parte de una Orden Creada.',
+          confirmButtonColor: '#3085d6',
+        });
+        return;
+      }
+  
+      // Si c_orden no es true, continuar con la eliminación
       const result = await Swal.fire({
         title: '¿Estás seguro?',
         text: "Esta acción no se puede deshacer",
@@ -643,17 +725,17 @@ const ViewSoporte = () => {
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
       });
-
+  
       if (result.isConfirmed) {
         const { error } = await supabase
           .from('Programas')
           .delete()
           .eq('id', programaId);
-
+  
         if (error) throw error;
-
+  
         await fetchProgramas();
-
+  
         Swal.fire({
           icon: 'success',
           title: 'Programa eliminado',
@@ -880,7 +962,7 @@ const ViewSoporte = () => {
                 </Box>
                 <Box sx={{ height: 400, width: '100%' }}>
                   <DataGrid
-                    getRowId={(row) => row.id_programa}
+                    getRowId={(row) => row.id}
                     rows={programas}
                     columns={programasColumns}
                     pageSize={5}
