@@ -203,17 +203,11 @@ const Soportes = () => {
 
   const columns = [
     {
-      field: 'nombreIdentficiador',
-      headerName: 'Identificador',
-      width: 150,
+      field: 'medios',
+      headerName: 'Medio',
+      width: 200,
       headerClassName: 'data-grid-header',
-      flex: 1
-    },
-    {
-      field: 'fechaCreacion',
-      headerName: 'Fecha Creación',
-      width: 120,
-      headerClassName: 'data-grid-header'
+      flex: 1.5
     },
     {
       field: 'nombreProveedor',
@@ -223,11 +217,17 @@ const Soportes = () => {
       flex: 1
     },
     {
-      field: 'medios',
-      headerName: 'Medios',
-      width: 200,
+      field: 'nombreIdentficiador',
+      headerName: 'Soporte',
+      width: 150,
       headerClassName: 'data-grid-header',
-      flex: 1.5
+      flex: 1
+    },
+    {
+      field: 'fechaCreacion',
+      headerName: 'Fecha Creación',
+      width: 120,
+      headerClassName: 'data-grid-header'
     },
     {
       field: 'bonificacion_ano',

@@ -20,7 +20,8 @@ import {
   InputLabel,
   Select,
   Switch
-} from '@mui/material';
+ } from '@mui/material';
+import OutlinedInput from '@mui/material/OutlinedInput';
 import SearchIcon from '@mui/icons-material/Search';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -1035,16 +1036,23 @@ const Clientes = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Grupo</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="add-grupo-label">Grupo</InputLabel>
                 <Select
+                  labelId="add-grupo-label"
+                  label="Grupo"
                   name="id_grupo"
                   value={newClient.id_grupo}
                   onChange={handleInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <GroupsIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Grupo"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <GroupsIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {Object.entries(grupos).map(([id, nombre]) => (
@@ -1070,16 +1078,23 @@ const Clientes = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo de Cliente</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="add-tipoCliente-label">Tipo de Cliente</InputLabel>
                 <Select
+                  labelId="add-tipoCliente-label"
+                  label="Tipo de Cliente"
                   name="id_tipoCliente"
                   value={newClient.id_tipoCliente}
                   onChange={handleInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <CategoryIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Tipo de Cliente"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <CategoryIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {Object.entries(tiposCliente).map(([id, tipo]) => (
@@ -1105,16 +1120,23 @@ const Clientes = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Región</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="add-region-label">Región</InputLabel>
                 <Select
+                  labelId="add-region-label"
+                  label="Región"
                   name="id_region"
                   value={newClient.id_region}
                   onChange={handleInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <LocationOnIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Región"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <LocationOnIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {Object.entries(regiones).map(([id, nombre]) => (
@@ -1124,16 +1146,23 @@ const Clientes = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Comuna</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="add-comuna-label">Comuna</InputLabel>
                 <Select
+                  labelId="add-comuna-label"
+                  label="Comuna"
                   name="id_comuna"
                   value={newClient.id_comuna}
                   onChange={handleInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <ApartmentIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Comuna"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <ApartmentIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {newClient.id_region
@@ -1372,16 +1401,23 @@ const Clientes = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Grupo</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="edit-grupo-label">Grupo</InputLabel>
                 <Select
+                  labelId="edit-grupo-label"
+                  label="Grupo"
                   name="id_grupo"
                   value={selectedClient?.id_grupo || ''}
                   onChange={handleEditInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <GroupsIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Grupo"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <GroupsIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {Object.entries(grupos).map(([id, nombre]) => (
@@ -1409,16 +1445,23 @@ const Clientes = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo de Cliente</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="edit-tipoCliente-label">Tipo de Cliente</InputLabel>
                 <Select
+                  labelId="edit-tipoCliente-label"
+                  label="Tipo de Cliente"
                   name="id_tipoCliente"
                   value={selectedClient?.id_tipoCliente || ''}
                   onChange={handleEditInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <CategoryIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Tipo de Cliente"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <CategoryIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {Object.entries(tiposCliente).map(([id, tipo]) => (
@@ -1444,16 +1487,23 @@ const Clientes = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Región</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="edit-region-label">Región</InputLabel>
                 <Select
+                  labelId="edit-region-label"
+                  label="Región"
                   name="id_region"
                   value={selectedClient?.id_region || ''}
                   onChange={handleEditInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <LocationOnIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Región"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <LocationOnIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {Object.entries(regiones).map(([id, nombre]) => (
@@ -1463,16 +1513,23 @@ const Clientes = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Comuna</InputLabel>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="edit-comuna-label">Comuna</InputLabel>
                 <Select
+                  labelId="edit-comuna-label"
+                  label="Comuna"
                   name="id_comuna"
                   value={selectedClient?.id_comuna || ''}
                   onChange={handleEditInputChange}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <LocationOnIcon />
-                    </InputAdornment>
+                  input={
+                    <OutlinedInput
+                      label="Comuna"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <LocationOnIcon />
+                        </InputAdornment>
+                      }
+                    />
                   }
                 >
                   {Object.entries(comunasFiltradas).map(([id, comuna]) => (

@@ -1984,7 +1984,7 @@ const Alternativas = () => {
 
         if (error) throw error;
       } else {
-        // Si estamos creando, usamos insert sin especificar ID
+        // Intentar crear sin especificar ID (autoincremental)
         const { data, error } = await query
           .insert({
             descripcion: newPrograma.descripcion,
@@ -1993,11 +1993,40 @@ const Alternativas = () => {
             cod_prog_megatime: newPrograma.cod_prog_megatime,
             codigo_programa: newPrograma.codigo_programa,
             soporte_id: selectedSoporte.id_soporte,
-            estado: true // Agregamos el campo estado
+            estado: true, // Agregamos el campo estado
+            created_at: new Date().toISOString()
           })
           .select();
 
-        if (error) throw error;
+        // Si la secuencia del ID está desincronizada y falla por clave duplicada,
+        // hacemos fallback: obtenemos el MAX(id) y creamos con id = max + 1
+        if (error && (error.code === '23505' || (error.message && error.message.toLowerCase().includes('duplicate key')))) {
+          const { data: maxIdData, error: maxErr } = await supabase
+            .from('Programas')
+            .select('id')
+            .order('id', { ascending: false })
+            .limit(1);
+
+          if (maxErr) throw maxErr;
+          const nextId = (Array.isArray(maxIdData) && maxIdData.length > 0 ? maxIdData[0].id : 0) + 1;
+
+          const { error: insertWithIdErr } = await query
+            .insert({
+              id: nextId,
+              descripcion: newPrograma.descripcion,
+              hora_inicio: newPrograma.hora_inicio,
+              hora_fin: newPrograma.hora_fin,
+              cod_prog_megatime: newPrograma.cod_prog_megatime,
+              codigo_programa: newPrograma.codigo_programa,
+              soporte_id: selectedSoporte.id_soporte,
+              estado: true,
+              created_at: new Date().toISOString()
+            });
+
+          if (insertWithIdErr) throw insertWithIdErr;
+        } else if (error) {
+          throw error;
+        }
       }
 
       Swal.fire({
@@ -2013,11 +2042,13 @@ const Alternativas = () => {
         const { data: programasData, error: programasError } = await supabase
           .from('Programas')
           .select('*')
-          .eq('soporte_id', selectedSoporte.id_soporte);
+          .eq('soporte_id', selectedSoporte.id_soporte)
+          .order('descripcion', { ascending: true });
 
         if (!programasError) {
           setProgramas(programasData);
-          setProgramasFiltrados([]);
+          // Refrescar la lista visible en el modal de selección sin cerrarlo
+          await handleSearchPrograma(searchPrograma || '');
         }
       }
     } catch (error) {
@@ -2655,30 +2686,36 @@ const Alternativas = () => {
                       <TableCell>{alternativa.Medios?.NombredelMedio}</TableCell>
                       <TableCell>{alternativa.total_bruto}</TableCell>
                       <TableCell>{alternativa.total_neto}</TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleEditAlternativa(alternativa.id)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteAlternativa(alternativa.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                        <Tooltip title="Duplicar">
-                          <IconButton
-                            onClick={() => handleDuplicateAlternativa(alternativa)}
-                            size="small"
-                            color="primary"
-                          >
-                            <FileCopyIcon />
-                          </IconButton>
-                        </Tooltip>
+                      <TableCell align="center" sx={{ minWidth: 130 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                          <Tooltip title="Editar">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleEditAlternativa(alternativa.id)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Eliminar">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteAlternativa(alternativa.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Duplicar">
+                            <IconButton
+                              onClick={() => handleDuplicateAlternativa(alternativa)}
+                              size="small"
+                              color="primary"
+                            >
+                              <FileCopyIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}

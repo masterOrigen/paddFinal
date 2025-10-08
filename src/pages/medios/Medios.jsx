@@ -198,45 +198,45 @@ export default function Medios() {
     }
   };
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { error } = await supabase
-        .from('Medios')
-        .upsert([
-          {
-            ...medioForm,
-            id: medioForm.id || undefined
-          }
-        ], { onConflict: 'id' });
-
-      if (error) throw error;
-
-      // Actualizar la lista de medios
+      if (medioForm.id) {
+        const { error } = await supabase
+          .from('Medios')
+          .update({
+            NombredelMedio: medioForm.NombredelMedio,
+            codigo: medioForm.codigo,
+            Estado: medioForm.Estado,
+            duracion: medioForm.duracion,
+            codigo_megatime: medioForm.codigo_megatime,
+            color: medioForm.color,
+            calidad: medioForm.calidad,
+            cooperado: medioForm.cooperado,
+            rubro: medioForm.rubro
+          })
+          .eq('id', medioForm.id);
+        if (error) throw error;
+          } else {
+              const { id: _discard, ...insertData } = medioForm;
+              const { error } = await supabase
+                .from('Medios')
+                .insert([insertData]);
+              if (error) throw error;
+           }
       await fetchMedios();
-      
-      // Cerrar el diálogo y limpiar el formulario
       setOpenDialog(false);
       setMedioForm(initialFormState);
-
-      // Mostrar mensaje de éxito
       await Swal.fire({
         icon: 'success',
         title: medioForm.id ? 'Medio Actualizado' : 'Medio Agregado',
-        text: medioForm.id 
-          ? 'El medio ha sido actualizado exitosamente' 
-          : 'El medio ha sido agregado exitosamente',
+        text: medioForm.id ? 'El medio ha sido actualizado exitosamente' : 'El medio ha sido agregado exitosamente',
         timer: 2000,
         showConfirmButton: false
       });
-
     } catch (error) {
       console.error('Error al guardar medio:', error);
-      await Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudo guardar el medio'
-      });
+      await Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo guardar el medio' });
     }
   };
 

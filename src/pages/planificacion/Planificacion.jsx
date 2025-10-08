@@ -352,6 +352,8 @@ const Planificacion = () => {
     setOpenCampanaModal(false);
     setTempSelectedCampana(null);
     setSelectedCampanaFromClick(false);
+    // Al cerrar el modal de campaña, volvemos al de seleccionar cliente
+    setOpenClienteModal(true);
   };
 
   const handleResetSelection = () => {

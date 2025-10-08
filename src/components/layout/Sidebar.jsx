@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 import logoO from '../../assets/img/logo-origen-O.png';
 import logoText from '../../assets/img/logo-origen-O3.png';
@@ -12,6 +12,7 @@ import UserDataPopup from '../UserDataPopup';
 const Sidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [userDataOpen, setUserDataOpen] = useState(false);
+  const location = useLocation();
 
   const menuItems = [
     {
@@ -87,6 +88,35 @@ const Sidebar = () => {
     }));
   };
 
+  const pathMatches = (basePath, currentPath) => {
+    if (!basePath) return false;
+    return currentPath === basePath || currentPath.startsWith(basePath + '/');
+  };
+
+  useEffect(() => {
+    const updates = {};
+    menuItems.forEach(item => {
+      if (item.submenu && item.submenu.length) {
+        const matches = item.submenu.some(subItem => (
+          (subItem.link && pathMatches(subItem.link, location.pathname)) ||
+          (subItem.submenu && subItem.submenu.some(subSubItem => subSubItem.link && pathMatches(subSubItem.link, location.pathname)))
+        ));
+        updates[item.id] = matches;
+
+        // Sincroniza el estado de submenús anidados (p.ej., Órdenes de Publicidad)
+        item.submenu.forEach(subItem => {
+          if (subItem.submenu && subItem.submenu.length) {
+            const nestedMatches = subItem.submenu.some(subSubItem => (
+              subSubItem.link && pathMatches(subSubItem.link, location.pathname)
+            ));
+            updates[subItem.id || subItem.text] = nestedMatches;
+          }
+        });
+      }
+    });
+    setExpandedMenus(prev => ({ ...prev, ...updates }));
+  }, [location.pathname]);
+
   return (
     <div className="sidebar">
       <div className="sidebar-brand">
@@ -107,73 +137,82 @@ const Sidebar = () => {
       </div>
 
       <nav className="sidebar-nav">
-        {menuItems.map((item) => (
-          <div key={item.id} className={`menu-item ${item.id === 'inicio' ? 'active' : ''}`}>
-            {item.submenu.length === 0 ? (
-              <Link to={item.link} className="menu-link">
-                <div className="menu-content">
-                  <i className={`${item.icon} menu-icon`}></i>
-                  <span className="menu-text">{item.text}</span>
-                </div>
-              </Link>
-            ) : (
-              <>
-                <div 
-                  className={`menu-link ${expandedMenus[item.id] ? 'active' : ''}`}
-                  onClick={() => toggleSubmenu(item.id)}
+        {menuItems.map((item) => {
+          const isGroupActive = item.submenu && item.submenu.length ? item.submenu.some(subItem => (
+            (subItem.link && pathMatches(subItem.link, location.pathname)) ||
+            (subItem.submenu && subItem.submenu.some(subSubItem => subSubItem.link && pathMatches(subSubItem.link, location.pathname)))
+          )) : false;
+          return (
+            <div key={item.id} className="menu-item">
+              {item.submenu.length === 0 ? (
+                <NavLink 
+                  to={item.link} 
+                  className={({ isActive }) => `menu-link${isActive ? ' active' : ''}`}
                 >
                   <div className="menu-content">
                     <i className={`${item.icon} menu-icon`}></i>
                     <span className="menu-text">{item.text}</span>
                   </div>
-                  <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[item.id] ? 'expanded' : ''}`}></i>
-                </div>
-                <div className={`submenu ${expandedMenus[item.id] ? 'expanded' : ''}`}>
-                  {item.submenu.map((subItem, index) => (
-                    subItem.submenu ? (
-                      <div key={index} className="nested-submenu-container">
-                        <div 
-                          className={`submenu-link nested-parent ${expandedMenus[subItem.id || subItem.text] ? 'active' : ''}`}
-                          onClick={() => toggleSubmenu(subItem.id || subItem.text)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          {subItem.text}
-                          <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}></i>
-                        </div>
-                        <div className={`nested-submenu ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}>
-                          {subItem.submenu.map((subSubItem, subIndex) => (
-                            <Link 
-                              key={subIndex} 
-                              to={subSubItem.link}
-                              className="nested-submenu-link"
-                            >
-                              {subSubItem.text}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div key={index} className="submenu-item">
-                        {subItem.onClick ? (
-                          <div onClick={subItem.onClick} style={{ cursor: 'pointer' }} className="submenu-link">
-                            {subItem.text}
-                          </div>
-                        ) : (
-                          <Link 
-                            to={subItem.link}
-                            className="submenu-link"
+                </NavLink>
+              ) : (
+                <>
+                  <div 
+                    className={`menu-link ${expandedMenus[item.id] ? 'active' : ''} ${isGroupActive ? 'active' : ''}`}
+                    onClick={() => toggleSubmenu(item.id)}
+                  >
+                    <div className="menu-content">
+                      <i className={`${item.icon} menu-icon`}></i>
+                      <span className="menu-text">{item.text}</span>
+                    </div>
+                    <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[item.id] ? 'expanded' : ''}`}></i>
+                  </div>
+                  <div className={`submenu ${expandedMenus[item.id] ? 'expanded' : ''}`}>
+                    {item.submenu.map((subItem, index) => (
+                      subItem.submenu ? (
+                        <div key={index} className="nested-submenu-container">
+                          <div 
+                            className={`submenu-link nested-parent ${expandedMenus[subItem.id || subItem.text] ? 'active' : ''}`}
+                            onClick={() => toggleSubmenu(subItem.id || subItem.text)}
+                            style={{ cursor: 'pointer' }}
                           >
                             {subItem.text}
-                          </Link>
-                        )}
-                      </div>
-                    )
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+                            <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}></i>
+                          </div>
+                          <div className={`nested-submenu ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}>
+                            {subItem.submenu.map((subSubItem, subIndex) => (
+                              <NavLink 
+                                key={subIndex} 
+                                to={subSubItem.link}
+                                className={({ isActive }) => `nested-submenu-link${isActive ? ' active' : ''}`}
+                              >
+                                {subSubItem.text}
+                              </NavLink>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={index} className="submenu-item">
+                          {subItem.onClick ? (
+                            <div onClick={subItem.onClick} style={{ cursor: 'pointer' }} className="submenu-link">
+                              {subItem.text}
+                            </div>
+                          ) : (
+                            <NavLink 
+                              to={subItem.link}
+                              className={({ isActive }) => `submenu-link${isActive ? ' active' : ''}`}
+                            >
+                              {subItem.text}
+                            </NavLink>
+                          )}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </nav>
       <UserDataPopup open={userDataOpen} onClose={() => setUserDataOpen(false)} />
     </div>

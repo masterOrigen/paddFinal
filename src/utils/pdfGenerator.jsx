@@ -216,9 +216,11 @@ totalsContainer: {
   }
 });
 const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
+  const upper = (s) => (typeof s === 'string' ? s.toUpperCase() : s);
   // Determinar si es bruto o neto basado en el TipoGeneracionDeOrden del contrato
   const tipoOrden = alternatives[0]?.Contratos?.TipoGeneracionDeOrden?.id || 1;
   const esBruto = tipoOrden === 2; // Asumiendo que id=2 es Bruto y id=1 es Neto
+  const isCanceled = order?.estado === 'anulada';
   
   return (
 	<Document>
@@ -226,8 +228,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 			<View style={styles.header}>
 				<Text style={styles.headerText}>RUT {cliente?.RUT}</Text>
         <View style={styles.titleContainer}>
-    <Text style={styles.title}>
-        ORDEN DE PUBLICIDAD {order?.numero_correlativo}
+    <Text style={[styles.title, isCanceled ? { color: 'red' } : null]}>
+        {isCanceled ? 'ORDEN ANULADA' : 'ORDEN DE PUBLICIDAD'} {order?.numero_correlativo}
         {order?.orden_remplaza ? ` - ${order?.copia}` : ''}
     </Text>
     {order?.orden_remplaza && (
@@ -246,7 +248,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 					<View style={styles.infoColumn}>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>CLIENTE:</Text>
-								<Text style={styles.infoValue}>{cliente?.nombreCliente}</Text>
+                                <Text style={styles.infoValue}>{upper(cliente?.nombreCliente)}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>RUT:</Text>
@@ -254,15 +256,15 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>DIRECCIÓN:</Text>
-								<Text style={styles.infoValue}>{cliente?.direccionEmpresa}</Text>
+                                <Text style={styles.infoValue}>{upper(cliente?.direccionEmpresa)}</Text>
 							</View>
 							<View style={styles.rowex}>
                 <Text style={styles.infoLabel}>COMUNA:</Text>
-                <Text style={styles.infoValue}>{cliente?.Comunas?.nombreComuna || 'No especificado'}</Text>
+                <Text style={styles.infoValue}>{upper(cliente?.Comunas?.nombreComuna || 'No especificado')}</Text>
               </View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>PRODUCTO:</Text>
-								<Text style={styles.infoValue}>{campana?.Productos?.NombreDelProducto}</Text>
+                                <Text style={styles.infoValue}>{upper(campana?.Productos?.NombreDelProducto)}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>AÑO:</Text>
@@ -270,7 +272,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>MES:</Text>
-								<Text style={styles.infoValue}>{alternatives[0]?.Meses?.Nombre}</Text>
+                                <Text style={styles.infoValue}>{upper(alternatives[0]?.Meses?.Nombre)}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>N° CONTRATO:</Text>
@@ -278,17 +280,17 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>FORMA DE PAGO:</Text>
-								<Text style={styles.infoValue}>{alternatives[0]?.Contratos?.FormaDePago?.NombreFormadePago}</Text>
+                                <Text style={styles.infoValue}>{upper(alternatives[0]?.Contratos?.FormaDePago?.NombreFormadePago)}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>TIPO ITEM:</Text>
-								<Text style={styles.infoValue}>{alternatives[0]?.tipo_item}</Text>
+                                <Text style={styles.infoValue}>{upper(alternatives[0]?.tipo_item)}</Text>
 							</View>
 					</View>
 
 				<View style={[styles.infoColumn2, styles.centerColumn]}>
-					<Text style={styles.infoText3}><Text style={styles.infoLabel3}>CAMPAÑA:</Text> {campana?.NombreCampania}</Text>
-					<Text style={styles.infoText3}><Text style={styles.infoLabel3}>PLAN DE MEDIOS:</Text> {campana?.NombreCampania}</Text>
+                    <Text style={styles.infoText3}><Text style={styles.infoLabel3}>CAMPAÑA:</Text> {upper(campana?.NombreCampania)}</Text>
+                    <Text style={styles.infoText3}><Text style={styles.infoLabel3}>PLAN DE MEDIOS:</Text> {upper(plan?.nombre_plan || campana?.NombreCampania)}</Text>
 					{order?.Descuento1 > 0 && (
 						<Text style={styles.infoText}>
 							<Text style={styles.infoLabel3}>DESCUENTO:</Text> ${order?.Descuento1?.toLocaleString('es-CL')}
@@ -299,7 +301,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 				<View style={styles.infoColumn}>
 				<View style={styles.rowex}>
     <Text style={styles.infoLabel}>PROVEEDOR:</Text>
-    <Text style={styles.infoValue}>{alternatives[0]?.Contratos?.Proveedores?.nombreProveedor}</Text>
+    <Text style={styles.infoValue}>{upper(alternatives[0]?.Contratos?.Proveedores?.nombreProveedor)}</Text>
   </View>
 
   <View style={styles.rowex}>
@@ -309,17 +311,17 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 
   <View style={styles.rowex}>
     <Text style={styles.infoLabel}>SOPORTE:</Text>
-    <Text style={styles.infoValue}>{alternatives[0]?.Soportes?.nombreIdentficiador}</Text>
+    <Text style={styles.infoValue}>{upper(alternatives[0]?.Soportes?.nombreIdentficiador)}</Text>
   </View>
 
   <View style={styles.rowex}>
     <Text style={styles.infoLabel}>DIRECCIÓN:</Text>
-    <Text style={styles.infoValue}>{alternatives[0]?.Contratos?.Proveedores?.direccionFacturacion}</Text>
+    <Text style={styles.infoValue}>{upper(alternatives[0]?.Contratos?.Proveedores?.direccionFacturacion)}</Text>
   </View>
 
   <View style={styles.rowex}>
     <Text style={styles.infoLabel}>COMUNA:</Text>
-    <Text style={styles.infoValue}>{alternatives[0]?.Contratos?.Proveedores?.id_comuna}</Text>
+    <Text style={styles.infoValue}>{upper(alternatives[0]?.Contratos?.Proveedores?.Comunas?.nombreComuna || alternatives[0]?.Contratos?.Proveedores?.id_comuna)}</Text>
   </View>
 
   <View style={styles.rowex}>
@@ -373,16 +375,16 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                             TEMA: {group.theme?.NombreTema}{'\n'}
                         </Text>
                     )}
-                    {alt.Programas?.descripcion}
+                    {upper(alt.Programas?.descripcion)}
                 </Text>
                 <Text style={[styles.tableCell, { width: '6%' }]}>
-                    {`${alt.Programas?.hora_inicio} - ${alt.Programas?.hora_fin}`}
+                    {`${upper(alt.Programas?.hora_inicio)} - ${upper(alt.Programas?.hora_fin)}`}
                 </Text>
                 <Text style={[styles.tableCell, { width: '6%' }]}>
-                    {alt.Programas?.codigo_programa}
+                    {upper(alt.Programas?.codigo_programa)}
                 </Text>
                 <Text style={[styles.tableCell, { width: '3%' }]}>
-                    {alt.Temas?.Duracion}
+                    {upper(alt.Temas?.Duracion)}
                 </Text>
                 {/* Calendar cells */}
 				{Array.from({ length: 31 }, (_, i) => {
@@ -400,16 +402,16 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                     {alt.calendar?.reduce((sum, item) => sum + (parseInt(item.cantidad) || 0), 0)}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
-                    ${alt.total_bruto?.toLocaleString('es-CL')}
+                    ${((isCanceled ? 0 : alt.total_bruto) || 0).toLocaleString('es-CL')}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
-                    {alt.descuento_pl}
+                    {isCanceled ? 0 : (alt.descuento_pl || 0)}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
-                    ${alt.valor_unitario?.toLocaleString('es-CL')}
+                    ${((isCanceled ? 0 : alt.valor_unitario) || 0).toLocaleString('es-CL')}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
-                    ${alt.total_neto?.toLocaleString('es-CL')}
+                    ${((isCanceled ? 0 : alt.total_neto) || 0).toLocaleString('es-CL')}
                 </Text>
             </View>
         ))
@@ -417,24 +419,34 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 </View>
 
 <View style={styles.totalsContainer}>
-<View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
-                    <Text style={styles.totalValue}>
-                        ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0)).toLocaleString('es-CL').split(',')[0]}
-                    </Text>
-                </View>
-    <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>IVA 19%:</Text>
-        <Text style={styles.totalValue}>
-            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 0.19).toLocaleString('es-CL').split(',')[0]}
-        </Text>
-    </View>
-    <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>TOTAL ORDEN($):</Text>
-        <Text style={styles.totalValue}>
-            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 1.19).toLocaleString('es-CL').split(',')[0]}
-        </Text>
-    </View>
+  {(() => {
+    const isCanceled = order?.estado === 'anulada';
+    const sumNeto = isCanceled ? 0 : Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0));
+    const iva = Math.round(sumNeto * 0.19);
+    const totalOrden = sumNeto + iva;
+    return (
+      <>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
+          <Text style={styles.totalValue}>
+            ${sumNeto.toLocaleString('es-CL').split(',')[0]}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>IVA 19%:</Text>
+          <Text style={styles.totalValue}>
+            ${iva.toLocaleString('es-CL').split(',')[0]}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>TOTAL ORDEN($):</Text>
+          <Text style={styles.totalValue}>
+            ${totalOrden.toLocaleString('es-CL').split(',')[0]}
+          </Text>
+        </View>
+      </>
+    );
+  })()}
 </View>
 <View style={styles.totalsContainer2}>
 <View style={{ marginTop: 20, alignItems: 'center' }}>
@@ -469,14 +481,17 @@ export const generateOrderPDF = async (order, alternatives, cliente, campana, pl
 			/>
 		).toBlob();
 		
-		const url = window.URL.createObjectURL(blob);
-		const link = document.createElement('a');
-		link.href = url;
-		link.setAttribute('download', `orden_${order.id_ordenes_de_comprar}.pdf`);
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		window.URL.revokeObjectURL(url);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const fileNumber = order?.numero_correlativo ?? order?.id_ordenes_de_comprar ?? 'orden';
+        const isCanceled = order?.estado === 'anulada';
+        const prefix = isCanceled ? 'Orden-Anulada' : 'orden';
+        link.setAttribute('download', `${prefix}_${fileNumber}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
 	} catch (error) {
 		console.error('Error al generar el PDF:', error);
 		throw error;
