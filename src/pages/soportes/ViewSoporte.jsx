@@ -19,8 +19,11 @@ import {
   CircularProgress,
   Breadcrumbs,
   InputAdornment,
+  InputLabel,
+  Select,
   FormControlLabel,
   Switch,
+  MenuItem,
   FormControl,
   Checkbox,
   Chip
@@ -31,6 +34,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import CodeIcon from '@mui/icons-material/Code';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
 
@@ -240,7 +244,11 @@ const ViewSoporte = () => {
     codigo_programa: '',
     descripcion: '',
     hora_inicio: '',
+    hora_inicio_hora: '00',
+    hora_inicio_min: '00',
     hora_fin: '',
+    hora_fin_hora: '00',
+    hora_fin_min: '00',
     cod_prog_megatime: '',
     estado: true
   });
@@ -345,19 +353,29 @@ const ViewSoporte = () => {
       console.log('Fetching programas for soporte_id:', id);
       const { data, error } = await supabase
         .from('Programas')
-        .select('*')
+        .select('*, c_orden')
         .eq('soporte_id', id);
-
+  
       if (error) throw error;
-
+  
       console.log('Programas fetched:', data);
       
       if (data) {
-        const programasFormateados = data.map(prog => ({
-          ...prog,
-          hora_inicio: prog.hora_inicio || '-',
-          hora_fin: prog.hora_fin || '-'
-        }));
+        const programasFormateados = data.map(prog => {
+          // Validar formato de hora
+          const validarHora = (hora) => {
+            if (!hora) return '';
+            // Verificar si la hora tiene un formato válido (HH:MM)
+            const regex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+            return regex.test(hora) ? hora : '';
+          };
+          
+          return {
+            ...prog,
+            hora_inicio: validarHora(prog.hora_inicio),
+            hora_fin: validarHora(prog.hora_fin)
+          };
+        });
         console.log('Programas formateados:', programasFormateados);
         setProgramas(programasFormateados);
       } else {
@@ -370,6 +388,7 @@ const ViewSoporte = () => {
         title: 'Error',
         text: 'Error al cargar los programas'
       });
+      setProgramas([]);
     }
   };
 
@@ -428,22 +447,41 @@ const ViewSoporte = () => {
       field: 'actions',
       headerName: 'Acciones',
       flex: 1,
-      renderCell: (params) => (
-        <Box>
-          <IconButton 
-            color="primary" 
-            onClick={() => startEditPrograma(params.row)}
-          >
-            <EditIcon />
-          </IconButton>
-          <IconButton 
-            color="error" 
-            onClick={() => handleDeletePrograma(params.row.id)}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Box>
-      )
+      renderCell: (params) => {
+        // Verificar si el programa tiene c_orden = true
+        const isOrdenCreada = params.row.c_orden === true;
+        
+        return (
+          <Box>
+            <IconButton 
+              color="primary" 
+              onClick={() => startEditPrograma(params.row)}
+              disabled={isOrdenCreada}
+              sx={{ 
+                opacity: isOrdenCreada ? 0.5 : 1,
+                '&:hover': {
+                  backgroundColor: isOrdenCreada ? 'transparent' : undefined
+                }
+              }}
+            >
+              <EditIcon />
+            </IconButton>
+            <IconButton 
+              color="error" 
+              onClick={() => handleDeletePrograma(params.row.id)}
+              disabled={isOrdenCreada}
+              sx={{ 
+                opacity: isOrdenCreada ? 0.5 : 1,
+                '&:hover': {
+                  backgroundColor: isOrdenCreada ? 'transparent' : undefined
+                }
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        );
+      }
     }
   ];
 
@@ -523,12 +561,50 @@ const ViewSoporte = () => {
       });
     }
   };
+  // Función para obtener el último código de programa megatime
+  const fetchLastCodProgMegatime = async () => {
+    try {
+      // Consultar el último valor de cod_prog_megatime
+      const { data, error } = await supabase
+        .from('Programas')
+        .select('cod_prog_megatime')
+        .not('cod_prog_megatime', 'is', null)
+        .not('cod_prog_megatime', 'eq', '')
+        .limit(100); // Obtener varios para asegurar encontrar valores numéricos
+  
+      if (error) throw error;
+  
+      if (data && data.length > 0) {
+        // Filtrar solo los valores numéricos y encontrar el máximo
+        const codigosNumericos = data
+          .map(prog => prog.cod_prog_megatime)
+          .filter(codigo => !isNaN(parseInt(codigo)))
+          .map(codigo => parseInt(codigo));
+        
+        if (codigosNumericos.length > 0) {
+          const maxCodigo = Math.max(...codigosNumericos);
+          return (maxCodigo + 1).toString();
+        }
+      }
+      
+      // Si no hay datos o no se encontraron códigos numéricos, comenzar desde 4001
+      return '4001';
+    } catch (error) {
+      console.error('Error al obtener último código:', error);
+      // En caso de error, asignar un valor predeterminado
+      return '4001';
+    }
+  };
 
-  // Función para guardar un nuevo programa
   const handleSavePrograma = async () => {
     try {
       const nextId = await getNextProgramaId();
-      const { codigo_programa, descripcion, hora_inicio, hora_fin, cod_prog_megatime, estado } = programaForm;
+      
+      // Obtener el siguiente código megatime
+      const nextCodProgMegatime = await fetchLastCodProgMegatime();
+      
+      // Actualizar el formulario con el nuevo código
+      const { codigo_programa, descripcion, hora_inicio, hora_fin, estado } = programaForm;
       
       console.log('Saving programa with hours:', { hora_inicio, hora_fin });
 
@@ -538,7 +614,7 @@ const ViewSoporte = () => {
         descripcion,
         hora_inicio,
         hora_fin,
-        cod_prog_megatime,
+        cod_prog_megatime: nextCodProgMegatime, // Usar el código generado automáticamente
         estado,
         soporte_id: id
       };
@@ -584,6 +660,7 @@ const ViewSoporte = () => {
 
   // Función para editar un programa
   const handleEditPrograma = async () => {
+
     try {
       const { id: programaId, ...formData } = programaForm;
       
@@ -632,6 +709,27 @@ const ViewSoporte = () => {
   // Función para eliminar un programa
   const handleDeletePrograma = async (programaId) => {
     try {
+      // Primero verificar si el programa tiene c_orden = true
+      const { data: programa, error: fetchError } = await supabase
+        .from('Programas')
+        .select('c_orden')
+        .eq('id', programaId)
+        .single();
+  
+      if (fetchError) throw fetchError;
+  
+      // Si c_orden es true, mostrar mensaje y no permitir la eliminación
+      if (programa.c_orden === true) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No se puede eliminar',
+          text: 'Este registro no se puede eliminar ya que forma parte de una Orden Creada.',
+          confirmButtonColor: '#3085d6',
+        });
+        return;
+      }
+  
+      // Si c_orden no es true, continuar con la eliminación
       const result = await Swal.fire({
         title: '¿Estás seguro?',
         text: "Esta acción no se puede deshacer",
@@ -642,17 +740,17 @@ const ViewSoporte = () => {
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
       });
-
+  
       if (result.isConfirmed) {
         const { error } = await supabase
           .from('Programas')
           .delete()
           .eq('id', programaId);
-
+  
         if (error) throw error;
-
+  
         await fetchProgramas();
-
+  
         Swal.fire({
           icon: 'success',
           title: 'Programa eliminado',
@@ -672,12 +770,44 @@ const ViewSoporte = () => {
 
   // Función para iniciar la edición de un programa
   const startEditPrograma = (programa) => {
+    if (programa.c_orden === true) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No se puede editar',
+        text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+        confirmButtonColor: '#3085d6',
+      });
+      return;
+    }
+    
+    // Extraer horas y minutos
+    let hora_inicio_hora = '00';
+    let hora_inicio_min = '00';
+    let hora_fin_hora = '00';
+    let hora_fin_min = '00';
+    
+    if (programa.hora_inicio && programa.hora_inicio.includes(':')) {
+      const [horas, minutos] = programa.hora_inicio.split(':');
+      hora_inicio_hora = horas;
+      hora_inicio_min = minutos;
+    }
+    
+    if (programa.hora_fin && programa.hora_fin.includes(':')) {
+      const [horas, minutos] = programa.hora_fin.split(':');
+      hora_fin_hora = horas;
+      hora_fin_min = minutos;
+    }
+    
     setProgramaForm({
       id: programa.id,
       codigo_programa: programa.codigo_programa,
       descripcion: programa.descripcion,
       hora_inicio: programa.hora_inicio || '',
+      hora_inicio_hora,
+      hora_inicio_min,
       hora_fin: programa.hora_fin || '',
+      hora_fin_hora,
+      hora_fin_min,
       cod_prog_megatime: programa.cod_prog_megatime,
       estado: programa.estado
     });
@@ -861,15 +991,35 @@ const ViewSoporte = () => {
               {/* Panel de Programas */}
               <TabPanel value={value} index={1}>
                 <Box sx={{ mb: 2 }}>
-                  <Button 
-                    variant="contained" 
-                    onClick={() => setOpenProgramaModal(true)}
-                  >
-                    Agregar Programa
-                  </Button>
+                <Button 
+  variant="contained" 
+  color="primary" 
+  startIcon={<AddIcon />}
+  onClick={() => {
+    setProgramaForm({
+      id: null,
+      codigo_programa: '',
+      descripcion: '',
+      hora_inicio: '00:00',
+      hora_inicio_hora: '00',
+      hora_inicio_min: '00',
+      hora_fin: '00:00',
+      hora_fin_hora: '00',
+      hora_fin_min: '00',
+      cod_prog_megatime: '',
+      estado: true
+    });
+    setIsEditingPrograma(false);
+    setOpenProgramaModal(true);
+  }}
+  sx={{ mb: 2 }}
+>
+  Agregar Programa
+</Button>
                 </Box>
                 <Box sx={{ height: 400, width: '100%' }}>
                   <DataGrid
+                    getRowId={(row) => row.id}
                     rows={programas}
                     columns={programasColumns}
                     pageSize={5}
@@ -890,133 +1040,196 @@ const ViewSoporte = () => {
         medios={medios}
       />
       {/* Modal de Programa */}
-      <Dialog open={openProgramaModal} onClose={() => {
-        setOpenProgramaModal(false);
-        setIsEditingPrograma(false);
-        setProgramaForm({
-          id: null,
-          codigo_programa: '',
-          descripcion: '',
-          hora_inicio: '',
-          hora_fin: '',
-          cod_prog_megatime: '',
-          estado: true
-        });
-      }} maxWidth="sm" fullWidth>
-        <DialogTitle>{isEditingPrograma ? 'Editar Programa' : 'Agregar Programa'}</DialogTitle>
-        <DialogContent>
-          <Box component="form" sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Código de Programa"
-                  name="codigo_programa"
-                  value={programaForm.codigo_programa}
-                  onChange={(e) => setProgramaForm(prev => ({
-                    ...prev,
-                    codigo_programa: e.target.value
-                  }))}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Descripción"
-                  name="descripcion"
-                  value={programaForm.descripcion}
-                  onChange={(e) => setProgramaForm(prev => ({
-                    ...prev,
-                    descripcion: e.target.value
-                  }))}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Hora Inicio"
-                  name="hora_inicio"
-                  type="time"
-                  value={programaForm.hora_inicio}
-                  onChange={(e) => setProgramaForm(prev => ({
-                    ...prev,
-                    hora_inicio: e.target.value
-                  }))}
-                  InputLabelProps={{
-                    shrink: true,
+      <Dialog open={openProgramaModal} onClose={() => setOpenProgramaModal(false)} maxWidth="sm" fullWidth>
+  <DialogTitle>{isEditingPrograma ? 'Editar Programa' : 'Agregar Programa'}</DialogTitle>
+  <DialogContent>
+    <Box sx={{ mt: 2 }}>
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Código de Programa"
+            name="codigo_programa"
+            value={programaForm.codigo_programa}
+            onChange={(e) => setProgramaForm(prev => ({
+              ...prev,
+              codigo_programa: e.target.value
+            }))}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Descripción"
+            name="descripcion"
+            value={programaForm.descripcion}
+            onChange={(e) => setProgramaForm(prev => ({
+              ...prev,
+              descripcion: e.target.value
+            }))}
+            required
+          />
+        </Grid>
+        
+        {/* Hora inicio - Selectores */}
+        <Grid item xs={12} md={6}>
+          <Typography variant="subtitle2" gutterBottom>
+            Hora Inicio
+          </Typography>
+          <Grid container spacing={1}>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="hora-inicio-label">Hora</InputLabel>
+                <Select
+                  labelId="hora-inicio-label"
+                  value={programaForm.hora_inicio_hora || "00"}
+                  onChange={(e) => {
+                    const horaValue = e.target.value;
+                    const minValue = programaForm.hora_inicio_min || "00";
+                    setProgramaForm({
+                      ...programaForm,
+                      hora_inicio_hora: horaValue,
+                      hora_inicio: `${horaValue}:${minValue}`
+                    });
                   }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Hora Fin"
-                  name="hora_fin"
-                  type="time"
-                  value={programaForm.hora_fin}
-                  onChange={(e) => setProgramaForm(prev => ({
-                    ...prev,
-                    hora_fin: e.target.value
-                  }))}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Código Megatime"
-                  name="cod_prog_megatime"
-                  value={programaForm.cod_prog_megatime}
-                  onChange={(e) => setProgramaForm(prev => ({
-                    ...prev,
-                    cod_prog_megatime: e.target.value
-                  }))}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={programaForm.estado}
-                      onChange={(e) => setProgramaForm(prev => ({
-                        ...prev,
-                        estado: e.target.checked
-                      }))}
-                      name="estado"
-                    />
-                  }
-                  label="Estado"
-                />
-              </Grid>
+                  label="Hora"
+                >
+                  {Array.from({ length: 31 }, (_, i) => {
+                    const hora = i.toString().padStart(2, '0');
+                    return (
+                      <MenuItem key={`hora-inicio-${hora}`} value={hora}>{hora}</MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
             </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setOpenProgramaModal(false);
-            setIsEditingPrograma(false);
-            setProgramaForm({
-              id: null,
-              codigo_programa: '',
-              descripcion: '',
-              hora_inicio: '',
-              hora_fin: '',
-              cod_prog_megatime: '',
-              estado: true
-            });
-          }}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={isEditingPrograma ? handleEditPrograma : handleSavePrograma} 
-            variant="contained"
-          >
-            {isEditingPrograma ? 'Actualizar' : 'Guardar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="min-inicio-label">Minutos</InputLabel>
+                <Select
+                  labelId="min-inicio-label"
+                  value={programaForm.hora_inicio_min || "00"}
+                  onChange={(e) => {
+                    const minValue = e.target.value;
+                    const horaValue = programaForm.hora_inicio_hora || "00";
+                    setProgramaForm({
+                      ...programaForm,
+                      hora_inicio_min: minValue,
+                      hora_inicio: `${horaValue}:${minValue}`
+                    });
+                  }}
+                  label="Minutos"
+                >
+                  {Array.from({ length: 60 }, (_, i) => {
+                    const min = i.toString().padStart(2, '0');
+                    return (
+                      <MenuItem key={`min-inicio-${min}`} value={min}>{min}</MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Grid>
+        
+        {/* Hora fin - Selectores */}
+        <Grid item xs={12} md={6}>
+          <Typography variant="subtitle2" gutterBottom>
+            Hora Fin
+          </Typography>
+          <Grid container spacing={1}>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="hora-fin-label">Hora</InputLabel>
+                <Select
+                  labelId="hora-fin-label"
+                  value={programaForm.hora_fin_hora || "00"}
+                  onChange={(e) => {
+                    const horaValue = e.target.value;
+                    const minValue = programaForm.hora_fin_min || "00";
+                    setProgramaForm({
+                      ...programaForm,
+                      hora_fin_hora: horaValue,
+                      hora_fin: `${horaValue}:${minValue}`
+                    });
+                  }}
+                  label="Hora"
+                >
+                  {Array.from({ length: 31 }, (_, i) => {
+                    const hora = i.toString().padStart(2, '0');
+                    return (
+                      <MenuItem key={`hora-fin-${hora}`} value={hora}>{hora}</MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="min-fin-label">Minutos</InputLabel>
+                <Select
+                  labelId="min-fin-label"
+                  value={programaForm.hora_fin_min || "00"}
+                  onChange={(e) => {
+                    const minValue = e.target.value;
+                    const horaValue = programaForm.hora_fin_hora || "00";
+                    setProgramaForm({
+                      ...programaForm,
+                      hora_fin_min: minValue,
+                      hora_fin: `${horaValue}:${minValue}`
+                    });
+                  }}
+                  label="Minutos"
+                >
+                  {Array.from({ length: 60 }, (_, i) => {
+                    const min = i.toString().padStart(2, '0');
+                    return (
+                      <MenuItem key={`min-fin-${min}`} value={min}>{min}</MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Código Megatime"
+            name="cod_prog_megatime"
+            value={programaForm.cod_prog_megatime}
+            onChange={(e) => setProgramaForm(prev => ({
+              ...prev,
+              cod_prog_megatime: e.target.value
+            }))}
+            disabled={!isEditingPrograma}
+            helperText={!isEditingPrograma ? "Generado automáticamente" : ""}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={programaForm.estado}
+                onChange={(e) => setProgramaForm(prev => ({ ...prev, estado: e.target.checked }))}
+                name="estado"
+              />
+            }
+            label="Activo"
+          />
+        </Grid>
+      </Grid>
+    </Box>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setOpenProgramaModal(false)}>Cancelar</Button>
+    <Button onClick={isEditingPrograma ? handleEditPrograma : handleSavePrograma} variant="contained">
+      {isEditingPrograma ? 'Actualizar' : 'Guardar'}
+    </Button>
+  </DialogActions>
+</Dialog>
     </Container>
   );
 };

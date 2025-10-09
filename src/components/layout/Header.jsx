@@ -37,7 +37,7 @@ const Header = ({ setIsAuthenticated }) => {
         <h1>ADMINISTRACIÓN</h1>
       </div>
       <div className="header-right">
-        <span>Bienvenid@ - {user ? `${user.Nombre} ${user.Apellido} ${user.Email}` : 'Usuario'}</span>
+        <span>Bienvenid@ - {user ? `${user.Nombre} ${user.Apellido}` : 'Usuario'}</span>
         <div className="user-menu-container" ref={menuRef}>
           <div 
             className="user-avatar"

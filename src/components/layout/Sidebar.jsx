@@ -12,7 +12,6 @@ import UserDataPopup from '../UserDataPopup';
 const Sidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [userDataOpen, setUserDataOpen] = useState(false);
-  const location = useLocation();
 
   const menuItems = [
     {
@@ -53,6 +52,21 @@ const Sidebar = () => {
     { text: 'Revisar Orden', link: '/ordenes/revisar' }
     ] 
     }
+    ]
+    },
+    {
+    id: 'reportes',
+    icon: 'fas fa-chart-bar',
+    text: 'Reportes',
+    submenu: [
+    { text: 'Reporte Orden de Compra', link: '/reportes/ordendecompra' },
+    // { text: 'Reporte Diario de Órdenes', link: '/reportes/diarioordenes' },
+    { text: 'Reporte Diario cliente', link: '/reportes/detalleporalternativa' },
+    { text: 'Informe de Inversión Cliente Bruto', link: '/reportes/informeinversionclientebruto' },
+    // {text: 'Informe de Inversión', link: '/reportes/informeinversion' },
+    // { text: 'Inversión por Cliente', link: '/reportes/inversionporcliente' },
+    // { text: 'Rendimiento de Campañas', link: '/reportes/rendimientocampanas' },
+    // { text: 'Análisis de Medios', link: '/reportes/analisismedios' }
     ]
     },
     {
@@ -205,14 +219,29 @@ const Sidebar = () => {
                             </NavLink>
                           )}
                         </div>
-                      )
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
+                      </div>
+                    ) : (
+                      <div key={index} className="submenu-item">
+                        {subItem.onClick ? (
+                          <div onClick={subItem.onClick} style={{ cursor: 'pointer' }} className="submenu-link">
+                            {subItem.text}
+                          </div>
+                        ) : (
+                          <Link 
+                            to={subItem.link}
+                            className="submenu-link"
+                          >
+                            {subItem.text}
+                          </Link>
+                        )}
+                      </div>
+                    )
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ))}
       </nav>
       <UserDataPopup open={userDataOpen} onClose={() => setUserDataOpen(false)} />
     </div>

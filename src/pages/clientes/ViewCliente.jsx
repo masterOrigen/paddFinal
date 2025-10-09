@@ -54,6 +54,7 @@ import PercentIcon from '@mui/icons-material/Percent';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import NumbersIcon from '@mui/icons-material/Numbers';
 import Swal from 'sweetalert2';
 import { supabase } from '../../config/supabase';
 import './Clientes.css';
@@ -466,7 +467,7 @@ const ViewCliente = () => {
           <TableHead>
             <TableRow>
               <TableCell>Comisión</TableCell>
-              <TableCell>Moneda</TableCell>
+              <TableCell>Tipo Comisión</TableCell>
               <TableCell>Valor</TableCell>
               <TableCell>Fecha Inicio</TableCell>
               <TableCell>Fecha Término</TableCell>
@@ -1540,61 +1541,51 @@ const ViewCliente = () => {
           <Box sx={{ mt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <FormControl fullWidth variant="outlined">
-                  <InputLabel id="comision-label">Comisión</InputLabel>
-                  <Select
-                    labelId="comision-label"
-                    label="Comisión"
-                    name="comision"
-                    value={newComision.comision}
-                    onChange={handleComisionInputChange}
-                    input={
-                      <OutlinedInput
-                        label="Comisión"
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <PercentIcon />
-                          </InputAdornment>
-                        }
-                      />
-                    }
-                  >
-                    {tiposComision.map((tipo) => (
-                      <MenuItem key={tipo} value={tipo}>
-                        {tipo}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  fullWidth
+                  select
+                  label="Comisión"
+                  name="comision"
+                  value={newComision.comision}
+                  onChange={handleComisionInputChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LocalOfferIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                >
+                  {tiposComision.map((tipo) => (
+                    <MenuItem key={tipo} value={tipo}>
+                      {tipo}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
 
               <Grid item xs={12}>
-                <FormControl fullWidth variant="outlined">
-                  <InputLabel id="moneda-label">Moneda</InputLabel>
-                  <Select
-                    labelId="moneda-label"
-                    label="Moneda"
-                    name="tipomoneda"
-                    value={newComision.tipomoneda}
-                    onChange={handleComisionInputChange}
-                    input={
-                      <OutlinedInput
-                        label="Moneda"
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <MonetizationOnIcon />
-                          </InputAdornment>
-                        }
-                      />
-                    }
-                  >
-                    {['UF', 'PESO', 'DOLAR'].map((moneda) => (
-                      <MenuItem key={moneda} value={moneda}>
-                        {moneda}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  fullWidth
+                  select
+                  label="Tipo Comisión"
+                  name="tipomoneda"
+                  value={newComision.tipomoneda}
+                  onChange={handleComisionInputChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <AttachMoneyIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                >
+                  {['UF', 'PESO', 'DOLAR'].map((moneda) => (
+                    <MenuItem key={moneda} value={moneda}>
+                      {moneda}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
 
               <Grid item xs={12}>
@@ -1608,7 +1599,7 @@ const ViewCliente = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <AttachMoneyIcon />
+                        <NumbersIcon />
                       </InputAdornment>
                     ),
                   }}

@@ -195,7 +195,7 @@ const Alternativas = () => {
   const [editingClasificacion, setEditingClasificacion] = useState(null);
   const [nuevaClasificacion, setNuevaClasificacion] = useState({
     NombreClasificacion: '',
-    id_contrato: ''
+    IdMedios: '' 
   });
 
   const [openAddEditProgramaModal, setOpenAddEditProgramaModal] = useState(false);
@@ -569,6 +569,10 @@ const Alternativas = () => {
     setOpenEditContratoModal(false);
     handleSearchContrato(); // Actualizar la lista después de editar
   };
+  const [validationErrors, setValidationErrors] = useState({
+    contrato: false,
+    soporte: false
+  });
 
   useEffect(() => {
     const fetchContratos = async () => {
@@ -602,7 +606,47 @@ const Alternativas = () => {
 
     fetchContratos();
   }, [clienteId]);
-
+  const fetchClasificacionesByContrato = async (contratoId) => {
+    try {
+      setLoadingClasificaciones(true);
+      
+      // Primero obtenemos el contrato para saber su IdMedios
+      const { data: contratoData, error: contratoError } = await supabase
+        .from('Contratos')
+        .select('IdMedios')
+        .eq('id', contratoId)
+        .single();
+      
+      if (contratoError) throw contratoError;
+      
+      if (!contratoData || !contratoData.IdMedios) {
+        console.log('El contrato no tiene un medio asociado');
+        setClasificacionesList([]);
+        return;
+      }
+      
+      // Ahora obtenemos las clasificaciones que coincidan con el medio del contrato
+      const { data, error } = await supabase
+        .from('Clasificacion')
+        .select('*')
+        .eq('IdMedios', contratoData.IdMedios);
+      
+      if (error) throw error;
+      
+      console.log('Clasificaciones filtradas por medio:', data);
+      setClasificacionesList(data || []);
+    } catch (error) {
+      console.error('Error al cargar clasificaciones:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar las clasificaciones'
+      });
+      setClasificacionesList([]);
+    } finally {
+      setLoadingClasificaciones(false);
+    }
+  };
   useEffect(() => {
     const fetchSoportes = async () => {
       if (!proveedorId) {
@@ -1036,6 +1080,23 @@ const Alternativas = () => {
 
   const handleDeleteAlternativa = async (alternativaId) => {
     try {
+      const { data: alternativaCheck, error: checkError } = await supabase
+      .from('alternativa')
+      .select('numerorden')
+      .eq('id', alternativaId)
+      .single();
+    
+    if (checkError) throw checkError;
+    
+    // Si tiene número de orden, bloqueamos la eliminación
+    if (alternativaCheck && alternativaCheck.numerorden) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acción bloqueada',
+        text: 'No se puede eliminar una alternativa que ya tiene número de orden asignado'
+      });
+      return;
+    }
       // Mostrar confirmación antes de eliminar
       const { isConfirmed } = await Swal.fire({
         title: '¿Estás seguro?',
@@ -1088,10 +1149,27 @@ const Alternativas = () => {
       setLoading(false);
     }
   };
-
   const handleEditAlternativa = async (alternativaId) => {
     try {
       setLoading(true);
+       // Primero verificamos si la alternativa tiene número de orden
+    const { data: alternativaCheck, error: checkError } = await supabase
+    .from('alternativa')
+    .select('numerorden')
+    .eq('id', alternativaId)
+    .single();
+  
+  if (checkError) throw checkError;
+   // Si tiene número de orden, bloqueamos la edición
+   if (alternativaCheck && alternativaCheck.numerorden) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Acción bloqueada',
+      text: 'No se puede editar una alternativa que ya tiene número de orden asignado'
+    });
+    setLoading(false);
+    return;
+  }
       
       // Updated query to include more detailed Temas and Medios information
       const { data: alternativa, error } = await supabase
@@ -1100,7 +1178,7 @@ const Alternativas = () => {
           *,
           Contratos:num_contrato (*,
             formaPago:id_FormadePago (id, NombreFormadePago),
-          medio:IdMedios (id, NombredelMedio)
+            medio:IdMedios (id, NombredelMedio)
           ),
           Soportes:id_soporte (*),
           Programas:id_programa (*),
@@ -1122,6 +1200,16 @@ const Alternativas = () => {
       if (error) throw error;
   
       console.log('Alternativa loaded:', alternativa);
+      
+      // Asegurarse de que los valores numéricos sean números y no strings
+      const valor_unitario = parseFloat(alternativa.valor_unitario) || 0;
+      const descuento_plan = parseFloat(alternativa.descuento_plan) || 0;
+      const recargo_plan = parseFloat(alternativa.recargo_plan) || 0;
+      const total_bruto = parseFloat(alternativa.total_bruto) || 0;
+      const total_neto = parseFloat(alternativa.total_neto) || 0;
+      const iva = parseFloat(alternativa.iva) || 0;
+      const total_orden = parseFloat(alternativa.total_orden) || 0;
+      
       const contratoConMedio = {
         ...alternativa.Contratos,
         medio: alternativa.Contratos?.medio || null
@@ -1148,6 +1236,30 @@ const Alternativas = () => {
   
       // Prepare calendar data
       const calendarData = alternativa.calendar || [];
+      
+      // Recalcular los valores monetarios para asegurar consistencia
+      const tipoGeneracionOrden = alternativa.Contratos?.id_GeneraracionOrdenTipo || 1;
+      let calculatedTotalBruto = total_bruto;
+      let calculatedTotalNeto = total_neto;
+      
+      // Si no hay valores, recalcularlos según la lógica de handleMontoChange
+      if (!total_bruto || !total_neto) {
+        const totalCantidades = (alternativa.calendar || []).reduce((sum, item) => {
+          return sum + (Number(item.cantidad) || 0);
+        }, 0);
+        
+        if (tipoGeneracionOrden === 1) { // Neto
+          calculatedTotalNeto = valor_unitario * totalCantidades;
+          calculatedTotalBruto = Math.round(calculatedTotalNeto / 0.85);
+        } else { // Bruto
+          calculatedTotalBruto = valor_unitario * totalCantidades;
+          calculatedTotalNeto = Math.round(calculatedTotalBruto * 0.85);
+        }
+      }
+      
+      // Calcular IVA y total orden si no existen
+      const calculatedIva = iva || Math.round(calculatedTotalNeto * 0.19);
+      const calculatedTotalOrden = total_orden || (calculatedTotalNeto + calculatedIva);
   
       // Set complete alternative data for editing
       setNuevaAlternativa(prev => ({
@@ -1158,7 +1270,15 @@ const Alternativas = () => {
         segundos: alternativa.Temas?.Duracion || '',
         id_medio: alternativa.Contratos?.medio?.id || null,
         nombreMedio: alternativa.Contratos?.medio?.NombredelMedio || '',
-        Medios: alternativa.Contratos?.medio || null
+        Medios: alternativa.Contratos?.medio || null,
+        // Asegurar que los valores monetarios sean números
+        valor_unitario: alternativa.valor_unitario || '',
+        descuento_plan: alternativa.descuento_pl || '',
+        recargo_plan: recargo_plan,
+        total_bruto: calculatedTotalBruto || 0,
+        total_neto: calculatedTotalNeto || 0,
+        iva: calculatedIva || 0,
+        total_orden: calculatedTotalOrden || 0
       }));
   
       // Set edit mode and open modal
@@ -1288,12 +1408,27 @@ const Alternativas = () => {
     setNuevaAlternativa(prev => ({
       ...prev,
       num_contrato: contrato.id,
-      id_contrato: contrato.id,
-      formaDePago: contrato.formaPago.id,
-      nombreFormaPago: contrato.formaPago.NombreFormadePago
+      // Limpiar los montos
+      valor_unitario: '',
+      descuento_plan: '',
+      recargo_plan: '',
+      total_bruto: '',
+      total_neto: '',
+      iva: '',
+      total_orden: '',
+      // Limpiar el calendario
+      cantidades: [],
+      // Establecer la forma de pago del contrato
+      formaDePago: contrato.formaPago?.id || '',
+      nombreFormaPago: contrato.formaPago?.NombreFormadePago || '',
+      // Establecer el medio del contrato
+      id_medio: contrato.medio?.id || contrato.IdMedios || '',
+      nombreMedio: contrato.medio?.NombredelMedio || '',
+      Medios: contrato.medio || null
     }));
     
     try {
+      // Cargar soportes del proveedor
       const { data: proveedorSoportes, error: soportesError } = await supabase
         .from('proveedor_soporte')
         .select(`
@@ -1353,6 +1488,41 @@ const Alternativas = () => {
       }
       
       setSoportesFiltrados([]);
+      
+      // NUEVO: Cargar clasificaciones filtradas por el medio del contrato
+      try {
+        setLoadingClasificaciones(true);
+        
+        // Obtener el IdMedios del contrato
+        const medioId = contrato.IdMedios || (contrato.medio ? contrato.medio.id : null);
+        
+        if (!medioId) {
+          console.log('El contrato no tiene un medio asociado');
+          setClasificacionesList([]);
+        } else {
+          // Obtener clasificaciones que coincidan con el medio del contrato
+          const { data: clasificacionesData, error: clasificacionesError } = await supabase
+            .from('Clasificacion')
+            .select('*')
+            .eq('IdMedios', medioId);
+          
+          if (clasificacionesError) throw clasificacionesError;
+          
+          console.log('Clasificaciones filtradas por medio:', clasificacionesData);
+          setClasificacionesList(clasificacionesData || []);
+        }
+      } catch (errorClasificaciones) {
+        console.error('Error al cargar clasificaciones:', errorClasificaciones);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron cargar las clasificaciones'
+        });
+        setClasificacionesList([]);
+      } finally {
+        setLoadingClasificaciones(false);
+      }
+      
     } catch (error) {
       console.error('Error al obtener soportes del proveedor:', error);
       Swal.fire({
@@ -1715,35 +1885,47 @@ const Alternativas = () => {
     }));
     handleCloseProgramasModal();
   };
-
-  const handleSearchClasificacion = async (searchValue) => {
-    if (!nuevaAlternativa.id_contrato) {
-      setClasificacionesList([]);
-      return;
-    }
-    
-    setLoadingClasificaciones(true);
+  const handleSearchClasificacion = async (searchTerm) => {
     try {
-      console.log('Buscando clasificaciones para contrato (id_contrato):', nuevaAlternativa.id_contrato);
+      setLoadingClasificaciones(true);
+      setSearchClasificacion(searchTerm);
       
-      const { data, error } = await supabase
+      if (!nuevaAlternativa.num_contrato) {
+        setClasificacionesList([]);
+        return;
+      }
+      
+      // Primero obtenemos el contrato para saber su IdMedios
+      const { data: contratoData, error: contratoError } = await supabase
+        .from('Contratos')
+        .select('IdMedios')
+        .eq('id', nuevaAlternativa.num_contrato)
+        .single();
+      
+      if (contratoError) throw contratoError;
+      
+      if (!contratoData || !contratoData.IdMedios) {
+        console.log('El contrato no tiene un medio asociado');
+        setClasificacionesList([]);
+        return;
+      }
+      
+      let query = supabase
         .from('Clasificacion')
         .select('*')
-        .eq('id_contrato', nuevaAlternativa.id_contrato)
-        .ilike('NombreClasificacion', `%${searchValue}%`)
-        .order('NombreClasificacion', { ascending: true });
-
+        .eq('IdMedios', contratoData.IdMedios);
+      
+      if (searchTerm) {
+        query = query.ilike('NombreClasificacion', `%${searchTerm}%`);
+      }
+      
+      const { data, error } = await query;
+      
       if (error) throw error;
-
-      console.log('Clasificaciones encontradas:', data);
+      
       setClasificacionesList(data || []);
     } catch (error) {
       console.error('Error al buscar clasificaciones:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Error al buscar clasificaciones'
-      });
       setClasificacionesList([]);
     } finally {
       setLoadingClasificaciones(false);
@@ -1805,67 +1987,76 @@ const Alternativas = () => {
 
   const handleSaveClasificacion = async () => {
     try {
-      setLoading(true);
-      
-      if (!nuevaClasificacion.NombreClasificacion?.trim()) {
-        throw new Error('El nombre de la clasificación es requerido');
+      if (!nuevaClasificacion.NombreClasificacion) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Atención',
+          text: 'El nombre de la clasificación es obligatorio'
+        });
+        return;
       }
 
-      // Asegurarnos de que no haya un ID en los datos
+      // Obtener el IdMedios del contrato seleccionado
+      const medioId = contratoSeleccionado?.IdMedios || 
+                     (contratoSeleccionado?.medio ? contratoSeleccionado.medio.id : null);
+      
+      if (!medioId) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Atención',
+          text: 'No se pudo identificar el medio del contrato'
+        });
+        return;
+      }
+
       const clasificacionData = {
-        NombreClasificacion: nuevaClasificacion.NombreClasificacion.trim(),
-        id_contrato: nuevaAlternativa.id_contrato || null
+        NombreClasificacion: nuevaClasificacion.NombreClasificacion,
+        IdMedios: medioId  // Usar IdMedios en lugar de id_contrato
       };
 
-      console.log('Datos a guardar:', clasificacionData);
-
+      let response;
       if (editingClasificacion) {
-        const { error } = await supabase
+        // Actualizar clasificación existente
+        response = await supabase
           .from('Clasificacion')
           .update(clasificacionData)
           .eq('id', editingClasificacion.id);
-
-        if (error) throw error;
       } else {
-        // Insertar sin especificar ID y sin usar array
-        const { data, error } = await supabase
+        // Insertar nueva clasificación
+        response = await supabase
           .from('Clasificacion')
-          .insert(clasificacionData)
-          .select();
-
-        if (error) {
-          console.error('Error detallado:', error);
-          throw error;
-        }
-        console.log('Clasificación insertada:', data);
+          .insert([clasificacionData]);
       }
 
-      // Recargar las clasificaciones
-      await handleSearchClasificacion('');
-      
-      // Cerrar el modal y limpiar el formulario
-      setOpenAddEditClasificacionModal(false);
-      setEditingClasificacion(null);
-      setNuevaClasificacion({
-        NombreClasificacion: '',
-        id_contrato: ''
-      });
+      if (response.error) throw response.error;
 
       Swal.fire({
         icon: 'success',
         title: 'Éxito',
-        text: `Clasificación ${editingClasificacion ? 'actualizada' : 'creada'} correctamente`
+        text: editingClasificacion 
+          ? 'Clasificación actualizada correctamente' 
+          : 'Clasificación agregada correctamente'
       });
 
+      // Limpiar el formulario y cerrar el modal
+      setNuevaClasificacion({
+        NombreClasificacion: '',
+        IdMedios: ''
+      });
+      setEditingClasificacion(null);
+      setOpenAddEditClasificacionModal(false);
+
+      // Actualizar la lista de clasificaciones
+      if (contratoSeleccionado) {
+        fetchClasificacionesByContrato(contratoSeleccionado.id);
+      }
     } catch (error) {
       console.error('Error al guardar clasificación:', error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: error.message || 'Error al guardar la clasificación'
+        text: `Error al guardar la clasificación: ${error.message}`
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -1946,121 +2137,151 @@ const Alternativas = () => {
   };
 
   const handleSavePrograma = async () => {
+    // Validaciones existentes
+    if (!newPrograma.descripcion) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'La descripción del programa es obligatoria'
+      });
+      return;
+    }
+  
     try {
-      if (!newPrograma.descripcion) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'La descripción es requerida'
-        });
-        return;
-      }
-
-      // Verificar que haya un soporte seleccionado
-      if (!selectedSoporte) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Debe seleccionar un soporte primero'
-        });
-        return;
-      }
-
-      let query = supabase.from('Programas');
+      setLoading(true);
       
-      if (editingPrograma?.id) {
-        // Si estamos editando, usamos update
-        const { data, error } = await query
-          .update({
-            descripcion: newPrograma.descripcion,
-            hora_inicio: newPrograma.hora_inicio,
-            hora_fin: newPrograma.hora_fin,
-            cod_prog_megatime: newPrograma.cod_prog_megatime,
-            codigo_programa: newPrograma.codigo_programa,
-            soporte_id: selectedSoporte.id_soporte,
-            estado: true // Agregamos el campo estado
-          })
-          .eq('id', editingPrograma.id)
-          .select();
-
-        if (error) throw error;
-      } else {
-        // Intentar crear sin especificar ID (autoincremental)
-        const { data, error } = await query
-          .insert({
-            descripcion: newPrograma.descripcion,
-            hora_inicio: newPrograma.hora_inicio,
-            hora_fin: newPrograma.hora_fin,
-            cod_prog_megatime: newPrograma.cod_prog_megatime,
-            codigo_programa: newPrograma.codigo_programa,
-            soporte_id: selectedSoporte.id_soporte,
-            estado: true, // Agregamos el campo estado
-            created_at: new Date().toISOString()
-          })
-          .select();
-
-        // Si la secuencia del ID está desincronizada y falla por clave duplicada,
-        // hacemos fallback: obtenemos el MAX(id) y creamos con id = max + 1
-        if (error && (error.code === '23505' || (error.message && error.message.toLowerCase().includes('duplicate key')))) {
-          const { data: maxIdData, error: maxErr } = await supabase
-            .from('Programas')
-            .select('id')
-            .order('id', { ascending: false })
-            .limit(1);
-
-          if (maxErr) throw maxErr;
-          const nextId = (Array.isArray(maxIdData) && maxIdData.length > 0 ? maxIdData[0].id : 0) + 1;
-
-          const { error: insertWithIdErr } = await query
-            .insert({
-              id: nextId,
-              descripcion: newPrograma.descripcion,
-              hora_inicio: newPrograma.hora_inicio,
-              hora_fin: newPrograma.hora_fin,
-              cod_prog_megatime: newPrograma.cod_prog_megatime,
-              codigo_programa: newPrograma.codigo_programa,
-              soporte_id: selectedSoporte.id_soporte,
-              estado: true,
-              created_at: new Date().toISOString()
-            });
-
-          if (insertWithIdErr) throw insertWithIdErr;
-        } else if (error) {
-          throw error;
+      // Obtener el último valor numérico de cod_prog_megatime
+      let nextCodProgMegatime = 3998; // Valor base por defecto
+      
+      // Consulta para obtener el último valor numérico
+      const { data: ultimosProgMegatime, error: errorConsulta } = await supabase
+        .from('Programas')
+        .select('cod_prog_megatime')
+        .not('cod_prog_megatime', 'is', null)
+        .not('cod_prog_megatime', 'eq', '')
+        .order('created_at', { ascending: false }) // Ordenar por fecha de creación para obtener el más reciente
+        .limit(100); // Obtener varios para asegurar encontrar valores numéricos
+      
+      if (errorConsulta) {
+        console.error('Error al consultar últimos códigos:', errorConsulta);
+      } else if (ultimosProgMegatime && ultimosProgMegatime.length > 0) {
+        // Filtrar solo los valores numéricos y encontrar el máximo
+        const codigosNumericos = ultimosProgMegatime
+          .map(prog => prog.cod_prog_megatime)
+          .filter(codigo => !isNaN(parseInt(codigo)))
+          .map(codigo => parseInt(codigo));
+        
+        if (codigosNumericos.length > 0) {
+          const maxCodigo = Math.max(...codigosNumericos);
+          nextCodProgMegatime = maxCodigo + 1;
         }
       }
-
+      
+      console.log('Próximo código Megatime a usar:', nextCodProgMegatime);
+      
+      // Preparar datos del programa
+      const programaData = {
+        descripcion: newPrograma.descripcion,
+        hora_inicio: newPrograma.hora_inicio,
+        hora_fin: newPrograma.hora_fin,
+        codigo_programa: newPrograma.codigo_programa || '',
+        soporte_id: selectedSoporte.id_soporte,
+        estado: true
+      };
+      
+      // Solo asignar nuevo código si es un nuevo programa, no en edición
+      if (!editingPrograma) {
+        programaData.cod_prog_megatime = nextCodProgMegatime.toString();
+      } else if (editingPrograma && !editingPrograma.cod_prog_megatime) {
+        // Si estamos editando un programa sin código, asignarle uno nuevo
+        programaData.cod_prog_megatime = nextCodProgMegatime.toString();
+      } else if (editingPrograma) {
+        // Mantener el código original si existe
+        programaData.cod_prog_megatime = editingPrograma.cod_prog_megatime;
+      }
+      
+      let response;
+      
+      if (editingPrograma) {
+        // Actualizar programa existente
+        const { data, error } = await supabase
+          .from('Programas')
+          .update(programaData)
+          .eq('id', editingPrograma.id)
+          .select();
+          
+        if (error) throw error;
+        response = data;
+      } else {
+        // Insertar nuevo programa
+        const { data, error } = await supabase
+          .from('Programas')
+          .insert([programaData])
+          .select();
+          
+        if (error) throw error;
+        response = data;
+      }
+      
       Swal.fire({
         icon: 'success',
         title: 'Éxito',
-        text: `Programa ${editingPrograma ? 'actualizado' : 'creado'} correctamente`
+        text: editingPrograma ? 'Programa actualizado correctamente' : 'Programa agregado correctamente'
       });
-
-      handleCloseAddEditProgramaModal();
       
-      // Recargar la lista de programas
+      // Cerrar el modal y limpiar el formulario
+      setOpenAddEditProgramaModal(false);
+      setNewPrograma({
+        descripcion: '',
+        hora_inicio: '',
+        hora_inicio_hora: '00',
+        hora_inicio_min: '00',
+        hora_fin: '',
+        hora_fin_hora: '00',
+        hora_fin_min: '00',
+        cod_prog_megatime: '',
+        codigo_programa: '',
+        soporte_id: selectedSoporte?.id_soporte || ''
+      });
+      setEditingPrograma(null);
+      
+      // Actualizar la lista de programas
       if (selectedSoporte) {
-        const { data: programasData, error: programasError } = await supabase
+        // Consulta para obtener la lista actualizada
+        const { data: programasActualizados, error: errorProgramas } = await supabase
           .from('Programas')
           .select('*')
           .eq('soporte_id', selectedSoporte.id_soporte)
+          .eq('estado', true)
           .order('descripcion', { ascending: true });
-
-        if (!programasError) {
-          setProgramas(programasData);
-          // Refrescar la lista visible en el modal de selección sin cerrarlo
-          await handleSearchPrograma(searchPrograma || '');
+        
+        if (!errorProgramas) {
+          setProgramas(programasActualizados || []);
+          
+          // Actualizar también la lista filtrada
+          if (searchPrograma) {
+            const filtrados = programasActualizados.filter(programa => 
+              programa.descripcion.toLowerCase().includes(searchPrograma.toLowerCase())
+            );
+            setProgramasFiltrados(filtrados);
+          } else {
+            setProgramasFiltrados(programasActualizados || []);
+          }
         }
       }
+      
     } catch (error) {
       console.error('Error al guardar programa:', error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Error al guardar el programa: ' + error.message
+        text: `Error al guardar el programa: ${error.message || JSON.stringify(error)}`
       });
+    } finally {
+      setLoading(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -2136,54 +2357,79 @@ const Alternativas = () => {
     setNuevaAlternativa(prev => {
       const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
       const valorNumerico = Number(valor) || 0;
+      
+      // Crear una copia del estado anterior
+      const updated = { ...prev };
+      
+      // Actualizar el campo específico con el nuevo valor
+      updated[campo] = valorNumerico;
+      
+      // Obtener los valores actuales para los cálculos
+      const valorUnitario = campo === 'valor_unitario' ? valorNumerico : Number(prev.valor_unitario) || 0;
+      const descuento = campo === 'descuento_plan' ? valorNumerico : Number(prev.descuento_plan) || 0;
+      const recargo = campo === 'recargo_plan' ? valorNumerico : Number(prev.recargo_plan) || 0;
+      
       let totalBruto = 0;
       let totalNeto = 0;
-      let iva = 0;
-      let totalOrden = 0;
-      let valorUnitarioFinal = valorNumerico;
-  
-      // If changing valor_unitario, calculate totals based on quantities
-      if (campo === 'valor_unitario') {
-        const totalCantidades = prev.cantidades.reduce((sum, item) => {
-          return sum + (Number(item.cantidad) || 0);
-        }, 0);
-  
-        if (tipoGeneracionOrden === 1) { // Neto
-          totalNeto = valorNumerico * totalCantidades;
-          totalBruto = Math.round(totalNeto / 0.85);
-        } else { // Bruto
-          totalBruto = valorNumerico * totalCantidades;
-          totalNeto = Math.round(totalBruto * 0.85);
+      
+      // Verificar si el medio del contrato es 35 o 38 para aplicar multiplicación por cantidades
+      const medioId = contratoSeleccionado?.medio?.id || contratoSeleccionado?.IdMedios;
+      const aplicarMultiplicacion = medioId === 35 || medioId === 38;
+      
+      // Calcular totales basados en cantidades solo si el medio es 35 o 38
+      const totalCantidades = prev.cantidades.reduce((sum, item) => {
+        return sum + (Number(item.cantidad) || 0);
+      }, 0);
+      
+      // Determinar el multiplicador según el tipo de medio
+      const multiplicador = aplicarMultiplicacion ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
+      
+      if (tipoGeneracionOrden === 1) { // Neto
+        // Calcular el total neto base (sin descuentos/recargos)
+        const totalNetoBase = valorUnitario * multiplicador;
+        
+        // Aplicar descuento si existe
+        let totalConDescuento = totalNetoBase;
+        if (descuento > 0) {
+          totalConDescuento = totalNetoBase - (totalNetoBase * (descuento / 100));
         }
-      } else {
-        // Your existing calculations for other fields
-        if (tipoGeneracionOrden === 1) {
-          if (campo === 'total_neto') {
-            totalNeto = valorNumerico;
-            totalBruto = Math.round(valorNumerico / 0.85);
-          } else if (campo === 'total_bruto') {
-            totalBruto = valorNumerico;
-            totalNeto = Math.round(valorNumerico * 0.85);
-          }
+        
+        // Aplicar recargo si existe
+        if (recargo > 0) {
+          totalNeto = totalConDescuento + (totalConDescuento * (recargo / 100));
         } else {
-          if (campo === 'total_bruto') {
-            totalBruto = valorNumerico;
-            totalNeto = Math.round(valorNumerico * 0.85);
-          } else if (campo === 'total_neto') {
-            totalNeto = valorNumerico;
-            totalBruto = Math.round(valorNumerico / 0.85);
-          }
+          totalNeto = totalConDescuento;
         }
+        
+        // Calcular el total bruto a partir del neto
+        totalBruto = Math.round(totalNeto / 0.85);
+      } else { // Bruto
+        // Calcular el total bruto base (sin descuentos/recargos)
+        const totalBrutoBase = valorUnitario * multiplicador;
+        
+        // Aplicar descuento si existe
+        let totalConDescuento = totalBrutoBase;
+        if (descuento > 0) {
+          totalConDescuento = totalBrutoBase - (totalBrutoBase * (descuento / 100));
+        }
+        
+        // Aplicar recargo si existe
+        if (recargo > 0) {
+          totalBruto = totalConDescuento + (totalConDescuento * (recargo / 100));
+        } else {
+          totalBruto = totalConDescuento;
+        }
+        
+        // Calcular el total neto a partir del bruto
+        totalNeto = Math.round(totalBruto * 0.85);
       }
-  
-      // Calculate IVA and total order
-      iva = Math.round(totalNeto * 0.19);
-      totalOrden = totalNeto + iva;
-  
+      
+      // Calcular IVA y total orden
+      const iva = Math.round(totalNeto * 0.19);
+      const totalOrden = totalNeto + iva;
+      
       return {
-        ...prev,
-        [campo]: valorNumerico,
-        valor_unitario: campo === 'valor_unitario' ? valorNumerico : prev.valor_unitario,
+        ...updated,
         total_bruto: Math.round(totalBruto),
         total_neto: Math.round(totalNeto),
         iva: Math.round(iva),
@@ -2194,70 +2440,120 @@ const Alternativas = () => {
 
   const handleCantidadChange = (dia, valor) => {
     setNuevaAlternativa(prev => {
-      let nuevasCantidades = [...prev.cantidades];
+      // Crear una copia del array de cantidades
+      const cantidadesActualizadas = [...prev.cantidades];
       
-      // Si autoFillCantidades está activo, aplicar el valor a todos los días
-      if (autoFillCantidades && valor && valor !== '0') {
-        // Crear un array con exactamente 31 días (o los días del mes correspondiente)
-        const diasEnMes = 31; // O usar una función para determinar los días del mes actual
-        nuevasCantidades = [];
-        
-        // Crear explícitamente un objeto para cada día con su valor correspondiente
-        for (let i = 1; i <= diasEnMes; i++) {
-          nuevasCantidades.push({
-            dia: i.toString().padStart(2, '0'),
-            cantidad: Number(valor)
-          });
-        }
+      // Buscar si ya existe una entrada para este día
+      const index = cantidadesActualizadas.findIndex(item => item.dia === dia);
+      
+      if (index !== -1) {
+        // Actualizar la cantidad existente
+        cantidadesActualizadas[index] = {
+          ...cantidadesActualizadas[index],
+          cantidad: valor
+        };
       } else {
-        // Comportamiento original para un solo día
-        const index = nuevasCantidades.findIndex(item => item.dia === dia);
+        // Agregar nueva cantidad
+        cantidadesActualizadas.push({
+          dia,
+          cantidad: valor
+        });
+      }
+      
+      // Si autoFillCantidades está activado, rellenar todas las casillas siguientes
+      if (autoFillCantidades && valor !== '') {
+        // Convertir el día actual a número para comparar
+        const diaActual = parseInt(dia, 10);
         
-        if (valor && valor !== '0') {
-          if (index !== -1) {
-            nuevasCantidades[index] = { dia, cantidad: Number(valor) };
+        // Rellenar todas las casillas siguientes con el mismo valor
+        for (let i = diaActual + 1; i <= 31; i++) {
+          const diaSiguiente = i.toString().padStart(2, '0');
+          const indexSiguiente = cantidadesActualizadas.findIndex(item => item.dia === diaSiguiente);
+          
+          if (indexSiguiente !== -1) {
+            // Actualizar cantidad existente
+            cantidadesActualizadas[indexSiguiente] = {
+              ...cantidadesActualizadas[indexSiguiente],
+              cantidad: valor
+            };
           } else {
-            nuevasCantidades.push({ dia, cantidad: Number(valor) });
-          }
-        } else {
-          if (index !== -1) {
-            nuevasCantidades.splice(index, 1);
+            // Agregar nueva cantidad
+            cantidadesActualizadas.push({
+              dia: diaSiguiente,
+              cantidad: valor
+            });
           }
         }
       }
-  
-      // Ordenar las cantidades por día
-      nuevasCantidades.sort((a, b) => parseInt(a.dia) - parseInt(b.dia));
-  
-      // Calcular el total de cantidades usando la función calcularTotal
-      const totalCantidades = nuevasCantidades.reduce((sum, item) => {
-        return sum + Number(item.cantidad || 0);
-      }, 0);
-  
-      // Usar la misma lógica de cálculo que handleMontoChange
-      const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
+      
+      // Obtener valores actuales para recalcular
       const valorUnitario = Number(prev.valor_unitario) || 0;
+      const descuento = Number(prev.descuento_plan) || 0;
+      const recargo = Number(prev.recargo_plan) || 0;
+      const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
+      
+      // Verificar si el medio del contrato es 35 o 38 para aplicar multiplicación por cantidades
+      const medioId = contratoSeleccionado?.medio?.id || contratoSeleccionado?.IdMedios;
+      const aplicarMultiplicacion = medioId === 35 || medioId === 38;
+      
+      // Calcular el total de cantidades
+      const totalCantidades = cantidadesActualizadas.reduce((sum, item) => {
+        return sum + (Number(item.cantidad) || 0);
+      }, 0);
+      
+      // Determinar el multiplicador según el tipo de medio
+      const multiplicador = aplicarMultiplicacion ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
+      
       let totalBruto = 0;
       let totalNeto = 0;
-      let iva = 0;
-      let totalOrden = 0;
-  
-      // Calcular totales basados en cantidades
+      
       if (tipoGeneracionOrden === 1) { // Neto
-        totalNeto = valorUnitario * totalCantidades;
+        // Calcular el total neto base (sin descuentos/recargos)
+        const totalNetoBase = valorUnitario * multiplicador;
+        
+        // Aplicar descuento si existe
+        let totalConDescuento = totalNetoBase;
+        if (descuento > 0) {
+          totalConDescuento = totalNetoBase - (totalNetoBase * (descuento / 100));
+        }
+        
+        // Aplicar recargo si existe
+        if (recargo > 0) {
+          totalNeto = totalConDescuento + (totalConDescuento * (recargo / 100));
+        } else {
+          totalNeto = totalConDescuento;
+        }
+        
+        // Calcular el total bruto a partir del neto
         totalBruto = Math.round(totalNeto / 0.85);
       } else { // Bruto
-        totalBruto = valorUnitario * totalCantidades;
+        // Calcular el total bruto base (sin descuentos/recargos)
+        const totalBrutoBase = valorUnitario * multiplicador;
+        
+        // Aplicar descuento si existe
+        let totalConDescuento = totalBrutoBase;
+        if (descuento > 0) {
+          totalConDescuento = totalBrutoBase - (totalBrutoBase * (descuento / 100));
+        }
+        
+        // Aplicar recargo si existe
+        if (recargo > 0) {
+          totalBruto = totalConDescuento + (totalConDescuento * (recargo / 100));
+        } else {
+          totalBruto = totalConDescuento;
+        }
+        
+        // Calcular el total neto a partir del bruto
         totalNeto = Math.round(totalBruto * 0.85);
       }
-  
+      
       // Calcular IVA y total orden
-      iva = Math.round(totalNeto * 0.19);
-      totalOrden = totalNeto + iva;
-  
+      const iva = Math.round(totalNeto * 0.19);
+      const totalOrden = totalNeto + iva;
+      
       return {
         ...prev,
-        cantidades: nuevasCantidades,
+        cantidades: cantidadesActualizadas,
         total_bruto: Math.round(totalBruto),
         total_neto: Math.round(totalNeto),
         iva: Math.round(iva),
@@ -2422,6 +2718,24 @@ const Alternativas = () => {
   };
 
   const handleGuardarAlternativa = async () => {
+
+    const errors = {
+      contrato: !contratoSeleccionado,
+      soporte: !selectedSoporte
+    };
+    
+    setValidationErrors(errors);
+    
+    // Si hay errores, mostrar mensaje y detener el proceso
+    if (errors.contrato || errors.soporte) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos requeridos',
+        text: 'Debe seleccionar un Contrato y un Soporte para continuar'
+      });
+      return;
+    }
+
     try {
       setLoading(true);
   
@@ -2687,36 +3001,43 @@ const Alternativas = () => {
                       <TableCell>{alternativa.Medios?.NombredelMedio}</TableCell>
                       <TableCell>{alternativa.total_bruto}</TableCell>
                       <TableCell>{alternativa.total_neto}</TableCell>
-                      <TableCell align="center" sx={{ minWidth: 130 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
-                          <Tooltip title="Editar">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEditAlternativa(alternativa.id)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Eliminar">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteAlternativa(alternativa.id)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Duplicar">
-                            <IconButton
-                              onClick={() => handleDuplicateAlternativa(alternativa)}
-                              size="small"
-                              color="primary"
-                            >
-                              <FileCopyIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
+                      <TableCell>
+                      <Tooltip title={alternativa.numerorden ? "No se puede editar con N° de Orden asignado" : "Editar"}>
+        <span>
+          <IconButton 
+            onClick={() => handleEditAlternativa(alternativa.id)} 
+            disabled={!!alternativa.numerorden}
+            style={{ 
+              color: alternativa.numerorden ? 'gray' : '#1976d2' // Azul para habilitado, gris para deshabilitado
+            }}
+          >
+            <EditIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+      
+      <Tooltip title={alternativa.numerorden ? "No se puede eliminar con N° de Orden asignado" : "Eliminar"}>
+        <span>
+          <IconButton 
+            onClick={() => handleDeleteAlternativa(alternativa.id)} 
+            disabled={!!alternativa.numerorden}
+            style={{ 
+              color: alternativa.numerorden ? 'gray' : '#d32f2f' // Rojo para habilitado, gris para deshabilitado
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+                        <Tooltip title="Duplicar">
+                          <IconButton
+                            onClick={() => handleDuplicateAlternativa(alternativa)}
+                            size="small"
+                            color="primary"
+                          >
+                            <FileCopyIcon />
+                          </IconButton>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -3244,55 +3565,40 @@ const Alternativas = () => {
   </Typography>
   <Grid container spacing={2}>
     <Grid item xs={12}>
-      <TextField
-        label="Valor Unitario"
-        size="small"
-        fullWidth
-        type="number"
-        value={nuevaAlternativa.valor_unitario}
-        onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <PriceChangeIcon sx={{ fontSize: '1.1rem' }} />
-            </InputAdornment>
-          )
-        }}
-      />
+    <TextField
+  label="Valor Unitario"
+  type="number"
+  fullWidth
+  value={nuevaAlternativa.valor_unitario}
+  onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
+  InputProps={{
+    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+  }}
+/>
     </Grid>
     <Grid item xs={12}>
-      <TextField
-        label="Descuento Plan (%)"
-        size="small"
-        fullWidth
-        type="number"
-        value={nuevaAlternativa.descuento_plan}
-        onChange={(e) => handleMontoChange('descuento_plan', e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <DiscountIcon sx={{ fontSize: '1.1rem' }} />
-            </InputAdornment>
-          )
-        }}
-      />
+    <TextField
+  label="Descuento Plan (%)"
+  type="number"
+  fullWidth
+  value={nuevaAlternativa.descuento_plan}
+  onChange={(e) => handleMontoChange('descuento_plan', e.target.value)}
+  InputProps={{
+    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+  }}
+/>
     </Grid>
     <Grid item xs={12}>
-      <TextField
-        label="Recargo Plan (%)"
-        size="small"
-        fullWidth
-        type="number"
-        value={nuevaAlternativa.recargo_plan}
-        onChange={(e) => handleMontoChange('recargo_plan', e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <TrendingUpIcon sx={{ fontSize: '1.1rem' }} />
-            </InputAdornment>
-          )
-        }}
-      />
+    <TextField
+  label="Recargo Plan (%)"
+  type="number"
+  fullWidth
+  value={nuevaAlternativa.recargo_plan}
+  onChange={(e) => handleMontoChange('recargo_plan', e.target.value)}
+  InputProps={{
+    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+  }}
+/>
     </Grid>
     <Grid item xs={12}>
       <TextField
@@ -4245,33 +4551,130 @@ Cancelar
                 fullWidth
                 value={newPrograma.codigo_programa}
                 onChange={(e) => setNewPrograma({ ...newPrograma, codigo_programa: e.target.value })}
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, mt: '10px' }}
               />
-              <TextField
-                label="Código Programa Megatime"
-                fullWidth
-                value={newPrograma.cod_prog_megatime}
-                onChange={(e) => setNewPrograma({ ...newPrograma, cod_prog_megatime: e.target.value })}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                label="Hora Inicio"
-                type="time"
-                fullWidth
-                value={newPrograma.hora_inicio}
-                onChange={(e) => setNewPrograma({ ...newPrograma, hora_inicio: e.target.value })}
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Hora Fin"
-                type="time"
-                fullWidth
-                value={newPrograma.hora_fin}
-                onChange={(e) => setNewPrograma({ ...newPrograma, hora_fin: e.target.value })}
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
+        
+                  {/* Hora de inicio - Reemplazar el campo actual por dos selects */}
+      <Grid item xs={12} md={6}>
+        <Typography variant="subtitle2" gutterBottom>
+          Hora Inicio
+        </Typography>
+        <Grid container spacing={1}>
+          <Grid item xs={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="hora-inicio-label">Hora</InputLabel>
+              <Select
+                labelId="hora-inicio-label"
+                value={newPrograma.hora_inicio_hora || ""}
+                onChange={(e) => {
+                  const horaValue = e.target.value;
+                  const minValue = newPrograma.hora_inicio_min || "00";
+                  setNewPrograma({
+                    ...newPrograma, 
+                    hora_inicio_hora: horaValue,
+                    hora_inicio: `${horaValue}:${minValue}`
+                  });
+                }}
+                label="Hora"
+              >
+                {Array.from({ length: 31 }, (_, i) => {
+                  const hora = i.toString().padStart(2, '0');
+                  return (
+                    <MenuItem key={`hora-inicio-${hora}`} value={hora}>{hora}</MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6}>
+  <FormControl fullWidth size="small">
+    <InputLabel id="min-inicio-label">Minutos</InputLabel>
+    <Select
+      labelId="min-inicio-label"
+      value={newPrograma.hora_inicio_min || ""}
+      onChange={(e) => {
+        const minValue = e.target.value;
+        const horaValue = newPrograma.hora_inicio_hora || "00";
+        setNewPrograma({
+          ...newPrograma, 
+          hora_inicio_min: minValue,
+          hora_inicio: `${horaValue}:${minValue}`
+        });
+      }}
+      label="Minutos"
+    >
+      {Array.from({ length: 60 }, (_, i) => {
+        const min = i.toString().padStart(2, '0');
+        return (
+          <MenuItem key={`min-inicio-${min}`} value={min}>{min}</MenuItem>
+        );
+      })}
+    </Select>
+  </FormControl>
+</Grid>
+        </Grid>
+      </Grid>
+      
+      {/* Hora fin - Reemplazar el campo actual por dos selects */}
+      <Grid item xs={12} md={6}>
+        <Typography variant="subtitle2" gutterBottom>
+          Hora Fin
+        </Typography>
+        <Grid container spacing={1}>
+          <Grid item xs={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="hora-fin-label">Hora</InputLabel>
+              <Select
+                labelId="hora-fin-label"
+                value={newPrograma.hora_fin_hora || ""}
+                onChange={(e) => {
+                  const horaValue = e.target.value;
+                  const minValue = newPrograma.hora_fin_min || "00";
+                  setNewPrograma({
+                    ...newPrograma, 
+                    hora_fin_hora: horaValue,
+                    hora_fin: `${horaValue}:${minValue}`
+                  });
+                }}
+                label="Hora"
+              >
+                {Array.from({ length: 31 }, (_, i) => {
+                  const hora = i.toString().padStart(2, '0');
+                  return (
+                    <MenuItem key={`hora-fin-${hora}`} value={hora}>{hora}</MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6}>
+  <FormControl fullWidth size="small">
+    <InputLabel id="min-fin-label">Minutos</InputLabel>
+    <Select
+      labelId="min-fin-label"
+      value={newPrograma.hora_fin_min || ""}
+      onChange={(e) => {
+        const minValue = e.target.value;
+        const horaValue = newPrograma.hora_fin_hora || "00";
+        setNewPrograma({
+          ...newPrograma, 
+          hora_fin_min: minValue,
+          hora_fin: `${horaValue}:${minValue}`
+        });
+      }}
+      label="Minutos"
+    >
+      {Array.from({ length: 60 }, (_, i) => {
+        const min = i.toString().padStart(2, '0');
+        return (
+          <MenuItem key={`min-fin-${min}`} value={min}>{min}</MenuItem>
+        );
+      })}
+    </Select>
+  </FormControl>
+</Grid>
+        </Grid>
+      </Grid>
             </Box>
           </DialogContent>
           <DialogActions>

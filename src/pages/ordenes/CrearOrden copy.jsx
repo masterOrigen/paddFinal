@@ -374,26 +374,25 @@ const [user2] = useState(JSON.parse(localStorage.getItem('user')));
       for (const [grupoKey, grupo] of Object.entries(alternativasPorGrupo)) {
         const altsDelGrupo = grupo.alternativas;
         
-      // Crear el registro en OrdenesDePublicidad
-      const { data, error } = await supabase
-        .from('OrdenesDePublicidad')
-        .insert({
-          id_campania: selectedCampana.id_campania,
-          id_plan: selectedPlan.id,
-          id_compania: selectedCampana.id_compania,
-          alternativas_plan_orden: altsDelGrupo.map(alt => alt.id),
-          numero_correlativo: nuevoCorrelativo,
-          created_at: new Date().toISOString(),
-          usuario_registro: user2 ? {
-            nombre: user2.Nombre,
-            email: user2.Email
-          } : null,
-          // Solo incluir los campos que existen en la tabla
-          id_soporte: grupo.soporte?.id_soporte,
-          id_contrato: grupo.contrato?.id
-        })
-        .select()
-        .single();
+        // Crear el registro en OrdenesDePublicidad
+        const { data, error } = await supabase
+          .from('OrdenesDePublicidad')
+          .insert({
+            id_campania: selectedCampana.id_campania,
+            id_plan: selectedPlan.id,
+            id_compania: selectedCampana.id_compania,
+            alternativas_plan_orden: altsDelGrupo.map(alt => alt.id),
+            numero_correlativo: nuevoCorrelativo,
+            usuario_registro: user2 ? {
+              nombre: user2.Nombre,
+              email: user2.Email
+            } : null,
+            // Solo incluir los campos que existen en la tabla
+            id_soporte: grupo.soporte?.id_soporte,
+            id_contrato: grupo.contrato?.id
+          })
+          .select()
+          .single();
 
         if (error) {
           console.error('Error al crear la orden:', error);

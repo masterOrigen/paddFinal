@@ -117,14 +117,6 @@
   background: #fff;
 }
 
-/* Estado activo para submenús y enlaces anidados */
-.submenu-link.active,
-.nested-submenu-link.active {
-  color: #EF4D36;
-  background: #fff;
-  font-weight: 500;
-}
-
 .submenu-icon {
   float: right;
   transition: transform 0.3s ease;

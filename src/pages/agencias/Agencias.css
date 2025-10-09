@@ -176,3 +176,6 @@
 .swal2-popup {
   z-index: 10000 !important;
 }
+.MuiButtonBase-root.MuiButton-root.MuiButton-contained.MuiButton-containedPrimary.MuiButton-sizeMedium.MuiButton-containedSizeMedium.MuiButton-colorPrimary.css-a8dcme-MuiButtonBase-root-MuiButton-root {
+  height: 100%;
+}

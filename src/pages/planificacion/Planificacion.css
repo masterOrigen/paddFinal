@@ -15,6 +15,16 @@
   color: #6B7280;
   font-size: 14px;
 }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: none; /* General */
+}
 
 .breadcrumb a {
   color: #6366F1;

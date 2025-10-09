@@ -51,6 +51,7 @@ const Campanas = () => {
                 .from('Campania')
                 .select(`
                     *,
+                    c_orden,
                     Clientes!id_Cliente (
                         id_cliente,
                         nombreCliente
@@ -124,6 +125,16 @@ const Campanas = () => {
     };
 
     const handleEdit = (campana) => {
+              // Verificar si la campaña forma parte de una orden creada
+              if (campana.c_orden === true) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No se puede editar',
+                    text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+                    confirmButtonColor: '#3085d6',
+                });
+                return;
+            }
         // Preparar los datos de la campaña para el modal
         const campanaParaEditar = {
             id_campania: campana.id_campania,
@@ -307,7 +318,7 @@ const Campanas = () => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>ID</TableCell>
+                          
                             <TableCell>Cliente</TableCell>
                             <TableCell>Nombre de campaña</TableCell>
                             <TableCell>Agencia</TableCell>
@@ -322,7 +333,7 @@ const Campanas = () => {
                     <TableBody>
                         {filteredCampanas.map((campana) => (
                             <TableRow key={campana.id_campania}>
-                                <TableCell>{campana.id_campania}</TableCell>
+                                
                                 <TableCell>{campana.Clientes?.nombreCliente}</TableCell>
                                 <TableCell>{campana.NombreCampania}</TableCell>
                                 <TableCell>{campana.Agencias?.NombreIdentificador}</TableCell>

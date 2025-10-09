@@ -43,6 +43,9 @@ const Contratos = () => {
     const [openEditModal, setOpenEditModal] = useState(false);
     const [selectedContrato, setSelectedContrato] = useState(null);
 
+
+    
+
     useEffect(() => {
         fetchContratos();
     }, []);
@@ -58,7 +61,8 @@ const Contratos = () => {
                     proveedor:Proveedores(id_proveedor, nombreProveedor),
                     medio:Medios(id, NombredelMedio),
                     formaPago:FormaDePago(id, NombreFormadePago),
-                    tipoOrden:TipoGeneracionDeOrden(id, NombreTipoOrden)
+                    tipoOrden:TipoGeneracionDeOrden(id, NombreTipoOrden),
+                    c_orden
                 `);
 
             if (error) throw error;
@@ -114,6 +118,19 @@ const Contratos = () => {
     };
 
     const handleEdit = (contrato) => {
+          // Verificar si el contrato forma parte de una orden creada
+          if (contrato.c_orden === true) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No se puede editar',
+                text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+                confirmButtonColor: '#3085d6',
+            });
+            return;
+        }
+          // Asegurarse de que todos los datos necesarios estén disponibles
+          console.log("Contrato seleccionado para editar:", contrato);
+
         setSelectedContrato(contrato);
         setOpenEditModal(true);
     };
@@ -254,7 +271,7 @@ const Contratos = () => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>ID</TableCell>
+
                             <TableCell>Nombre de Contrato</TableCell>
                             <TableCell>Cliente</TableCell>
                             <TableCell>Proveedor</TableCell>
@@ -269,7 +286,6 @@ const Contratos = () => {
                     <TableBody>
                         {filteredContratos.map((contrato) => (
                             <TableRow key={contrato.id}>
-                                <TableCell>{contrato.id}</TableCell>
                                 <TableCell>{contrato.NombreContrato}</TableCell>
                                 <TableCell>{contrato.cliente?.nombreCliente}</TableCell>
                                 <TableCell>{contrato.proveedor?.nombreProveedor}</TableCell>
@@ -322,15 +338,12 @@ const Contratos = () => {
                 onContratoAdded={fetchContratos}
             />
 
-            <ModalEditarContrato
-                open={openEditModal}
-                onClose={() => {
-                    setOpenEditModal(false);
-                    setSelectedContrato(null);
-                }}
-                contratoData={selectedContrato}
-                onContratoUpdated={fetchContratos}
-            />
+<ModalEditarContrato 
+        open={openEditModal} 
+        onClose={() => setOpenEditModal(false)} 
+        contrato={selectedContrato} 
+        onContratoUpdated={fetchContratos} 
+    />
         </Container>
     );
 };
