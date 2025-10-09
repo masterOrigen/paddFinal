@@ -12,6 +12,7 @@ import UserDataPopup from '../UserDataPopup';
 const Sidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [userDataOpen, setUserDataOpen] = useState(false);
+  const location = useLocation();
 
   const menuItems = [
     {
@@ -52,21 +53,6 @@ const Sidebar = () => {
     { text: 'Revisar Orden', link: '/ordenes/revisar' }
     ] 
     }
-    ]
-    },
-    {
-    id: 'reportes',
-    icon: 'fas fa-chart-bar',
-    text: 'Reportes',
-    submenu: [
-    { text: 'Reporte Orden de Compra', link: '/reportes/ordendecompra' },
-    // { text: 'Reporte Diario de Órdenes', link: '/reportes/diarioordenes' },
-    { text: 'Reporte Diario cliente', link: '/reportes/detalleporalternativa' },
-    { text: 'Informe de Inversión Cliente Bruto', link: '/reportes/informeinversionclientebruto' },
-    // {text: 'Informe de Inversión', link: '/reportes/informeinversion' },
-    // { text: 'Inversión por Cliente', link: '/reportes/inversionporcliente' },
-    // { text: 'Rendimiento de Campañas', link: '/reportes/rendimientocampanas' },
-    // { text: 'Análisis de Medios', link: '/reportes/analisismedios' }
     ]
     },
     {
@@ -161,43 +147,43 @@ const Sidebar = () => {
               {item.submenu.length === 0 ? (
                 <NavLink 
                   to={item.link} 
-                  className={({ isActive }) => `menu-link${isActive ? ' active' : ''}`}
+                  className={({ isActive }) => menu-link${isActive ? ' active' : ''}}
                 >
                   <div className="menu-content">
-                    <i className={`${item.icon} menu-icon`}></i>
+                    <i className={${item.icon} menu-icon}></i>
                     <span className="menu-text">{item.text}</span>
                   </div>
                 </NavLink>
               ) : (
                 <>
                   <div 
-                    className={`menu-link ${expandedMenus[item.id] ? 'active' : ''} ${isGroupActive ? 'active' : ''}`}
+                    className={menu-link ${expandedMenus[item.id] ? 'active' : ''} ${isGroupActive ? 'active' : ''}}
                     onClick={() => toggleSubmenu(item.id)}
                   >
                     <div className="menu-content">
-                      <i className={`${item.icon} menu-icon`}></i>
+                      <i className={${item.icon} menu-icon}></i>
                       <span className="menu-text">{item.text}</span>
                     </div>
-                    <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[item.id] ? 'expanded' : ''}`}></i>
+                    <i className={fas fa-chevron-right submenu-icon ${expandedMenus[item.id] ? 'expanded' : ''}}></i>
                   </div>
-                  <div className={`submenu ${expandedMenus[item.id] ? 'expanded' : ''}`}>
+                  <div className={submenu ${expandedMenus[item.id] ? 'expanded' : ''}}>
                     {item.submenu.map((subItem, index) => (
                       subItem.submenu ? (
                         <div key={index} className="nested-submenu-container">
                           <div 
-                            className={`submenu-link nested-parent ${expandedMenus[subItem.id || subItem.text] ? 'active' : ''}`}
+                            className={submenu-link nested-parent ${expandedMenus[subItem.id || subItem.text] ? 'active' : ''}}
                             onClick={() => toggleSubmenu(subItem.id || subItem.text)}
                             style={{ cursor: 'pointer' }}
                           >
                             {subItem.text}
-                            <i className={`fas fa-chevron-right submenu-icon ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}></i>
+                            <i className={fas fa-chevron-right submenu-icon ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}}></i>
                           </div>
-                          <div className={`nested-submenu ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}`}>
+                          <div className={nested-submenu ${expandedMenus[subItem.id || subItem.text] ? 'expanded' : ''}}>
                             {subItem.submenu.map((subSubItem, subIndex) => (
                               <NavLink 
                                 key={subIndex} 
                                 to={subSubItem.link}
-                                className={({ isActive }) => `nested-submenu-link${isActive ? ' active' : ''}`}
+                                className={({ isActive }) => nested-submenu-link${isActive ? ' active' : ''}}
                               >
                                 {subSubItem.text}
                               </NavLink>
@@ -213,35 +199,20 @@ const Sidebar = () => {
                           ) : (
                             <NavLink 
                               to={subItem.link}
-                              className={({ isActive }) => `submenu-link${isActive ? ' active' : ''}`}
+                              className={({ isActive }) => submenu-link${isActive ? ' active' : ''}}
                             >
                               {subItem.text}
                             </NavLink>
                           )}
                         </div>
-                      </div>
-                    ) : (
-                      <div key={index} className="submenu-item">
-                        {subItem.onClick ? (
-                          <div onClick={subItem.onClick} style={{ cursor: 'pointer' }} className="submenu-link">
-                            {subItem.text}
-                          </div>
-                        ) : (
-                          <Link 
-                            to={subItem.link}
-                            className="submenu-link"
-                          >
-                            {subItem.text}
-                          </Link>
-                        )}
-                      </div>
-                    )
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+                      )
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </nav>
       <UserDataPopup open={userDataOpen} onClose={() => setUserDataOpen(false)} />
     </div>
@@ -249,3 +220,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
