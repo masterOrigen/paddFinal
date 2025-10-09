@@ -31,6 +31,7 @@ import {
   Container,
   Breadcrumbs
 } from '@mui/material';
+import OutlinedInput from '@mui/material/OutlinedInput';
 import { Add as AddIcon } from '@mui/icons-material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { OpenInNew as OpenInNewIcon } from '@mui/icons-material';
@@ -1539,16 +1540,23 @@ const ViewCliente = () => {
           <Box sx={{ mt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Comisión</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="comision-label">Comisión</InputLabel>
                   <Select
+                    labelId="comision-label"
+                    label="Comisión"
                     name="comision"
                     value={newComision.comision}
                     onChange={handleComisionInputChange}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <PercentIcon />
-                      </InputAdornment>
+                    input={
+                      <OutlinedInput
+                        label="Comisión"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <PercentIcon />
+                          </InputAdornment>
+                        }
+                      />
                     }
                   >
                     {tiposComision.map((tipo) => (
@@ -1561,16 +1569,23 @@ const ViewCliente = () => {
               </Grid>
 
               <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Moneda</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="moneda-label">Moneda</InputLabel>
                   <Select
+                    labelId="moneda-label"
+                    label="Moneda"
                     name="tipomoneda"
                     value={newComision.tipomoneda}
                     onChange={handleComisionInputChange}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <MonetizationOnIcon />
-                      </InputAdornment>
+                    input={
+                      <OutlinedInput
+                        label="Moneda"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <MonetizationOnIcon />
+                          </InputAdornment>
+                        }
+                      />
                     }
                   >
                     {['UF', 'PESO', 'DOLAR'].map((moneda) => (
@@ -1831,16 +1846,23 @@ const ViewCliente = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Grupo</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="vc-grupo-label">Grupo</InputLabel>
                   <Select
+                    labelId="vc-grupo-label"
+                    label="Grupo"
                     value={selectedClient?.id_grupo || ''}
                     onChange={handleEditInputChange}
                     name="id_grupo"
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <GroupIcon />
-                      </InputAdornment>
+                    input={
+                      <OutlinedInput
+                        label="Grupo"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <GroupIcon />
+                          </InputAdornment>
+                        }
+                      />
                     }
                   >
                     {Object.entries(grupos).map(([id, grupo]) => (
@@ -1869,16 +1891,23 @@ const ViewCliente = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Tipo de Cliente</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="vc-tipoCliente-label">Tipo de Cliente</InputLabel>
                   <Select
+                    labelId="vc-tipoCliente-label"
+                    label="Tipo de Cliente"
                     value={selectedClient?.id_tipoCliente || ''}
                     onChange={handleEditInputChange}
                     name="id_tipoCliente"
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <PersonIcon />
-                      </InputAdornment>
+                    input={
+                      <OutlinedInput
+                        label="Tipo de Cliente"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <PersonIcon />
+                          </InputAdornment>
+                        }
+                      />
                     }
                   >
                     {Object.entries(tiposCliente).map(([id, tipo]) => (
@@ -1909,16 +1938,23 @@ const ViewCliente = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Región</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="vc-region-label">Región</InputLabel>
                   <Select
+                    labelId="vc-region-label"
+                    label="Región"
                     value={selectedClient?.id_region || ''}
                     onChange={handleEditInputChange}
                     name="id_region"
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <LocationOnIcon />
-                      </InputAdornment>
+                    input={
+                      <OutlinedInput
+                        label="Región"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <LocationOnIcon />
+                          </InputAdornment>
+                        }
+                      />
                     }
                   >
                     {regiones.map((region) => (
@@ -1930,16 +1966,23 @@ const ViewCliente = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Comuna</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="vc-comuna-label">Comuna</InputLabel>
                   <Select
+                    labelId="vc-comuna-label"
+                    label="Comuna"
                     value={selectedClient?.id_comuna || ''}
                     onChange={handleEditInputChange}
                     name="id_comuna"
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <LocationOnIcon />
-                      </InputAdornment>
+                    input={
+                      <OutlinedInput
+                        label="Comuna"
+                        startAdornment={
+                          <InputAdornment position="start">
+                            <LocationOnIcon />
+                          </InputAdornment>
+                        }
+                      />
                     }
                   >
                     {comunasFiltradas.map((comuna) => (

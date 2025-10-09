@@ -102,6 +102,7 @@
   transition: all 0.3s ease;
   transform: translateY(-5px);
   opacity: 0;
+  cursor: pointer;
 }
 
 .submenu.expanded .submenu-link {
@@ -113,6 +114,15 @@
 
 .submenu-link:hover {
   color: #EF4D36;
+  background: #fff;
+}
+
+/* Estado activo para submenús y enlaces anidados */
+.submenu-link.active,
+.nested-submenu-link.active {
+  color: #EF4D36;
+  background: #fff;
+  font-weight: 500;
 }
 
 .submenu-icon {
@@ -307,7 +317,9 @@ input:checked + .slider {
 .nested-submenu {
   display: none;
   background-color: white;
-  padding-left: 15px;
+  padding-left: 20px; /* mayor sangría para indicar jerarquía */
+  border-left: 2px solid #e6e6e6; /* línea visual de jerarquía */
+  margin-left: 8px;
 }
 
 .nested-submenu.expanded {
@@ -316,15 +328,17 @@ input:checked + .slider {
 
 .nested-submenu-link {
   display: block;
-  padding: 8px 15px 8px 25px;
+  padding: 8px 15px 8px 45px; /* aumenta padding izquierdo para más claridad */
   text-decoration: none;
   color: #333;
   background-color: white;
   transition: background-color 0.2s;
+  cursor: pointer;
 }
 
 .nested-submenu-link:hover {
   background-color: #f5f5f5;
+  color: #EF4D36;
 }
 
 .submenu-icon {

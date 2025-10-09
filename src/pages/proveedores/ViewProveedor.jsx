@@ -61,6 +61,7 @@ const ViewProveedor = () => {
   const [contactoForm, setContactoForm] = useState({
     nombres: '',
     apellidos: '',
+    cargo: '',
     telefono: '',
     email: '',
     id_proveedor: id
@@ -314,7 +315,7 @@ const ViewProveedor = () => {
           // Obtener detalles de los soportes
           const { data: soportesData, error: soportesDetailsError } = await supabase
             .from('Soportes')
-            .select('*')
+            .select('*, c_orden')
             .in('id_soporte', idsSoportes);
 
           if (soportesDetailsError) {
@@ -401,6 +402,7 @@ const ViewProveedor = () => {
           .update({
             nombres: contactoForm.nombres,
             apellidos: contactoForm.apellidos,
+            cargo: contactoForm.cargo,
             telefono: contactoForm.telefono,
             email: contactoForm.email
           })
@@ -437,6 +439,7 @@ const ViewProveedor = () => {
       setContactoForm({
         nombres: '',
         apellidos: '',
+        cargo: '',
         telefono: '',
         email: '',
         id_proveedor: id
@@ -615,6 +618,7 @@ const ViewProveedor = () => {
       id_contacto: contacto.id_contacto,
       nombres: contacto.nombres,
       apellidos: contacto.apellidos,
+      cargo: contacto.cargo || '',
       telefono: contacto.telefono,
       email: contacto.email,
       id_proveedor: id
@@ -661,6 +665,16 @@ const ViewProveedor = () => {
   };
 
   const handleEditSoporte = async (soporte) => {
+      // Verificar si el soporte forma parte de una orden creada
+      if (soporte.c_orden === true) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No se puede editar',
+          text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+          confirmButtonColor: '#3085d6',
+        });
+        return;
+      }
     try {
       showLoading();
       
@@ -1108,6 +1122,7 @@ const ViewProveedor = () => {
                       columns={[
                         { field: 'nombres', headerName: 'Nombres', flex: 1 },
                         { field: 'apellidos', headerName: 'Apellidos', flex: 1 },
+                        { field: 'cargo', headerName: 'Cargo', flex: 1 },
                         { field: 'telefono', headerName: 'Teléfono', flex: 1 },
                         { field: 'email', headerName: 'Email', flex: 1.5 },
                         {
@@ -1261,6 +1276,23 @@ const ViewProveedor = () => {
                     startAdornment: (
                       <InputAdornment position="start">
                         <PersonIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Cargo"
+                  name="cargo"
+                  value={contactoForm.cargo}
+                  onChange={(e) => setContactoForm({ ...contactoForm, cargo: e.target.value })}
+                  disabled={isSubmitting}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <WorkIcon />
                       </InputAdornment>
                     ),
                   }}

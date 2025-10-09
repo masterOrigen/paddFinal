@@ -122,8 +122,7 @@ const CrearOrden = () => {
             Meses (Id, Nombre),
             Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
               FormaDePago (id, NombreFormadePago),
-              Proveedores (id_proveedor, nombreProveedor, rutProveedor, direccionFacturacion, id_comuna),
-              TipoGeneracionDeOrden (id, NombreTipoOrden)
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor, direccionFacturacion, id_comuna)
             ),
             tipo_item,
             Soportes (id_soporte, nombreIdentficiador),
@@ -321,67 +320,60 @@ const handleSubmit = async (e) => {
   }
 };
 const [user2] = useState(JSON.parse(localStorage.getItem('user')));
-const handleCrearOrden = async () => {
-  try {
-    if (!selectedAlternativas.length) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Advertencia',
-        text: 'Debe seleccionar al menos una alternativa'
-      });
-      return;
-    }
-
-    // Obtener el último número correlativo válido (no nulo)
-    const { data: ultimaOrden, error: errorCorrelativo } = await supabase
-      .from('OrdenesDePublicidad')
-      .select('numero_correlativo')
-      .not('numero_correlativo', 'is', null)
-      .order('numero_correlativo', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (errorCorrelativo && errorCorrelativo.code !== 'PGRST116') {
-      throw errorCorrelativo;
-    }
-
-    let nuevoCorrelativo = (ultimaOrden?.numero_correlativo || 33992) + 1;
-
-    // Obtener las alternativas seleccionadas
-    const alternativasSeleccionadas = alternativas.filter(alt => selectedAlternativas.includes(alt.id));
-
-    // Agrupar alternativas por soporte, contrato y proveedor
-    const alternativasPorGrupo = alternativasSeleccionadas.reduce((acc, alt) => {
-      const soporteId = alt.Soportes?.id_soporte;
-      const contratoId = alt.Contratos?.id;
-      const proveedorId = alt.Contratos?.IdProveedor;
-      
-      // Crear una clave única combinando soporte, contrato y proveedor
-      const grupoKey = `${soporteId}-${contratoId}-${proveedorId}`;
-      
-      if (!acc[grupoKey]) {
-        acc[grupoKey] = {
-          alternativas: [],
-          soporte: alt.Soportes,
-          contrato: alt.Contratos,
-          proveedor: alt.Contratos?.Proveedores
-        };
+  const handleCrearOrden = async () => {
+    try {
+      if (!selectedAlternativas.length) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Advertencia',
+          text: 'Debe seleccionar al menos una alternativa'
+        });
+        return;
       }
-      acc[grupoKey].alternativas.push(alt);
-      return acc;
-    }, {});
+  
+      // Obtener el último número correlativo válido (no nulo)
+      const { data: ultimaOrden, error: errorCorrelativo } = await supabase
+        .from('OrdenesDePublicidad')
+        .select('numero_correlativo')
+        .not('numero_correlativo', 'is', null)
+        .order('numero_correlativo', { ascending: false })
+        .limit(1)
+        .single();
+  
+      if (errorCorrelativo && errorCorrelativo.code !== 'PGRST116') {
+        throw errorCorrelativo;
+      }
+  
+      let nuevoCorrelativo = (ultimaOrden?.numero_correlativo || 33992) + 1;
 
-     // Recolectar IDs únicos para actualizar las tablas relacionadas
-     const campaniaId = selectedCampana.id_campania;
-     const soporteIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Soportes?.id_soporte).filter(Boolean))];
-     const contratoIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Contratos?.id).filter(Boolean))];
-     const temaIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Temas?.id_tema).filter(Boolean))];
-     const programaIds = [...new Set(alternativasSeleccionadas.map(alt => alt.Programas?.id).filter(Boolean))];
+      // Obtener las alternativas seleccionadas
+      const alternativasSeleccionadas = alternativas.filter(alt => selectedAlternativas.includes(alt.id));
 
-    // Para cada grupo (combinación única de soporte, contrato y proveedor), crear una orden y un PDF independiente
-    for (const [grupoKey, grupo] of Object.entries(alternativasPorGrupo)) {
-      const altsDelGrupo = grupo.alternativas;
-      
+      // Agrupar alternativas por soporte, contrato y proveedor
+      const alternativasPorGrupo = alternativasSeleccionadas.reduce((acc, alt) => {
+        const soporteId = alt.Soportes?.id_soporte;
+        const contratoId = alt.Contratos?.id;
+        const proveedorId = alt.Contratos?.IdProveedor;
+        
+        // Crear una clave única combinando soporte, contrato y proveedor
+        const grupoKey = `${soporteId}-${contratoId}-${proveedorId}`;
+        
+        if (!acc[grupoKey]) {
+          acc[grupoKey] = {
+            alternativas: [],
+            soporte: alt.Soportes,
+            contrato: alt.Contratos,
+            proveedor: alt.Contratos?.Proveedores
+          };
+        }
+        acc[grupoKey].alternativas.push(alt);
+        return acc;
+      }, {});
+
+      // Para cada grupo (combinación única de soporte, contrato y proveedor), crear una orden y un PDF independiente
+      for (const [grupoKey, grupo] of Object.entries(alternativasPorGrupo)) {
+        const altsDelGrupo = grupo.alternativas;
+        
       // Crear el registro en OrdenesDePublicidad
       const { data, error } = await supabase
         .from('OrdenesDePublicidad')
@@ -391,7 +383,6 @@ const handleCrearOrden = async () => {
           id_compania: selectedCampana.id_compania,
           alternativas_plan_orden: altsDelGrupo.map(alt => alt.id),
           numero_correlativo: nuevoCorrelativo,
-          // Guardar la fecha de creación explícitamente para evitar epoch 1970
           created_at: new Date().toISOString(),
           usuario_registro: user2 ? {
             nombre: user2.Nombre,
@@ -404,115 +395,59 @@ const handleCrearOrden = async () => {
         .select()
         .single();
 
-      if (error) {
-        console.error('Error al crear la orden:', error);
-        throw error;
+        if (error) {
+          console.error('Error al crear la orden:', error);
+          throw error;
+        }
+
+        // Actualizar las alternativas de este grupo
+        const { error: updateError } = await supabase
+          .from('alternativa')
+          .update({ 
+            ordencreada: true,
+            numerorden: nuevoCorrelativo
+          })
+          .in('id', altsDelGrupo.map(alt => alt.id));
+
+        if (updateError) {
+          console.error('Error al actualizar alternativas:', updateError);
+          throw updateError;
+        }
+
+        // Generar el PDF para este grupo de alternativas
+        generateOrderPDF(data, altsDelGrupo, selectedCliente, selectedCampana, selectedPlan);
+
+        // Incrementar el correlativo para la siguiente orden
+        nuevoCorrelativo++;
       }
 
-      // Actualizar las alternativas de este grupo
-      const { error: updateError } = await supabase
-        .from('alternativa')
-        .update({ 
-          ordencreada: true,
-          numerorden: nuevoCorrelativo
-        })
-        .in('id', altsDelGrupo.map(alt => alt.id));
+      // Mostrar mensaje de éxito
+      const cantidadOrdenes = Object.keys(alternativasPorGrupo).length;
+      Swal.fire({
+        icon: 'success',
+        title: '¡Éxito!',
+        text: cantidadOrdenes > 1 
+          ? `Se han creado ${cantidadOrdenes} órdenes correctamente`
+          : 'La orden ha sido creada correctamente',
+        showConfirmButton: true,
+        timer: 2000
+      });
 
-      if (updateError) {
-        console.error('Error al actualizar alternativas:', updateError);
-        throw updateError;
-      }
+      // Refrescar la tabla de alternativas
+      await fetchAlternativas();
 
-      // Generar el PDF para este grupo de alternativas
-      generateOrderPDF(data, altsDelGrupo, selectedCliente, selectedCampana, selectedPlan);
-
-      // Incrementar el correlativo para la siguiente orden
-      nuevoCorrelativo++;
+      // Limpiar selecciones
+      setSelectedAlternativas([]);
+      
+    } catch (error) {
+      console.error('Error al crear la orden:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ocurrió un error al crear la orden'
+      });
     }
-
-       // Actualizar campo c_orden en las tablas relacionadas
-       const updatePromises = [];
-
-       // Actualizar campaña
-       if (campaniaId) {
-         updatePromises.push(
-           supabase
-             .from('Campania')
-             .update({ c_orden: true })
-             .eq('id_campania', campaniaId)
-         );
-       }
-   
-       // Actualizar soportes
-       if (soporteIds.length > 0) {
-         updatePromises.push(
-           supabase
-             .from('Soportes')
-             .update({ c_orden: true })
-             .in('id_soporte', soporteIds)
-         );
-       }
-   
-       // Actualizar contratos
-       if (contratoIds.length > 0) {
-         updatePromises.push(
-           supabase
-             .from('Contratos')
-             .update({ c_orden: true })
-             .in('id', contratoIds)
-         );
-       }
-   
-       // Actualizar temas
-       if (temaIds.length > 0) {
-         updatePromises.push(
-           supabase
-             .from('Temas')
-             .update({ c_orden: true })
-             .in('id_tema', temaIds)
-         );
-       }
-   
-       // Actualizar programas
-       if (programaIds.length > 0) {
-         updatePromises.push(
-           supabase
-             .from('Programas')
-             .update({ c_orden: true })
-             .in('id', programaIds)
-         );
-       }
-   
-       // Ejecutar todas las actualizaciones en paralelo
-       await Promise.all(updatePromises);
-
-    // Mostrar mensaje de éxito
-    const cantidadOrdenes = Object.keys(alternativasPorGrupo).length;
-    Swal.fire({
-      icon: 'success',
-      title: '¡Éxito!',
-      text: cantidadOrdenes > 1 
-        ? `Se han creado ${cantidadOrdenes} órdenes correctamente`
-        : 'La orden ha sido creada correctamente',
-      showConfirmButton: true,
-      timer: 2000
-    });
-
-    // Refrescar la tabla de alternativas
-    await fetchAlternativas();
-
-    // Limpiar selecciones
-    setSelectedAlternativas([]);
-    
-  } catch (error) {
-    console.error('Error al crear la orden:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Ocurrió un error al crear la orden'
-    });
-  }
-};
+  };
 
   const filteredClientes = clientes.filter(cliente =>
     cliente.nombreCliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
