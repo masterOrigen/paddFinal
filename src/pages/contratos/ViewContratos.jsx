@@ -80,6 +80,16 @@ function ViewContrato() {
   };
 
   const handleEdit = () => {
+    // Restringe edición si el contrato forma parte de una orden creada
+    if (contrato?.c_orden === true) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No se puede editar',
+        text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+        confirmButtonColor: '#3085d6',
+      });
+      return;
+    }
     setOpenModalEditar(true);
   };
 
@@ -232,7 +242,9 @@ function ViewContrato() {
         <ModalEditarContrato
           open={openModalEditar}
           onClose={handleCloseModalEditar}
-          contratoData={selectedContrato}
+          contrato={selectedContrato}
+          clienteId={selectedContrato.IdCliente}
+          clienteNombre={contrato?.cliente?.nombreCliente}
           onContratoUpdated={() => {
             handleCloseModalEditar();
             Swal.fire({
