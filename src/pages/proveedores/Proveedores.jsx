@@ -25,6 +25,7 @@ import {
   Paper,
   CircularProgress
 } from '@mui/material';
+import OutlinedInput from '@mui/material/OutlinedInput';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -966,12 +967,22 @@ const Proveedores = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Región</InputLabel>
+                <InputLabel id="region-label">Región</InputLabel>
                 <Select
+                  labelId="region-label"
                   name="id_region"
                   value={selectedProveedor?.id_region || newProveedor.id_region}
                   onChange={handleInputChange}
-                  label="Región"
+                  input={
+                    <OutlinedInput
+                      label="Región"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <ApartmentIcon />
+                        </InputAdornment>
+                      }
+                    />
+                  }
                 >
                   {Object.keys(regiones).map((region, index) => (
                     <MenuItem key={index} value={region}>
@@ -983,13 +994,23 @@ const Proveedores = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Comuna</InputLabel>
+                <InputLabel id="comuna-label">Comuna</InputLabel>
                 <Select
+                  labelId="comuna-label"
                   name="id_comuna"
                   value={selectedProveedor?.id_comuna || newProveedor.id_comuna}
                   onChange={handleInputChange}
-                  label="Comuna"
                   disabled={!(selectedProveedor?.id_region || newProveedor.id_region)}
+                  input={
+                    <OutlinedInput
+                      label="Comuna"
+                      startAdornment={
+                        <InputAdornment position="start">
+                          <LocationOnIcon />
+                        </InputAdornment>
+                      }
+                    />
+                  }
                 >
                   {Object.keys(comunasFiltradas).map((comuna, index) => (
                     <MenuItem key={index} value={comuna}>

@@ -393,6 +393,8 @@ const handleCrearOrden = async () => {
           id_compania: selectedCampana.id_compania,
           alternativas_plan_orden: altsDelGrupo.map(alt => alt.id),
           numero_correlativo: nuevoCorrelativo,
+          // Guardar la fecha de creación explícitamente para evitar epoch 1970
+          created_at: new Date().toISOString(),
           usuario_registro: user2 ? {
             nombre: user2.Nombre,
             email: user2.Email

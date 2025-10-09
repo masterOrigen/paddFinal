@@ -115,6 +115,7 @@ const Alternativas = () => {
     mes: '',
     id_campania: '',
     num_contrato: '',
+    id_contrato: '',
     id_soporte: '',
     id_programa: '',
     tipo_item: '',
@@ -1932,7 +1933,7 @@ const Alternativas = () => {
   };
 
   const handleOpenClasificacionModal = () => {
-    if (!nuevaAlternativa.num_contrato) {
+    if (!nuevaAlternativa.id_contrato) {
       Swal.fire({
         icon: 'warning',
         title: 'Atención',
@@ -1969,7 +1970,7 @@ const Alternativas = () => {
       setEditingClasificacion(null);
       setNuevaClasificacion({
         NombreClasificacion: '',
-        id_contrato: nuevaAlternativa.num_contrato
+        id_contrato: nuevaAlternativa.id_contrato
       });
     }
     setOpenAddEditClasificacionModal(true);
@@ -3478,32 +3479,32 @@ const Alternativas = () => {
                       <Grid item xs={12} sm={4} sx={{ width: '100%' }}>
                         <FormControl fullWidth>
                           <Box sx={{ position: 'relative', width: '100%' }}>
-                            <TextField
-                              label="Clasificación"
-                              value={selectedClasificacion ? selectedClasificacion.NombreClasificacion : ''}
-                              InputProps={{
-                                readOnly: true,
-                                endAdornment: (
-                                  <InputAdornment position="end">
-                                    <IconButton
-                                      edge="end"
-                                      onClick={() => nuevaAlternativa.num_contrato && handleOpenClasificacionModal()}
-                                      disabled={!nuevaAlternativa.num_contrato}
-                                    >
-                                      <SearchIcon />
-                                    </IconButton>
-                                  </InputAdornment>
-                                ),
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <CategoryIcon sx={{ fontSize: '1.1rem' }} />
-                                  </InputAdornment>
-                                )
-                              }}
-                              onClick={() => nuevaAlternativa.num_contrato && handleOpenClasificacionModal()}
-                              sx={{ cursor: nuevaAlternativa.num_contrato ? 'pointer' : 'not-allowed', width: '100%' }}
-                              helperText={!nuevaAlternativa.num_contrato ? "Primero seleccione un contrato" : ""}
-                            />
+                              <TextField
+                                label="Clasificación"
+                                value={selectedClasificacion ? selectedClasificacion.NombreClasificacion : ''}
+                                InputProps={{
+                                  readOnly: true,
+                                  endAdornment: (
+                                    <InputAdornment position="end">
+                                      <IconButton
+                                        edge="end"
+                                        onClick={() => nuevaAlternativa.id_contrato && handleOpenClasificacionModal()}
+                                        disabled={!nuevaAlternativa.id_contrato}
+                                      >
+                                        <SearchIcon />
+                                      </IconButton>
+                                    </InputAdornment>
+                                  ),
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <CategoryIcon sx={{ fontSize: '1.1rem' }} />
+                                    </InputAdornment>
+                                  )
+                                }}
+                                onClick={() => nuevaAlternativa.id_contrato && handleOpenClasificacionModal()}
+                                sx={{ cursor: nuevaAlternativa.id_contrato ? 'pointer' : 'not-allowed', width: '100%' }}
+                                helperText={!nuevaAlternativa.id_contrato ? "Primero seleccione un contrato" : ""}
+                              />
                           </Box>
                         </FormControl>
                       </Grid>
@@ -4325,7 +4326,7 @@ Cancelar
                   <TableRow>
                     <TableCell>ID</TableCell>
                     <TableCell>Nombre Clasificación</TableCell>
-                    <TableCell>Acciones</TableCell>
+                    <TableCell align="center">Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -4351,29 +4352,31 @@ Cancelar
                       >
                         <TableCell>{clasificacion.id}</TableCell>
                         <TableCell>{clasificacion.NombreClasificacion}</TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenAddEditClasificacionModal(clasificacion);
-                            }}
-                            color="primary"
-                            title="Editar"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSeleccionarClasificacion(clasificacion);
-                            }}
-                            color="primary"
-                            title="Seleccionar"
-                          >
-                            <CheckIcon />
-                          </IconButton>
+                        <TableCell align="center" sx={{ minWidth: 120 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.25 }}>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAddEditClasificacionModal(clasificacion);
+                              }}
+                              color="primary"
+                              title="Editar"
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSeleccionarClasificacion(clasificacion);
+                              }}
+                              color="primary"
+                              title="Seleccionar"
+                            >
+                              <CheckIcon />
+                            </IconButton>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))

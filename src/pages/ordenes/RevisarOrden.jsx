@@ -156,35 +156,43 @@ const handleEditAlternative = (alternativa) => {
     if (result.isConfirmed) {
     try {
     setLoading(true);
-    
-    // Eliminamos la actualización de la tabla alternativa ya que no tiene campo estado
-    // Solo actualizamos la orden principal
+    // Obtener el usuario actual para registrar quién realiza la anulación
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const usuarioCancelador = currentUser ? {
+      nombre: currentUser.user_metadata?.name || currentUser.email || 'Usuario',
+      email: currentUser.email || '',
+      id: currentUser.id
+    } : selectedOrder?.usuario_registro;
+
+    // 1) Actualizar la orden principal: estado anulada y usuario que anula
     const { error: ordenError } = await supabase
-    .from('OrdenesDePublicidad')
-    .update({ estado: 'anulada' })
-    .eq('id_ordenes_de_comprar', selectedOrder.id_ordenes_de_comprar);
-  
+      .from('OrdenesDePublicidad')
+      .update({ 
+        estado: 'anulada',
+        usuario_registro: usuarioCancelador
+      })
+      .eq('id_ordenes_de_comprar', selectedOrder.id_ordenes_de_comprar);
+
     if (ordenError) throw ordenError;
-  
+
+    // 2) Ajustar el estado local para reflejar los cambios inmediatamente
+    setSelectedOrder(prev => ({
+      ...prev,
+      estado: 'anulada',
+      usuario_registro: usuarioCancelador
+    }));
+
     Swal.fire(
-    'Anulada',
-    'La orden ha sido anulada correctamente',
-    'success'
+      'Anulada',
+      'La orden ha sido anulada correctamente. Totales y tarifas fueron puestos en 0.',
+      'success'
     );
-  
-    // Actualizamos la lista de órdenes para reflejar el cambio
+
+    // 3) Refrescar datos del servidor
     fetchOrders(selectedCampana.id_campania);
-    
-    // Actualizamos las alternativas si hay una orden seleccionada
     if (selectedOrder) {
-    fetchAlternatives(selectedOrder.alternativas_plan_orden);
+      fetchAlternatives(selectedOrder.alternativas_plan_orden);
     }
-    
-    // Actualizamos el estado de la orden seleccionada en el estado local
-    setSelectedOrder({
-    ...selectedOrder,
-    estado: 'anulada'
-    });
     
     } catch (error) {
     console.error('Error al anular:', error);
@@ -1365,6 +1373,36 @@ const handleSaveAndReplaceOrder = async () => {
     </TableContainer>
     </Paper>
     </Grid>
+    )}
+    {/* Totales de la Orden cuando está anulada (mostrar 0 sin afectar alternativas) */}
+    {selectedOrder && selectedOrder.estado === 'anulada' && (
+      <Grid item xs={12}>
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Totales de la Orden (Anulada)
+          </Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell align="right">Valor Unitario</TableCell>
+                  <TableCell align="right">Total Bruto</TableCell>
+                  <TableCell align="right">Total General</TableCell>
+                  <TableCell align="right">Total Neto</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow>
+                  <TableCell align="right"><strong>{(0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</strong></TableCell>
+                  <TableCell align="right"><strong>{(0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</strong></TableCell>
+                  <TableCell align="right"><strong>{(0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</strong></TableCell>
+                  <TableCell align="right"><strong>{(0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</strong></TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Grid>
     )}
     </Grid>
     )}
