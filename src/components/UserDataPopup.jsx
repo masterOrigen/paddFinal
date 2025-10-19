@@ -134,11 +134,19 @@ const UserDataPopup = ({ open, onClose }) => {
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user?.id_usuario) throw new Error('No se encontró el usuario');
 
-      // Generar un nombre de archivo único
+      // Generar un nombre de archivo único (simplificado sin carpeta)
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id_usuario}_${Date.now()}.${fileExt}`;
-      const filePath = `images/${fileName}`;
+      const filePath = fileName; // Subir directamente a la raíz del bucket
 
+      console.log('Intentando subir archivo:', filePath);
+      console.log('Usuario desde localStorage:', user);
+
+      // Intentar obtener el usuario actual de Supabase usando el método correcto
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const supabaseUser = session?.user;
+      console.log('Usuario de Supabase:', supabaseUser);
+      
       // Intentar subir usando el cliente de Supabase con el contexto de autenticación actual
       const { data, error } = await supabase.storage
         .from('avatar')
@@ -149,18 +157,55 @@ const UserDataPopup = ({ open, onClose }) => {
 
       if (error) {
         console.error('Error al subir imagen:', error);
-        throw new Error(`Error al subir imagen: ${error.message}`);
+        
+        // Si el error es de autenticación, intentar refrescar la sesión
+        if (error.message?.includes('JWT') || error.message?.includes('authentication') || error.message?.includes('Unauthorized')) {
+          console.log('Intentando refrescar la sesión...');
+          const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError) {
+            console.error('Error al refrescar la sesión:', refreshError);
+            throw new Error(`Error de autenticación: ${refreshError.message}`);
+          }
+          
+          console.log('Sesión refrescada:', sessionData);
+          
+          // Reintentar la subida después de refrescar la sesión
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from('avatar')
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: true
+            });
+            
+          if (retryError) {
+            throw new Error(`Error al subir imagen después de refrescar la sesión: ${retryError.message}`);
+          }
+          
+          console.log('Archivo subido exitosamente después de refrescar la sesión:', retryData);
+        } else {
+          throw new Error(`Error al subir imagen: ${error.message}`);
+        }
+      } else {
+        console.log('Archivo subido exitosamente:', data);
       }
 
-      // Obtener la URL pública del archivo
+      // Obtener la URL pública del archivo usando el método de Supabase
       const { data: urlData } = supabase.storage
         .from('avatar')
         .getPublicUrl(filePath);
 
-      if (!urlData?.publicUrl) throw new Error('No se pudo obtener la URL de la imagen');
+      // Reemplazar localhost por el dominio correcto en la URL generada por Supabase
+      let publicUrl = urlData?.publicUrl || '';
+      if (publicUrl.includes('localhost:8000')) {
+        publicUrl = publicUrl.replace('http://localhost:8000', 'https://supabase.origenmedios.cl');
+      }
+      
+      console.log('URL original de Supabase:', urlData?.publicUrl);
+      console.log('URL corregida:', publicUrl);
 
       // Actualizar la URL del avatar en el estado
-      setAvatarUrl(urlData.publicUrl);
+      setAvatarUrl(publicUrl);
 
       Swal.fire({
         icon: 'success',
@@ -176,12 +221,12 @@ const UserDataPopup = ({ open, onClose }) => {
       let errorMessage = error.message || 'Error desconocido';
       
       if (error.message?.includes('row-level security')) {
-        errorMessage = 'Error de permisos. Debes configurar las políticas RLS en Supabase Storage para permitir la subida de archivos de avatar.';
+        errorMessage = 'Error de permisos. Las políticas RLS pueden no estar configuradas correctamente. Verifica que las políticas se hayan aplicado en Supabase Storage.';
       }
       
       // Si el error es de autenticación, mostrar instrucciones adicionales
       if (error.message?.includes('JWT') || error.message?.includes('authentication')) {
-        errorMessage = 'Error de autenticación. Por favor, recarga la página e intenta nuevamente.';
+        errorMessage = 'Error de autenticación. Por favor, cierra sesión y vuelve a iniciarla.';
       }
       
       Swal.fire({
