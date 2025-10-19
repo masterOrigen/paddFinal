@@ -421,7 +421,6 @@ const Agencias = () => {
   };
 
   const columns = [
-    { field: 'id', headerName: 'ID', width: 90 },
     { field: 'NombreIdentificador', headerName: 'Nombre Identificador', flex: 1 },
     { field: 'RazonSocial', headerName: 'Razón Social', flex: 1 },
     { field: 'NombreDeFantasia', headerName: 'Nombre de Fantasía', flex: 1 },

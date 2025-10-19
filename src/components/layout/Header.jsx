@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { supabase } from '../../config/supabase';
+import UserDataPopup from '../UserDataPopup';
 import './Header.css';
 
 const Header = ({ setIsAuthenticated }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [userDataOpen, setUserDataOpen] = useState(false);
   const menuRef = useRef();
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
@@ -24,6 +26,11 @@ const Header = ({ setIsAuthenticated }) => {
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
+  };
+
+  const handleProfileClick = () => {
+    setShowMenu(false);
+    setUserDataOpen(true);
   };
 
   return (
@@ -46,7 +53,7 @@ const Header = ({ setIsAuthenticated }) => {
             {user?.Avatar ? (
               <img 
                 src={user.Avatar} 
-                alt={`${user.Nombre} ${user.Apellido}`}
+                alt={`${user.Nombre} ${user.Apellido}` || 'Usuario'}
                 className="user-avatar-image"
               />
             ) : (
@@ -55,7 +62,7 @@ const Header = ({ setIsAuthenticated }) => {
           </div>
           {showMenu && (
             <div className="user-menu">
-              <div className="menu-item">
+              <div className="menu-item" onClick={handleProfileClick}>
                 <i className="fas fa-user"></i>
                 <span>Mi Perfil</span>
               </div>
@@ -75,6 +82,9 @@ const Header = ({ setIsAuthenticated }) => {
           )}
         </div>
       </div>
+
+      {/* Popup de Datos del Usuario */}
+      <UserDataPopup open={userDataOpen} onClose={() => setUserDataOpen(false)} />
     </header>
   );
 };

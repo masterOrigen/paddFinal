@@ -40,7 +40,6 @@ export default function Medios() {
 
   // Columnas para el DataGrid
   const columns = [
-    { field: 'id', headerName: 'ID', width: 90 },
     { field: 'NombredelMedio', headerName: 'Nombre del Medio', width: 200 },
    
     { field: 'codigo', headerName: 'Código', width: 130 },

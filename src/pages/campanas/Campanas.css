@@ -1,26 +1,3 @@
-.container {
-    padding-left: 240px;
-}
-
-@media (max-width: 600px) {
-    .container {
-        padding-left: 0;
-    }
-}
-
-.MuiContainer-root {
-    padding-top: 16px !important;
-    padding-bottom: 16px !important;
-    width: calc(100% - 240px) !important;
-    max-width: none !important;
-}
-
-.MuiDataGrid-root {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
 .action-buttons {
     display: flex;
     justify-content: center;
