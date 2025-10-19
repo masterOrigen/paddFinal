@@ -705,15 +705,9 @@ const Clientes = () => {
   };
 
   const columns = [
-    { 
-      field: 'id', 
-      headerName: 'ID', 
-      width: 50,
-      headerClassName: 'data-grid-header',
-    },
-    { 
-      field: 'fechaIngreso', 
-      headerName: 'Fecha de Ingreso', 
+    {
+      field: 'fechaIngreso',
+      headerName: 'Fecha de Ingreso',
       width: 110,
       headerClassName: 'data-grid-header',
     },

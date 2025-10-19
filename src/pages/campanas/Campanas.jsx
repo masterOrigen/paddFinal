@@ -29,6 +29,7 @@ import * as XLSX from 'xlsx';
 import ModalAgregarCampana from './ModalAgregarCampana';
 import ModalEditarCampana from './ModalEditarCampana';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import './Campanas.css';
 
 const Campanas = () => {
     const navigate = useNavigate();
@@ -349,27 +350,29 @@ const Campanas = () => {
                                     />
                                 </TableCell>
                                 <TableCell>
-                                    <IconButton
-                                        color="primary"
-                                        size="small"
-                                        onClick={() => handleView(campana)}
-                                    >
-                                        <i className="fas fa-eye"></i>
-                                    </IconButton>
-                                    <IconButton
-                                        color="success"
-                                        size="small"
-                                        onClick={() => handleEdit(campana)}
-                                    >
-                                        <i className="fas fa-edit"></i>
-                                    </IconButton>
-                                    <IconButton
-                                        color="error"
-                                        size="small"
-                                        onClick={() => handleDelete(campana.id_campania)}
-                                    >
-                                        <i className="fas fa-trash-alt"></i>
-                                    </IconButton>
+                                    <div className="action-buttons">
+                                        <IconButton
+                                            className="view-button"
+                                            size="small"
+                                            onClick={() => handleView(campana)}
+                                        >
+                                            <i className="fas fa-eye"></i>
+                                        </IconButton>
+                                        <IconButton
+                                            className="edit-button"
+                                            size="small"
+                                            onClick={() => handleEdit(campana)}
+                                        >
+                                            <i className="fas fa-edit"></i>
+                                        </IconButton>
+                                        <IconButton
+                                            className="delete-button"
+                                            size="small"
+                                            onClick={() => handleDelete(campana.id_campania)}
+                                        >
+                                            <i className="fas fa-trash-alt"></i>
+                                        </IconButton>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}

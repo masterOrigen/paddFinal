@@ -39,6 +39,7 @@ const Mensajes = () => {
   const [page, setPage] = useState(1);
   const [currentUser, setCurrentUser] = useState(null);
   const [formData, setFormData] = useState({
+    titulo: '',
     mensaje: '',
   });
   const [dateRange, setDateRange] = useState({
@@ -103,11 +104,13 @@ const Mensajes = () => {
   const handleOpenDialog = (mensaje = null) => {
     if (mensaje) {
       setFormData({
+        titulo: mensaje.titulo || '',
         mensaje: mensaje.mensaje,
       });
       setSelectedMensaje(mensaje);
     } else {
       setFormData({
+        titulo: '',
         mensaje: '',
       });
       setSelectedMensaje(null);
@@ -119,6 +122,7 @@ const Mensajes = () => {
     setOpenDialog(false);
     setSelectedMensaje(null);
     setFormData({
+      titulo: '',
       mensaje: '',
     });
   };
@@ -137,6 +141,7 @@ const Mensajes = () => {
         const { error } = await supabase
           .from('aviso')
           .update({
+            titulo: formData.titulo,
             mensaje: formData.mensaje,
             id_usuario: currentUser.id_usuario
           })
@@ -167,6 +172,7 @@ const Mensajes = () => {
           .insert([
             {
               id: nextId,
+              titulo: formData.titulo,
               mensaje: formData.mensaje,
               id_usuario: currentUser.id_usuario,
               created_at: new Date().toISOString()
@@ -435,7 +441,10 @@ const Mensajes = () => {
                         {mensaje.Usuarios_1 ? `${mensaje.Usuarios_1.Nombre} ${mensaje.Usuarios_1.Apellido}` : 'Usuario no identificado'}
                       </Typography>
                     </Box>
-                    <div 
+                    <Typography variant="h6" gutterBottom>
+                      {mensaje.titulo || 'Sin título'}
+                    </Typography>
+                    <div
                       dangerouslySetInnerHTML={{ __html: mensaje.mensaje }}
                       className="mensaje-content"
                     />
@@ -485,6 +494,19 @@ const Mensajes = () => {
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Typography variant="subtitle1" gutterBottom>
+                  Título
+                </Typography>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  value={formData.titulo}
+                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                  placeholder="Ingrese el título del mensaje"
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
                   Mensaje
                 </Typography>
                 <ReactQuill
@@ -493,9 +515,9 @@ const Mensajes = () => {
                   onChange={(content) => setFormData({ ...formData, mensaje: content })}
                   modules={modules}
                   formats={formats}
-                  style={{ 
-                    height: '300px', 
-                    marginBottom: '50px' 
+                  style={{
+                    height: '300px',
+                    marginBottom: '50px'
                   }}
                 />
               </Grid>

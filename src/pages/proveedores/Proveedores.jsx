@@ -342,14 +342,9 @@ const Proveedores = () => {
   };
 
   const columns = [
-    { 
-      field: 'id_proveedor', 
-      headerName: 'ID', 
-      width: 60
-    },
-    { 
-      field: 'nombreIdentificador', 
-      headerName: 'Nombre', 
+    {
+      field: 'nombreIdentificador',
+      headerName: 'Nombre',
       width: 150,
       flex: 1
     },
