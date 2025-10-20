@@ -154,8 +154,14 @@ const ReporteOrdenDeCompra = () => {
         query = query.eq('Campania.id_campania', filtros.campana);
       }
 
-      if (filtros.estado) {
-        query = query.eq('estado', filtros.estado);
+      if (filtros.estado !== undefined && filtros.estado !== null && filtros.estado !== '') {
+        if (filtros.estado === 'activa') {
+          // Busca órdenes con estado 'activa', '' o null
+          query = query.or('estado.eq.activa,estado.is.null,estado.eq.empty');
+        } else {
+          // Para 'anulada', busca solo ese estado
+          query = query.eq('estado', filtros.estado);
+        }
       }
 
       // Aplicar filtro de fecha inicio
@@ -174,6 +180,20 @@ const ReporteOrdenDeCompra = () => {
 
       const { data, error } = await query.order('fechaCreacion', { ascending: false });
 
+      console.log("Resultados encontrados:", data?.length || 0);
+      if (data && data.length > 0) {
+        console.log("Primer resultado:", data[0]);
+        console.log("Fecha del primer resultado:", data[0].fechaCreacion);
+        console.log("Estados encontrados:", [...new Set(data.map(d => d.estado))]);
+        console.log("Fechas en los resultados:", data.slice(0, 5).map(d => ({
+          id: d.id_ordenes_de_comprar,
+          fechaCreacion: d.fechaCreacion,
+          created_at: d.created_at,
+          estado: d.estado
+        })));
+      }
+      console.log("Error:", error);
+      
       if (error) throw error;
       setOrdenes(data || []);
     } catch (error) {
@@ -211,8 +231,11 @@ const ReporteOrdenDeCompra = () => {
     'Razón Social CLIENTE': orden.Campania?.Clientes?.razonSocial || '',
     'Cliente': orden.Campania?.Clientes?.nombreCliente || '',
     'AÑO': orden.plan?.Anios?.years || '',
-    'Mes': orden.plan?.Meses?.Nombre || '',
-    'N° de Ctto.': orden.Contratos?.num_contrato || '',
+    'Mes': orden.fechaCreacion ?
+      new Date(orden.fechaCreacion).toLocaleDateString('es-ES', { month: 'long' }).charAt(0).toUpperCase() +
+      new Date(orden.fechaCreacion).toLocaleDateString('es-ES', { month: 'long' }).slice(1)
+      : (orden.plan?.Meses?.Nombre || ''),
+    'N° de Ctto.': orden.Contratos?.NombreContrato || '',
     'N° de Orden': orden.numero_correlativo || '',
     'Versión': orden.copia || '',
     'Medio': orden.Contratos?.Proveedores?.nombreProveedor || '',
@@ -306,13 +329,22 @@ const ReporteOrdenDeCompra = () => {
           </Grid>
           <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth size="small">
-              <InputLabel>Estado</InputLabel>
+              <InputLabel shrink>Estado</InputLabel>
               <Select
-                value={filtros.estado}
+                value={filtros.estado || ''}
                 label="Estado"
                 onChange={(e) => handleFiltroChange('estado', e.target.value)}
+                displayEmpty
+                renderValue={(value) => {
+                  if (value === '') {
+                    return <em>Todos</em>;
+                  }
+                  return value === 'activa' ? 'Activa' : 'Anulada';
+                }}
               >
-                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="">
+                  <em>Todos</em>
+                </MenuItem>
                 <MenuItem value="activa">Activa</MenuItem>
                 <MenuItem value="anulada">Anulada</MenuItem>
               </Select>
@@ -443,8 +475,14 @@ const ReporteOrdenDeCompra = () => {
                       <TableCell>{orden.Campania?.Clientes?.razonSocial || 'NA'}</TableCell>
                       <TableCell>{orden.Campania?.Clientes?.nombreCliente || 'NA'}</TableCell>
                       <TableCell>{orden.plan?.Anios?.years || 'NA'}</TableCell>
-                      <TableCell>{orden.plan?.Meses?.Nombre || 'NA'}</TableCell>
-                      <TableCell>{orden.Contratos?.num_contrato || 'NA'}</TableCell>
+                      <TableCell>
+                        {orden.fechaCreacion ?
+                          new Date(orden.fechaCreacion).toLocaleDateString('es-ES', { month: 'long' }).charAt(0).toUpperCase() +
+                          new Date(orden.fechaCreacion).toLocaleDateString('es-ES', { month: 'long' }).slice(1)
+                          : (orden.plan?.Meses?.Nombre || 'NA')
+                        }
+                      </TableCell>
+                      <TableCell>{orden.Contratos?.NombreContrato || 'NA'}</TableCell>
                       <TableCell>{orden.numero_correlativo || 'NA'}</TableCell>
                       <TableCell>{orden.copia || 'NA'}</TableCell>
                       <TableCell>{orden.Contratos?.Proveedores?.nombreProveedor || 'NA'}</TableCell>
