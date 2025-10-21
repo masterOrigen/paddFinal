@@ -28,6 +28,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { es } from 'date-fns/locale';
 import { Pagination } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import './InformeInversionClienteBruto.css';
 
 const InformeInversionClienteBruto = () => {
   const [loading, setLoading] = useState(false);
@@ -295,36 +296,30 @@ const InformeInversionClienteBruto = () => {
   };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage - 1);
   };
 
   return (
-    <Container maxWidth="xl">
-      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Informe de Inversión Cliente Bruto
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h6" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2', mb: 3 }}>
+        Informe de Inversión Cliente Bruto
+      </Typography>
+      
+      <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', color: '#2c3e50' }}>
+          Filtros
         </Typography>
         
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Cliente</InputLabel>
               <Select
                 value={filtros.cliente}
+                label="Cliente"
                 onChange={(e) => handleFiltroChange('cliente', e.target.value)}
-                displayEmpty
-                sx={{
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                }}
               >
-                <MenuItem value="" disabled>Cliente</MenuItem>
+                <MenuItem value="">Todos</MenuItem>
                 {clientes.map((cliente) => (
                   <MenuItem key={cliente.id_cliente} value={cliente.id_cliente}>
                     {cliente.nombreCliente}
@@ -334,26 +329,16 @@ const InformeInversionClienteBruto = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Campaña</InputLabel>
               <Select
                 value={filtros.campana}
+                label="Campaña"
                 onChange={(e) => handleFiltroChange('campana', e.target.value)}
-                displayEmpty
                 disabled={!filtros.cliente}
-                sx={{
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                }}
               >
-                <MenuItem value="" disabled>Campaña</MenuItem>
+                <MenuItem value="">Todas</MenuItem>
                 {filteredCampanas.map((campana) => (
                   <MenuItem key={campana.id_campania} value={campana.id_campania}>
                     {campana.NombreCampania}
@@ -363,152 +348,139 @@ const InformeInversionClienteBruto = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
               <DatePicker
+                label="Fecha Inicio"
                 value={filtros.fechaInicio}
                 onChange={(newValue) => handleFiltroChange('fechaInicio', newValue)}
-                format="dd/MM/yyyy"
                 slotProps={{
                   textField: {
-                    size: "small",
                     fullWidth: true,
-                    sx: { width: '100%' },
-                    placeholder: "Fecha Inicio",
-                    InputLabelProps: { shrink: false }
+                    size: "small",
+                    sx: {
+                      '& .MuiInputBase-input': {
+                        textAlign: 'left'
+                      }
+                    }
                   }
                 }}
+                format="dd/MM/yyyy"
               />
             </LocalizationProvider>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
               <DatePicker
+                label="Fecha Fin"
                 value={filtros.fechaFin}
                 onChange={(newValue) => handleFiltroChange('fechaFin', newValue)}
-                format="dd/MM/yyyy"
                 slotProps={{
                   textField: {
-                    size: "small",
                     fullWidth: true,
-                    sx: { width: '100%' },
-                    placeholder: "Fecha Fin",
-                    InputLabelProps: { shrink: false }
+                    size: "small",
+                    sx: {
+                      '& .MuiInputBase-input': {
+                        textAlign: 'left'
+                      }
+                    }
                   }
                 }}
+                format="dd/MM/yyyy"
               />
             </LocalizationProvider>
           </Grid>
+          
+          <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+              variant="contained"
+              onClick={buscarOrdenes}
+              disabled={loading}
+              sx={{ mr: 1, height: 40 }}
+              fullWidth
+            >
+              {loading ? <CircularProgress size={24} /> : 'Buscar'}
+            </Button>
+            
+            <Button
+              variant="outlined"
+              onClick={limpiarFiltros}
+              sx={{ height: 40 }}
+              fullWidth
+            >
+              Limpiar
+            </Button>
+          </Grid>
         </Grid>
-
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Button variant="contained" onClick={buscarOrdenes} disabled={loading}>
-            Buscar
-          </Button>
-          <Button variant="outlined" onClick={limpiarFiltros} disabled={loading}>
-            Limpiar Filtros
-          </Button>
-          <Button
-            variant="contained"
-            color="success"
-            onClick={exportarExcel}
-            disabled={loading || ordenes.length === 0}
-          >
-            Exportar a Excel
-          </Button>
-          <Button
-            variant="contained"
-            color="info"
-            onClick={() => {
-              // Función para depurar los datos
-              const debugDatos = () => {
-                console.log('====== DEPURACIÓN MANUAL ======');
-                console.log('Todas las órdenes:', ordenes);
-                
-                if (ordenes.length > 0) {
-                  console.log('Primera orden:', ordenes[0]);
-                  console.log('Campaña de la primera orden:', ordenes[0].Campania);
-                  console.log('Id_Agencia en la campaña:', ordenes[0].Campania?.Id_Agencia);
-                  
-                  // Mostrar todas las agencias
-                  console.log('Todas las agencias:', agencias);
-                  
-                  // Buscar la agencia correspondiente
-                  const agenciaId = ordenes[0].Campania?.Id_Agencia;
-                  const agenciaEncontrada = agencias.find(ag => ag.id === agenciaId);
-                  console.log('Agencia encontrada:', agenciaEncontrada);
-                  
-                  // Forzar la actualización de la interfaz con el nombre de la agencia
-                  const nuevasOrdenes = [...ordenes];
-                  setOrdenes(nuevasOrdenes);
-                }
-              };
-              
-              // Ejecutar la función de depuración
-              debugDatos();
-              
-              // Cambiar el estado de depuración
-              setDebug(!debug);
-            }}
-          >
-            Depurar Datos
-          </Button>
+        
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+          {ordenes.length > 0 && (
+            <Button variant="contained" color="success" onClick={exportarExcel}>
+              Exportar a Excel
+            </Button>
+          )}
         </Box>
+      </Paper>
+      
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Resultados
+        </Typography>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress />
           </Box>
-        ) : (
+        ) : ordenes.length > 0 ? (
           <>
             <TableContainer>
-              <Table sx={{ minWidth: 650 }} size="small">
+              <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Razón Social Cliente</TableCell>
+                    <TableCell>RAZÓN SOCIAL</TableCell>
                     <TableCell>AÑO</TableCell>
-                    <TableCell>Mes</TableCell>
-                    <TableCell>N° de Ctto.</TableCell>
-                    <TableCell>N° de Orden</TableCell>
-                    <TableCell>Versión</TableCell>
-                    <TableCell>Medio</TableCell>
-                    <TableCell>Razón Soc.Proveedor</TableCell>
-                    <TableCell>RUT Prov.</TableCell>
-                    <TableCell>Soporte</TableCell>
-                    <TableCell>Campaña</TableCell>
-                    <TableCell>OC Cliente</TableCell>
-                    <TableCell>Producto</TableCell>
-                    <TableCell>Age.Crea</TableCell>
-                    <TableCell>Inv.Bruta</TableCell>
-                    <TableCell>N° Fact.Prov.</TableCell>
-                    <TableCell>Fecha Fact.Prov.</TableCell>
-                    <TableCell>N° Fact.Age.</TableCell>
-                    <TableCell>Fecha Fact.Age.</TableCell>
-                    <TableCell>Monto Neto Ft</TableCell>
-                    <TableCell>Tipo Ctto.</TableCell>
-                    <TableCell>Usuario</TableCell>
-                    <TableCell>Grupo</TableCell>
+                    <TableCell>MES</TableCell>
+                    <TableCell>N° DE CTTO.</TableCell>
+                    <TableCell>N° DE ORDEN</TableCell>
+                    <TableCell>VERSIÓN</TableCell>
+                    <TableCell>MEDIO</TableCell>
+                    <TableCell>RAZÓN SOC. PROVEEDOR</TableCell>
+                    <TableCell>RUT PROV.</TableCell>
+                    <TableCell>SOPORTE</TableCell>
+                    <TableCell>CAMPAÑA</TableCell>
+                    <TableCell>OC CLIENTE</TableCell>
+                    <TableCell>PRODUCTO</TableCell>
+                    <TableCell>AGE. CREA</TableCell>
+                    <TableCell>INV. BRUTA</TableCell>
+                    <TableCell>N° FACT. PROV.</TableCell>
+                    <TableCell>FECHA FACT. PROV.</TableCell>
+                    <TableCell>N° FACT. AGE.</TableCell>
+                    <TableCell>FECHA FACT. AGE.</TableCell>
+                    <TableCell>MONTO NETO FT</TableCell>
+                    <TableCell>TIPO CTTO.</TableCell>
+                    <TableCell>USUARIO</TableCell>
+                    <TableCell>GRUPO</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {ordenes
-                    .slice((page - 1) * rowsPerPage, page * rowsPerPage)
+                    .slice(page * rowsPerPage, (page + 1) * rowsPerPage)
                     .map((orden) => (
                       <TableRow key={orden.id_ordenes_de_comprar}>
-                        <TableCell>{orden.Campania?.Clientes?.razonSocial}</TableCell>
-                        <TableCell>{orden.plan?.Anios?.years}</TableCell>
-                        <TableCell>{orden.plan?.Meses?.Nombre}</TableCell>
-                        <TableCell>{orden.Contratos?.num_contrato}</TableCell>
-                        <TableCell>{orden.numero_correlativo}</TableCell>
-                        <TableCell>{orden.copia}</TableCell>
-                        <TableCell>{orden.Contratos?.Proveedores?.nombreProveedor}</TableCell>
-                        <TableCell>{orden.Contratos?.Proveedores?.nombreProveedor}</TableCell>
-                        <TableCell>{orden.Contratos?.Proveedores?.rutProveedor}</TableCell>
-                        <TableCell>{orden.Soportes?.nombreIdentficiador}</TableCell>
-                        <TableCell>{orden.Campania?.NombreCampania}</TableCell>
-                        <TableCell>{orden.numero_correlativo}</TableCell>
-                        <TableCell>{orden.Campania?.Productos?.NombreDelProducto}</TableCell>
+                        <TableCell>{orden.Campania?.Clientes?.razonSocial || 'NA'}</TableCell>
+                        <TableCell>{orden.plan?.Anios?.years || 'NA'}</TableCell>
+                        <TableCell>{orden.plan?.Meses?.Nombre || 'NA'}</TableCell>
+                        <TableCell>{orden.Contratos?.NombreContrato || 'NA'}</TableCell>
+                        <TableCell>{orden.numero_correlativo || 'NA'}</TableCell>
+                        <TableCell>{orden.copia || 'NA'}</TableCell>
+                        <TableCell>{orden.Contratos?.Proveedores?.nombreProveedor || 'NA'}</TableCell>
+                        <TableCell>{orden.Contratos?.Proveedores?.nombreProveedor || 'NA'}</TableCell>
+                        <TableCell>{orden.Contratos?.Proveedores?.rutProveedor || 'NA'}</TableCell>
+                        <TableCell>{orden.Soportes?.nombreIdentficiador || 'NA'}</TableCell>
+                        <TableCell>{orden.Campania?.NombreCampania || 'NA'}</TableCell>
+                        <TableCell>{orden.numero_correlativo || 'NA'}</TableCell>
+                        <TableCell>{orden.Campania?.Productos?.NombreDelProducto || 'NA'}</TableCell>
                         <TableCell>
                           {(() => {
                             // Verificar el soporte
@@ -550,37 +522,40 @@ const InformeInversionClienteBruto = () => {
                                 currency: 'CLP',
                                 minimumFractionDigits: 0
                               }).format(orden.Campania.Presupuesto)
-                            : ''}
+                            : 'NA'}
                         </TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell>{orden.Contratos?.NombreContrato}</TableCell>
+                        <TableCell>{'NA'}</TableCell>
+                        <TableCell>{'NA'}</TableCell>
+                        <TableCell>{'NA'}</TableCell>
+                        <TableCell>{'NA'}</TableCell>
+                        <TableCell>{'NA'}</TableCell>
+                        <TableCell>{orden.Contratos?.NombreContrato || 'NA'}</TableCell>
                         <TableCell>
                           {orden.OrdenesUsuarios?.[0]?.Usuarios?.nombre ||
-                            orden.usuario_registro?.nombre}
+                            orden.usuario_registro?.nombre || 'NA'}
                         </TableCell>
                         <TableCell>
                           {orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo ||
-                            orden.usuario_registro?.grupo}
+                            orden.usuario_registro?.grupo || 'NA'}
                         </TableCell>
                       </TableRow>
                     ))}
                 </TableBody>
               </Table>
             </TableContainer>
-
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
               <Pagination
                 count={Math.ceil(ordenes.length / rowsPerPage)}
-                page={page}
+                page={page + 1}
                 onChange={handleChangePage}
                 color="primary"
               />
             </Box>
           </>
+        ) : (
+          <Typography variant="body1" sx={{ p: 2, textAlign: 'center' }}>
+            No se encontraron órdenes con los filtros seleccionados
+          </Typography>
         )}
       </Paper>
     </Container>
