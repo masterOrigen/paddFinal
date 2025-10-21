@@ -118,17 +118,7 @@ const ReporteOrdenDeCompra = () => {
             Proveedores (id_proveedor, nombreProveedor, rutProveedor)
           ),
           Soportes (id_soporte, nombreIdentficiador),
-          plan (id, nombre_plan, anio, mes,
-            Anios!anio (id, years),
-            Meses (Id, Nombre)
-          ),
-          Programas:id_programa (id, descripcion),
-          Clasificacion (id, NombreClasificacion),
-          Temas (id_tema, NombreTema),
-          Soportes (id_soporte, nombreIdentficiador),
-          Anios (id, years),
-          Meses (Id, Nombre),
-          Medios (id, "NombredelMedio")
+          plan (id, nombre_plan, anio, mes)
         `);
 
       // Aplicar filtro de cliente
@@ -568,9 +558,6 @@ const ReporteOrdenDeCompra = () => {
           copia,
           horario_inicio,
           horario_fin,
-          Programas:id_programa (id, descripcion),
-          Clasificacion (id, NombreClasificacion),
-          Temas (id_tema, NombreTema),
           Soportes (id_soporte, nombreIdentficiador),
           Anios (id, years),
           Meses (Id, Nombre),
@@ -633,9 +620,6 @@ const ReporteOrdenDeCompra = () => {
           copia,
           horario_inicio,
           horario_fin,
-          Programas:id_programa (id, descripcion),
-          Clasificacion (id, NombreClasificacion),
-          Temas (id_tema, NombreTema),
           Soportes (id_soporte, nombreIdentficiador),
           Anios (id, years),
           Meses (Id, Nombre),
@@ -669,7 +653,7 @@ const ReporteOrdenDeCompra = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2', mb: 3 }}>
+      <Typography variant="h6" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2', mb: 3 }}>
         Reporte de Órdenes
       </Typography>
       
