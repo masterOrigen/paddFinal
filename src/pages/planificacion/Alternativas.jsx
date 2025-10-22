@@ -1408,6 +1408,7 @@ const Alternativas = () => {
     setNuevaAlternativa(prev => ({
       ...prev,
       num_contrato: contrato.id,
+      id_contrato: contrato.id, // Agregar esta línea para habilitar el modal de clasificación
       // Limpiar los montos
       valor_unitario: '',
       descuento_plan: '',
