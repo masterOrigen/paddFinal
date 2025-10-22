@@ -355,18 +355,16 @@ const handleCrearOrden = async () => {
       const soporteId = alt.Soportes?.id_soporte;
       const contratoId = alt.Contratos?.id;
       const proveedorId = alt.Contratos?.IdProveedor;
-      const tipoItem = alt.tipo_item;
       
       // Crear una clave única combinando soporte, contrato y proveedor
-      const grupoKey = `${soporteId}-${contratoId}-${proveedorId}-${tipoItem}`;
+      const grupoKey = `${soporteId}-${contratoId}-${proveedorId}`;
       
       if (!acc[grupoKey]) {
         acc[grupoKey] = {
           alternativas: [],
           soporte: alt.Soportes,
           contrato: alt.Contratos,
-          proveedor: alt.Contratos?.Proveedores,
-          tipo_item: alt.tipo_item
+          proveedor: alt.Contratos?.Proveedores
         };
       }
       acc[grupoKey].alternativas.push(alt);
@@ -393,6 +391,8 @@ const handleCrearOrden = async () => {
           id_compania: selectedCampana.id_compania,
           alternativas_plan_orden: altsDelGrupo.map(alt => alt.id),
           numero_correlativo: nuevoCorrelativo,
+          // Toda orden nueva parte con 1 copia
+          copia: 1,
           // Guardar la fecha de creación explícitamente para evitar epoch 1970
           created_at: new Date().toISOString(),
           usuario_registro: user2 ? {
@@ -401,8 +401,7 @@ const handleCrearOrden = async () => {
           } : null,
           // Solo incluir los campos que existen en la tabla
           id_soporte: grupo.soporte?.id_soporte,
-          id_contrato: grupo.contrato?.id,
-          estado: 'activa'
+          id_contrato: grupo.contrato?.id
         })
         .select()
         .single();
