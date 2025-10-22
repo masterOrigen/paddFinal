@@ -88,6 +88,7 @@ const Sidebar = () => {
         { text: 'Reporte diario de Órdenes', link: '/reportes/diarioordenes' },
         { text: 'Informe de Inversión', link: '/reportes/informeinversion' },
         { text: 'Inversión por Cliente', link: '/reportes/inversionporcliente' },
+        { text: 'Reporte Inversión Cliente', link: '/reportes/reporteinversioncliente' },
         { text: 'Rendimiento de Campañas', link: '/reportes/rendimientocampanas' },
         { text: 'Análisis de Medios', link: '/reportes/analisismedios' },
         { text: 'Efectividad de Proveedores', link: '/reportes/efectividadproveedores' },
