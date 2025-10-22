@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { pdf } from '@react-pdf/renderer';
-import { supabase } from '../config/supabase.js';
+
 const styles = StyleSheet.create({
   page: {
     padding: 15,
@@ -216,9 +216,11 @@ totalsContainer: {
   }
 });
 const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
+  const upper = (s) => (typeof s === 'string' ? s.toUpperCase() : s);
   // Determinar si es bruto o neto basado en el TipoGeneracionDeOrden del contrato
   const tipoOrden = alternatives[0]?.Contratos?.TipoGeneracionDeOrden?.id || 1;
   const esBruto = tipoOrden === 2; // Asumiendo que id=2 es Bruto y id=1 es Neto
+  const isCanceled = order?.estado === 'anulada';
   
   return (
 	<Document>
@@ -226,10 +228,9 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 			<View style={styles.header}>
 				<Text style={styles.headerText}>RUT {cliente?.RUT}</Text>
         <View style={styles.titleContainer}>
-    <Text style={styles.title}>
-        {order?.estado === 'anulada' ? <Text style={{color: 'red'}}>ANULADA </Text> : ''}
-        ORDEN DE PUBLICIDAD {order?.numero_correlativo}
-        {order?.orden_remplaza ? ` - ${order?.copia}` : ''}
+    <Text style={[styles.title, isCanceled ? { color: 'red' } : null]}>
+        {isCanceled ? 'ORDEN ANULADA' : 'ORDEN DE PUBLICIDAD'} {order?.numero_correlativo}
+        {order?.copia ? ` - ${order?.copia}` : ''}
     </Text>
     {order?.orden_remplaza && (
         <Text style={styles.replacementText2}>
@@ -238,12 +239,9 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         </Text>
     )}
 </View>
-<View style={styles.yearContainer}>
-  <Text style={styles.yearText}>
-    {alternatives[0].nombreMedio || 
-     'MEDIO'} / AÑO /{new Date().getFullYear()}
-  </Text>
-</View>
+				<View style={styles.yearContainer}>
+					<Text style={styles.yearText}>AÑO /{new Date().getFullYear()}</Text>
+				</View>
 			</View>
 
 			<View style={styles.infoContainer}>
@@ -251,10 +249,6 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>CLIENTE:</Text>
                                 <Text style={styles.infoValue}>{upper(cliente?.nombreCliente)}</Text>
-							</View>
-              <View style={styles.rowex}>
-								<Text style={styles.infoLabel}>RAZON SOCIAL:</Text>
-								<Text style={styles.infoValue}>{cliente?.razonSocial}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>RUT:</Text>
@@ -282,7 +276,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>N° CONTRATO:</Text>
-								<Text style={styles.infoValue}>{alternatives[0]?.Contratos?.NombreContrato}</Text>
+								<Text style={styles.infoValue}>{alternatives[0]?.Contratos?.id}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>FORMA DE PAGO:</Text>
@@ -295,8 +289,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 					</View>
 
 				<View style={[styles.infoColumn2, styles.centerColumn]}>
-					<Text style={styles.infoText3}><Text style={styles.infoLabel3}>CAMPAÑA:</Text> {campana?.NombreCampania}</Text>
-					<Text style={styles.infoText3}><Text style={styles.infoLabel3}>PLAN DE MEDIOS:</Text> {alternatives[0].nombreMedio}</Text>
+                    <Text style={styles.infoText3}><Text style={styles.infoLabel3}>CAMPAÑA:</Text> {upper(campana?.NombreCampania)}</Text>
+                    <Text style={styles.infoText3}><Text style={styles.infoLabel3}>PLAN DE MEDIOS:</Text> {upper(plan?.nombre_plan || campana?.NombreCampania)}</Text>
 					{order?.Descuento1 > 0 && (
 						<Text style={styles.infoText}>
 							<Text style={styles.infoLabel3}>DESCUENTO:</Text> ${order?.Descuento1?.toLocaleString('es-CL')}
@@ -425,24 +419,34 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 </View>
 
 <View style={styles.totalsContainer}>
-<View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
-                    <Text style={styles.totalValue}>
-                        ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0)).toLocaleString('es-CL').split(',')[0]}
-                    </Text>
-                </View>
-    <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>IVA 19%:</Text>
-        <Text style={styles.totalValue}>
-            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 0.19).toLocaleString('es-CL').split(',')[0]}
-        </Text>
-    </View>
-    <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>TOTAL ORDEN($):</Text>
-        <Text style={styles.totalValue}>
-            ${Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0) * 1.19).toLocaleString('es-CL').split(',')[0]}
-        </Text>
-    </View>
+  {(() => {
+    const isCanceled = order?.estado === 'anulada';
+    const sumNeto = isCanceled ? 0 : Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0));
+    const iva = Math.round(sumNeto * 0.19);
+    const totalOrden = sumNeto + iva;
+    return (
+      <>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
+          <Text style={styles.totalValue}>
+            ${sumNeto.toLocaleString('es-CL').split(',')[0]}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>IVA 19%:</Text>
+          <Text style={styles.totalValue}>
+            ${iva.toLocaleString('es-CL').split(',')[0]}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>TOTAL ORDEN($):</Text>
+          <Text style={styles.totalValue}>
+            ${totalOrden.toLocaleString('es-CL').split(',')[0]}
+          </Text>
+        </View>
+      </>
+    );
+  })()}
 </View>
 <View style={styles.totalsContainer2}>
 <View style={{ marginTop: 20, alignItems: 'center' }}>
@@ -466,26 +470,7 @@ export const generateOrderPDF = async (order, alternatives, cliente, campana, pl
 		console.log('Cliente:', cliente);
 		console.log('Campaña:', campana);
 		console.log('Plan:', plan);
-    if (alternatives && alternatives.length > 0 && alternatives[0].medio) {
-      try {
-        // Obtener el nombre del medio desde la base de datos
-        const { data: medioData, error } = await supabase
-          .from('Medios')
-          .select('NombredelMedio')
-          .eq('id', alternatives[0].medio)
-          .single();
-          
-        if (!error && medioData) {
-          // Agregar el nombre del medio a la primera alternativa para usarlo en el PDF
-          alternatives[0].nombreMedio = medioData.NombredelMedio;
-          console.log('Nombre del medio obtenido:', medioData.NombredelMedio);
-        } else {
-          console.error('Error o sin datos al obtener el medio:', error);
-        }
-      } catch (error) {
-        console.error('Error al obtener el nombre del medio:', error);
-      }
-    }
+		
 		const blob = await pdf(
 			<OrderDocument 
 				order={order} 
