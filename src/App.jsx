@@ -27,6 +27,7 @@ import MiPerfil from './pages/perfil/MiPerfil';
 import ReporteOrdenDeCompra from './pages/reportes/ReporteOrdenDeCompra';
 import InformeInversion from './pages/reportes/InformeInversion';
 import ReporteInversionPorCliente from './pages/reportes/ReporteInversionPorCliente';
+import ReporteInversionCliente from './pages/reportes/ReporteInversionCliente';
 import RendimientoCampanas from './pages/reportes/RendimientoCampanas';
 import AnalisisMedios from './pages/reportes/AnalisisMedios';
 import EfectividadProveedores from './pages/reportes/EfectividadProveedores';
@@ -88,6 +89,7 @@ function App() {
                   <Route path="/reportes/diarioordenes" element={<ReporteDiarioOrdenes />} />
                   <Route path="/reportes/informeinversion" element={<InformeInversion />} />
                   <Route path="/reportes/inversionporcliente" element={<ReporteInversionPorCliente />} />
+                  <Route path="/reportes/reporteinversioncliente" element={<ReporteInversionCliente />} />
                   <Route path="/reportes/rendimientocampanas" element={<RendimientoCampanas />} />
                   <Route path="/reportes/analisismedios" element={<AnalisisMedios />} />
                   <Route path="/reportes/efectividadproveedores" element={<EfectividadProveedores />} />
