@@ -34,6 +34,7 @@ import EfectividadProveedores from './pages/reportes/EfectividadProveedores';
 import ReporteDiarioOrdenes from './pages/reportes/ReporteDiarioOrdenes';
 import DetallePorAlternativa from './pages/reportes/DetallePorAlternativa';
 import InformeInversionClienteBruto from './pages/reportes/InformeInversionClienteBruto';
+import ReporteClienteDiario from './pages/reportes/ReporteClienteDiario';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import './App.css';
@@ -95,6 +96,7 @@ function App() {
                   <Route path="/reportes/efectividadproveedores" element={<EfectividadProveedores />} />
                   <Route path="/reportes/detalleporalternativa" element={<DetallePorAlternativa />} />
                   <Route path="/reportes/informeinversionclientebruto" element={<InformeInversionClienteBruto />} />
+                  <Route path="/reportes/reporteclientediario" element={<ReporteClienteDiario />} />
                   <Route path="/usuarios" element={<ListadoUsuarios />} />
                   <Route path="/perfil" element={<MiPerfil />} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
