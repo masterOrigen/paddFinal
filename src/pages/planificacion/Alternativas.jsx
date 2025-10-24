@@ -2635,78 +2635,164 @@ const Alternativas = () => {
     </Button>
   </Box>
 </Box>
-        <TableContainer sx={{ 
+        
+        {/* Calendario usando CSS Grid para mejor compatibilidad con Firefox */}
+        <Box sx={{ 
           maxWidth: '100%',
           overflowX: 'auto',
-          '& .MuiTable-root': {
-            tableLayout: 'fixed',
-            minWidth: 'max-content'
-          }
+          border: '1px solid #e0e0e0',
+          borderRadius: '4px'
         }}>
-          <Table size="small" sx={{
-            '& .MuiTableCell-root': {
-              padding: '4px',
-              border: '1px solid #e0e0e0',
-              minWidth: '32px',
-              maxWidth: '32px'
-            }
+          {/* Encabezados */}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${dias.length}, minmax(30px, 1fr)) 50px`,
+            gap: 0,
+            backgroundColor: '#f5f5f5',
+            borderBottom: '1px solid #e0e0e0'
           }}>
-            <TableHead>
-              <TableRow>
-                {dias.map(({ dia, nombreDia }) => (
-                  <TableCell key={dia} align="center" sx={{ backgroundColor: '#f5f5f5' }}>
-                    <Typography variant="caption" sx={{ fontSize: '0.65rem', display: 'block', mb: 0.5, color: '#666' }}>
-                      {nombreDia}
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#333' }}>
-                      {dia}
-                    </Typography>
-                  </TableCell>
-                ))}
-                <TableCell align="center" sx={{ backgroundColor: '#f5f5f5', minWidth: '40px' }}>
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#333', fontWeight: 'bold' }}>
-                    Tot
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                {dias.map(({ dia }) => (
-                  <TableCell key={dia} align="center" padding="none">
-                   <input 
-  type="number" 
-  value={getCantidad(dia)} 
-  onChange={(e) => onChange(dia, e.target.value)} 
-  style={{ 
-    width: '28px', 
-    height: '24px', 
-    padding: '2px', 
-    border: '1px solid #e0e0e0', 
-    borderRadius: '2px', 
-    textAlign: 'center', 
-    fontSize: '0.75rem', 
-    backgroundColor: '#fff',
-    // Estilos para ocultar los punteros en diferentes navegadores
-    WebkitAppearance: 'none',
-    MozAppearance: 'textfield',
-    appearance: 'textfield',
-    margin: 0
-  }} 
-  step="any" 
-  min="0" 
-/>
-                  </TableCell>
-                ))}
-                <TableCell align="center" sx={{ backgroundColor: '#f8f9fa' }}>
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#333' }}>
-                    {calcularTotal()}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+            {dias.map(({ dia, nombreDia }) => (
+              <Box key={dia} sx={{
+                padding: '4px 2px',
+                textAlign: 'center',
+                borderRight: '1px solid #e0e0e0',
+                minWidth: '30px',
+                maxWidth: '34px'
+              }}>
+                <Typography variant="caption" sx={{ 
+                  fontSize: '0.6rem', 
+                  display: 'block', 
+                  mb: 0.25, 
+                  color: '#666',
+                  lineHeight: 0.9
+                }}>
+                  {nombreDia}
+                </Typography>
+                <Typography variant="caption" sx={{ 
+                  fontSize: '0.65rem', 
+                  color: '#333',
+                  lineHeight: 0.9,
+                  fontWeight: 500
+                }}>
+                  {dia}
+                </Typography>
+              </Box>
+            ))}
+            <Box sx={{
+              padding: '4px 2px',
+              textAlign: 'center',
+              backgroundColor: '#f5f5f5',
+              minWidth: '50px'
+            }}>
+              <Typography variant="caption" sx={{ 
+                fontSize: '0.65rem', 
+                color: '#333', 
+                fontWeight: 'bold',
+                lineHeight: 1
+              }}>
+                Tot
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Campos de entrada */}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${dias.length}, minmax(30px, 1fr)) 50px`,
+            gap: 0,
+            padding: '4px 0'
+          }}>
+            {dias.map(({ dia }) => (
+              <Box key={dia} sx={{
+                padding: '2px',
+                textAlign: 'center',
+                borderRight: '1px solid #e0e0e0',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <TextField
+                  type="number"
+                  value={getCantidad(dia)}
+                  onChange={(e) => onChange(dia, e.target.value)}
+                  size="small"
+                  variant="outlined"
+                  inputProps={{
+                    step: "any",
+                    min: "0"
+                  }}
+                  sx={{
+                    width: '30px',
+                    height: '28px',
+                    minWidth: '30px',
+                    '& .MuiOutlinedInput-root': {
+                      height: '28px',
+                      minHeight: '28px',
+                      backgroundColor: '#ffffff',
+                      '& fieldset': {
+                        border: '1px solid #d0d0d0',
+                        borderRadius: '3px'
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#1976d2'
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#1976d2',
+                        borderWidth: '1px'
+                      }
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      padding: '6px 4px',
+                      textAlign: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: '500',
+                      lineHeight: '1.2',
+                      height: 'auto',
+                      color: '#333333',
+                      backgroundColor: 'transparent',
+                      boxSizing: 'border-box',
+                      // Ocultar spinners en todos los navegadores
+                      '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+                        WebkitAppearance: 'none',
+                        margin: 0,
+                        display: 'none'
+                      },
+                      '&[type=number]': {
+                        MozAppearance: 'textfield',
+                        appearance: 'textfield'
+                      },
+                      '&::-moz-focus-inner': {
+                        border: 0,
+                        padding: 0
+                      },
+                      '&::placeholder': {
+                        color: '#999999',
+                        opacity: 1
+                      }
+                    }
+                  }}
+                />
+              </Box>
+            ))}
+            <Box sx={{
+              padding: '2px',
+              textAlign: 'center',
+              backgroundColor: '#f8f9fa',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minWidth: '50px'
+            }}>
+              <Typography variant="caption" sx={{ 
+                fontSize: '0.7rem', 
+                fontWeight: 'bold', 
+                color: '#333' 
+              }}>
+                {calcularTotal()}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
       </Box>
     );
   };
