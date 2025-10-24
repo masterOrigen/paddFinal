@@ -120,10 +120,11 @@ const ReporteClienteDiario = () => {
             Clientes (id_cliente, nombreCliente, RUT, razonSocial),
             Productos!id_Producto (id, NombreDelProducto)
           ),
-          Contratos (id, NombreContrato, num_contrato, IdProveedor,
-            Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial)
+          Contratos (id, NombreContrato, num_contrato, IdProveedor, IdMedios,
+            Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial),
+            Medios (id, NombredelMedio)
           ),
-          Soportes (id_soporte, nombreIdentficiador, id_medios,
+          Soportes!left (id_soporte, nombreIdentficiador, id_medios,
             Medios!left (id, NombredelMedio)
           ),
           plan!inner (id, nombre_plan, anio, mes,
@@ -472,7 +473,7 @@ const ReporteClienteDiario = () => {
           'N° de Ctto.': orden.Contratos?.NombreContrato || '',
           'N° de Orden': orden.numero_correlativo || '',
           'Version': orden.copia || '',
-          'Medio': orden.Soportes?.Medios?.NombredelMedio || orden.Soportes?.id_medios || '',
+          'Medio': orden.Contratos?.Medios?.NombredelMedio || orden.Soportes?.Medios?.NombredelMedio || '',
           'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || '',
           'Soporte': orden.Soportes?.nombreIdentficiador || '',
           'Campaña': orden.Campania?.NombreCampania || '',
@@ -523,46 +524,6 @@ const ReporteClienteDiario = () => {
     page * rowsPerPage
   );
 
-  // Función para calcular los totales - se llamará después de procesar versiones
-  const calcularTotales = (ordenesProcesadas) => {
-    // Sumar la tarifa bruta de todas las órdenes activas
-    let totalBruta = 0;
-    let totalActivas = 0;
-    const todosLosDias = new Set();
-    
-    ordenesProcesadas.forEach(dia => {
-      dia.ordenes.forEach(orden => {
-        if (orden.estado === 'activa') {
-          totalBruta += orden.tarifaBrutaTotal || 0;
-          totalActivas++;
-          
-          // Extraer días de exhibición
-          if (orden.fechasExhibicion && orden.fechasExhibicion !== 'Sin fechas definidas') {
-            const numeros = orden.fechasExhibicion.match(/\d+/g);
-            if (numeros) {
-              numeros.forEach(num => {
-                todosLosDias.add(parseInt(num));
-              });
-            }
-          }
-        }
-      });
-    });
-    
-    return {
-      totalInversionMes: totalBruta,
-      totalOrdenesMes: totalActivas,
-      totalDiasExhibicion: todosLosDias.size
-    };
-  };
-
-  const totales = React.useMemo(() => {
-    return calcularTotales(ordenesAgrupadas);
-  }, [ordenesAgrupadas]);
-
-  const totalInversionMes = totales.totalInversionMes;
-  const totalOrdenesMes = totales.totalOrdenesMes;
-  const totalDiasExhibicion = totales.totalDiasExhibicion;
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -596,6 +557,15 @@ const ReporteClienteDiario = () => {
               isOptionEqualToValue={(option, value) => option?.id_cliente === value?.id_cliente}
               clearText="Limpiar"
               noOptionsText="No hay clientes"
+              filterOptions={(options, { inputValue }) => {
+                if (!inputValue) return options;
+                
+                const inputLower = inputValue.toLowerCase();
+                return options.filter(option =>
+                  option.nombreCliente.toLowerCase().includes(inputLower) ||
+                  option.razonSocial.toLowerCase().includes(inputLower)
+                );
+              }}
             />
           </Grid>
           
@@ -666,42 +636,6 @@ const ReporteClienteDiario = () => {
         </Box>
       </Paper>
 
-      {ordenesAgrupadas.length > 0 && (
-        <Paper elevation={3} sx={{ p: 2, mb: 4 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#e3f2fd', borderRadius: 1 }}>
-                <Typography variant="h6" color="#1976d2">
-                  {totalOrdenesMes}
-                </Typography>
-                <Typography variant="body2" color="#666">
-                  Total Órdenes del Mes
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#e8f5e8', borderRadius: 1 }}>
-                <Typography variant="h6" color="#2e7d32">
-                  {totalDiasExhibicion}
-                </Typography>
-                <Typography variant="body2" color="#666">
-                  Días con Actividad
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#fff3e0', borderRadius: 1 }}>
-                <Typography variant="h6" color="#f57c00">
-                  {formatCurrency(totalInversionMes)}
-                </Typography>
-                <Typography variant="body2" color="#666">
-                  Inversión Bruta del Mes
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-      )}
       
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
@@ -722,6 +656,7 @@ const ReporteClienteDiario = () => {
                     <TableCell sx={{ minWidth: 100 }}>N° Orden</TableCell>
                     <TableCell sx={{ minWidth: 80 }}>Versión</TableCell>
                     <TableCell sx={{ minWidth: 150 }}>Campaña</TableCell>
+                    <TableCell sx={{ minWidth: 120 }}>Medio</TableCell>
                     <TableCell sx={{ minWidth: 120 }}>Producto</TableCell>
                     <TableCell sx={{ minWidth: 120 }}>Proveedor</TableCell>
                     <TableCell sx={{ minWidth: 150 }}>Fecha Exhib./Pub.</TableCell>
@@ -751,6 +686,9 @@ const ReporteClienteDiario = () => {
                         </TableCell>
                         <TableCell>
                           {orden.Campania?.NombreCampania || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {orden.Contratos?.Medios?.NombredelMedio || orden.Soportes?.Medios?.NombredelMedio || 'N/A'}
                         </TableCell>
                         <TableCell>
                           {orden.Campania?.Productos?.NombreDelProducto || 'N/A'}
@@ -785,7 +723,7 @@ const ReporteClienteDiario = () => {
             </TableContainer>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
               <Typography variant="body2" color="#666">
-                Total de órdenes: {totalOrdenesMes}
+                Total de órdenes: {todasLasOrdenes.length}
               </Typography>
               <Pagination
                 count={Math.ceil(todasLasOrdenes.length / rowsPerPage)}

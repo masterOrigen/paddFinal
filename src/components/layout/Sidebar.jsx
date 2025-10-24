@@ -85,7 +85,8 @@ const Sidebar = () => {
       text: 'Reportes',
       submenu: [
         { text: 'Reporte Inversión Cliente', link: '/reportes/reporteinversioncliente' },
-        { text: 'Reporte Cliente Diario', link: '/reportes/reporteclientediario' }
+        { text: 'Reporte Cliente Diario', link: '/reportes/reporteclientediario' },
+        { text: 'Órdenes No Emitidas', link: '/reportes/ordenesnoemitidas' }
       ]
     }
   ];
