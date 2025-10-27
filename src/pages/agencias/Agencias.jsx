@@ -758,7 +758,7 @@ const Agencias = () => {
             backgroundColor: '#206e43',
             color: '#fff',
             height: '72%',
-            width: '70%',
+            width: '75%',
             '&:hover': {
               backgroundColor: '#185735',
             },
