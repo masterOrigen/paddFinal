@@ -352,6 +352,7 @@ const Mensajes = () => {
                   sx: {
                     borderRadius: '6px',
                     backgroundColor: '#fff',
+                    paddingLeft: '12px',
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#E5E7EB',
                     },
@@ -390,6 +391,7 @@ const Mensajes = () => {
                   sx: {
                     borderRadius: '6px',
                     backgroundColor: '#fff',
+                    paddingLeft: '12px',
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#E5E7EB',
                     },
