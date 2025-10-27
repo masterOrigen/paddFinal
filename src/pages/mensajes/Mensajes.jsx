@@ -290,7 +290,7 @@ const Mensajes = () => {
   return (
     <Container maxWidth="xl" className="mensajes-container">
       <Grid container spacing={3}>
-        <Grid item xs={12} sx={{ pl: 4, pt: 2 }}>
+        <Grid item xs={12} sx={{ pl: 4, pt: 2, ml: 1 }}>
           <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />}>
             <Link color="inherit" href="/">
               Inicio
