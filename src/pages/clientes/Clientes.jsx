@@ -887,9 +887,14 @@ const Clientes = () => {
               variant="outlined"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              InputLabelProps={{ 
+              InputLabelProps={{
                 shrink: true,
                 sx: { color: '#666' }
+              }}
+              InputProps={{
+                sx: {
+                  paddingLeft: '12px'
+                }
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -910,9 +915,14 @@ const Clientes = () => {
               variant="outlined"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              InputLabelProps={{ 
+              InputLabelProps={{
                 shrink: true,
                 sx: { color: '#666' }
+              }}
+              InputProps={{
+                sx: {
+                  paddingLeft: '12px'
+                }
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -934,7 +944,7 @@ const Clientes = () => {
               sx={{
               backgroundColor: '#206e43',
               color: '#fff',
-              height: '72%',
+              height: '56px',
               width: '70%',
               '&:hover': {
                 backgroundColor: '#185735',
