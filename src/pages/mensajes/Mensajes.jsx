@@ -505,6 +505,11 @@ const Mensajes = () => {
                   onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                   placeholder="Ingrese el título del mensaje"
                   required
+                  InputProps={{
+                    sx: {
+                      paddingLeft: '12px'
+                    }
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
