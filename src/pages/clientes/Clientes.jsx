@@ -944,7 +944,7 @@ const Clientes = () => {
               sx={{
               backgroundColor: '#206e43',
               color: '#fff',
-              height: '56px',
+              height: '40px',
               width: '70%',
               '&:hover': {
                 backgroundColor: '#185735',
