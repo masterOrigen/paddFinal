@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabase';
+import Swal from 'sweetalert2';
 import {
   Container,
   Typography,
@@ -101,7 +102,12 @@ const OrdenesNoEmitidas = () => {
       setLoading(true);
       
       if (!filtros.cliente || !filtros.anio) {
-        alert('Por favor seleccione cliente y año');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Faltan datos',
+          text: 'Por favor seleccione cliente y año',
+          confirmButtonColor: '#1976d2'
+        });
         return;
       }
 
