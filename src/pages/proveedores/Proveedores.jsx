@@ -72,6 +72,8 @@ const Proveedores = () => {
     nombreRepresentante: '',
     rutRepresentante: '',
     direccionFacturacion: '',
+    banco: '',
+    num_cuenta: '',
     id_region: '',
     id_comuna: '',
     telCelular: '',
@@ -443,6 +445,8 @@ const Proveedores = () => {
       nombreRepresentante: row.nombreRepresentante,
       rutRepresentante: row.rutRepresentante,
       direccionFacturacion: row.direccionFacturacion,
+      banco: row.banco,
+      num_cuenta: row.num_cuenta,
       id_region: row.id_region,
       id_comuna: row.id_comuna,
       telCelular: row.telCelular,
@@ -566,6 +570,8 @@ const Proveedores = () => {
         nombreRepresentante: proveedorData.nombreRepresentante,
         rutRepresentante: proveedorData.rutRepresentante,
         direccionFacturacion: proveedorData.direccionFacturacion,
+        banco: proveedorData.banco,
+        num_cuenta: proveedorData.num_cuenta,
         id_region: proveedorData.id_region,
         id_comuna: proveedorData.id_comuna,
         telCelular: proveedorData.telCelular,
@@ -604,6 +610,8 @@ const Proveedores = () => {
         nombreRepresentante: '',
         rutRepresentante: '',
         direccionFacturacion: '',
+        banco: '',
+        num_cuenta: '',
         id_region: '',
         id_comuna: '',
         telCelular: '',
@@ -665,6 +673,8 @@ const Proveedores = () => {
                 nombreRepresentante: '',
                 rutRepresentante: '',
                 direccionFacturacion: '',
+                banco: '',
+                num_cuenta: '',
                 id_region: '',
                 id_comuna: '',
                 telCelular: '',
@@ -955,6 +965,38 @@ const Proveedores = () => {
                   startAdornment: (
                     <InputAdornment position="start">
                       <LocationOnIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Banco"
+                name="banco"
+                value={selectedProveedor?.banco || newProveedor.banco}
+                onChange={handleInputChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <BusinessIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Cuenta"
+                name="num_cuenta"
+                value={selectedProveedor?.num_cuenta || newProveedor.num_cuenta}
+                onChange={handleInputChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <NumbersIcon />
                     </InputAdornment>
                   ),
                 }}
