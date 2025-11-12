@@ -1086,11 +1086,68 @@ const ViewProveedor = () => {
                 {value === 1 && (
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
-                      <Stack spacing={2}>
-                        <Typography><strong>Email:</strong> {proveedor?.email}</Typography>
-                        <Typography><strong>Teléfono Celular:</strong> {proveedor?.telCelular}</Typography>
-                        <Typography><strong>Teléfono Fijo:</strong> {proveedor?.telFijo}</Typography>
-                      </Stack>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Razón Social
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.razonSocial || '-'}</Typography>
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Giro
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.giroProveedor || '-'}</Typography>
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Dirección
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.direccionFacturacion || '-'}</Typography>
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Banco
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.banco || '-'}</Typography>
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Cuenta
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.num_cuenta || '-'}</Typography>
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Email
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.email || '-'}</Typography>
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Teléfono Celular
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.telCelular || '-'}</Typography>
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <div className="mb-4">
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Teléfono Fijo
+                        </Typography>
+                        <Typography variant="body1">{proveedor?.telFijo || '-'}</Typography>
+                      </div>
                     </Grid>
                   </Grid>
                 )}
