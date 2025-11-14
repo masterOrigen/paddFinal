@@ -87,8 +87,10 @@ const EditarAlternativaReemplazo = ({
     const [openAddContratoModal, setOpenAddContratoModal] = useState(false);
     const [openEditContratoModal, setOpenEditContratoModal] = useState(false);
     const [openAddTemaModal, setOpenAddTemaModal] = useState(false);
-    const [openAddEditProgramaModal, setOpenAddEditProgramaModal] = useState(false);
-    const [openAddEditClasificacionModal, setOpenAddEditClasificacionModal] = useState(false);
+  const [openAddEditProgramaModal, setOpenAddEditProgramaModal] = useState(false);
+  const [openAddEditClasificacionModal, setOpenAddEditClasificacionModal] = useState(false);
+  const cantidadesRef = React.useRef({});
+  const [autoFillCantidades, setAutoFillCantidades] = useState(false);
     
     // Estados para búsqueda y filtrado
     const [searchTema, setSearchTema] = useState('');
@@ -118,7 +120,6 @@ const EditarAlternativaReemplazo = ({
     const [loadingTemas, setLoadingTemas] = useState(false);
     const [loadingProgramas, setLoadingProgramas] = useState(false);
     const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
-    const [autoFillCantidades, setAutoFillCantidades] = useState(false);
 // Modificar el useEffect para que reaccione cuando se obtenga el medio del contrato
 useEffect(() => {
     // Si estamos editando una alternativa existente
@@ -587,7 +588,8 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
       // Update with new order ID as numerorden
       return {
           ...cleanAlt,
-          numerorden: newOrderId
+          numerorden: newOrderId,
+          multiplicar_valor: Boolean(cleanAlt.multiplicar_valor_unitario)
       };
   });
 };
@@ -752,65 +754,54 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
       };
   // Función para manejar cambios en los montos
      // Función para manejar cambios en los montos
-     const handleMontoChange = (campo, valor) => {
-        setAlternativa(prev => {
-            const valorUnitarioBase = campo === 'valor_unitario' ? valor : prev.valor_unitario;
-            // Corregir los nombres de las variables para que coincidan con los campos de la base de datos
-            const descuento = campo === 'descuento_pl' ? valor : prev.descuento_pl;
-            const recargo = campo === 'recargo_plan' ? valor : prev.recargo_plan;
-            
-            // Obtener el total de cantidades
-            const totalCantidades = (prev.cantidades || []).reduce((sum, item) => {
-                return sum + (Number(item.cantidad) || 0);
-            }, 0);
-        
-            // Verificar si el medio es TV CABLE o RADIO
-            const medioId = prev.id_medio;
-            const esMediacionEspecial = medioId === 38 || medioId === 35; // TV CABLE o RADIO
-        
-            // Calcular valor unitario ajustado
-            let valorUnitarioAjustado = Number(valorUnitarioBase) || 0;
-            if (esMediacionEspecial && totalCantidades > 0) {
-                valorUnitarioAjustado *= totalCantidades;
-            }
-        
-            // Determinar el tipo de contrato (NETO o BRUTO)
-            const tipoGeneracionOrden = prev.Contratos?.id_GeneraracionOrdenTipo || 1; // Por defecto NETO
-            
-            // Aplicar descuento y recargo al valor base
-            const valorBase = valorUnitarioAjustado;
-            const descuentoValor = valorBase * (Number(descuento) / 100) || 0;
-            const recargoValor = valorBase * (Number(recargo) / 100) || 0;
-            const valorAjustado = valorBase - descuentoValor + recargoValor;
-            
-            console.log(`Valor base: ${valorBase}, Descuento: ${descuentoValor}, Recargo: ${recargoValor}, Valor ajustado: ${valorAjustado}`);
-            
-            let totalBruto, totalNeto, totalGeneral;
-            
-            if (tipoGeneracionOrden === 1) { // NETO
-                // De NETO a BRUTO: NETO dividido por 0.85
-                totalNeto = valorAjustado;
-                totalBruto = Math.round(totalNeto / 0.85);
-                totalGeneral = totalBruto;
-            } else { // BRUTO
-                // De BRUTO a NETO: BRUTO multiplicado por 0.85
-                totalBruto = valorAjustado;
-                totalNeto = Math.round(totalBruto * 0.85 * 1.19); // Aplicamos IVA (19%)
-                totalGeneral = totalBruto;
-            }
-            
-            console.log(`Tipo de contrato: ${tipoGeneracionOrden === 1 ? 'NETO' : 'BRUTO'}`);
-            console.log(`Valor ajustado: ${valorAjustado}, Total Bruto: ${totalBruto}, Total Neto: ${totalNeto}`);
-        
-            return {
-                ...prev,
-                [campo]: valor,
-                total_bruto: Math.round(totalBruto),
-                total_neto: Math.round(totalNeto),
-                total_general: Math.round(totalGeneral)
-            };
-        });
-    };
+  const handleMontoChange = (campo, valor) => {
+       setAlternativa(prev => {
+         const tipoGeneracionOrden = prev.Contratos?.id_GeneraracionOrdenTipo || 1;
+         const valorNumerico = Number(valor) || 0;
+         const updated = { ...prev };
+         updated[campo] = valorNumerico;
+         const valorUnitario = campo === 'valor_unitario' ? valorNumerico : Number(prev.valor_unitario) || 0;
+         const descuento = campo === 'descuento_pl' ? valorNumerico : Number(prev.descuento_pl) || 0;
+         const recargo = campo === 'recargo_plan' ? valorNumerico : Number(prev.recargo_plan) || 0;
+         const sourceCantidadesArray = Object.keys(cantidadesRef.current).length > 0
+           ? Object.entries(cantidadesRef.current)
+               .filter(([, c]) => c !== '' && c !== null && c !== undefined)
+               .map(([d, c]) => ({ dia: d, cantidad: c }))
+           : (prev.cantidades || []);
+         const totalCantidades = sourceCantidadesArray.reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0);
+         const multiplicador = prev.multiplicar_valor_unitario ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
+         let totalBruto = 0;
+         let totalNeto = 0;
+         if (tipoGeneracionOrden === 1) {
+           const totalNetoBase = valorUnitario * multiplicador;
+           let totalConDescuento = totalNetoBase;
+           if (descuento > 0) totalConDescuento = totalNetoBase - (totalNetoBase * (descuento / 100));
+           if (recargo > 0) totalNeto = totalConDescuento + (totalConDescuento * (recargo / 100));
+           else totalNeto = totalConDescuento;
+           totalBruto = Math.round(totalNeto / 0.85);
+         } else {
+           const totalBrutoBase = valorUnitario * multiplicador;
+           let totalConDescuento = totalBrutoBase;
+           if (descuento > 0) totalConDescuento = totalBrutoBase - (totalBrutoBase * (descuento / 100));
+           if (recargo > 0) totalBruto = totalConDescuento + (totalConDescuento * (recargo / 100));
+           else totalBruto = totalConDescuento;
+           totalNeto = Math.round(totalBruto * 0.85);
+         }
+         const iva = Math.round(totalNeto * 0.19);
+         const totalOrden = totalNeto + iva;
+         const result = {
+           ...updated,
+           total_bruto: Math.round(totalBruto),
+           total_neto: Math.round(totalNeto),
+           iva: Math.round(iva),
+           total_orden: Math.round(totalOrden)
+         };
+         if (campo === 'valor_unitario') {
+           result.cantidades = sourceCantidadesArray;
+         }
+         return result;
+       });
+     };
 
    // Función para manejar cambios en las cantidades del calendario
    const handleCantidadChange = (dia, valor) => {
@@ -1739,7 +1730,41 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
             setCalendarData([]);
         }
         
-        setAlternativa(data);
+        // Calcular totales al cargar para poblar Total Orden correctamente
+        const valorUnitario = Number(data.valor_unitario) || 0;
+        const descuento = Number(data.descuento_pl ?? data.descuento_plan) || 0;
+        const recargo = Number(data.recargo_plan) || 0;
+        const tipoGeneracionOrden = data.Contratos?.id_GeneraracionOrdenTipo || 1;
+        const totalCantidades = (data.cantidades || []).reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0);
+        const multiplicarFlag = Boolean(data.multiplicar_valor ?? data.multiplicar_valor_unitario);
+        const multiplicador = multiplicarFlag ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
+        let totalBruto = 0;
+        let totalNeto = 0;
+        if (tipoGeneracionOrden === 1) {
+          const totalNetoBase = valorUnitario * multiplicador;
+          let totalConDescuento = totalNetoBase;
+          if (descuento > 0) totalConDescuento = totalNetoBase - (totalNetoBase * (descuento / 100));
+          if (recargo > 0) totalNeto = totalConDescuento + (totalConDescuento * (recargo / 100));
+          else totalNeto = totalConDescuento;
+          totalBruto = Math.round(totalNeto / 0.85);
+        } else {
+          const totalBrutoBase = valorUnitario * multiplicador;
+          let totalConDescuento = totalBrutoBase;
+          if (descuento > 0) totalConDescuento = totalBrutoBase - (totalBrutoBase * (descuento / 100));
+          if (recargo > 0) totalBruto = totalConDescuento + (totalConDescuento * (recargo / 100));
+          else totalBruto = totalConDescuento;
+          totalNeto = Math.round(totalBruto * 0.85);
+        }
+        const ivaCalc = Math.round(totalNeto * 0.19);
+        const totalOrdenCalc = totalNeto + ivaCalc;
+        setAlternativa({
+          ...data,
+          multiplicar_valor_unitario: multiplicarFlag,
+          total_bruto: Math.round(totalBruto),
+          total_neto: Math.round(totalNeto),
+          iva: Math.round(ivaCalc),
+          total_orden: Math.round(totalOrdenCalc)
+        });
         
         // Obtener información del plan
         if (data.id_orden) {
@@ -1750,7 +1775,41 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
         // Si hay un error, intentar usar los datos iniciales
         if (initialData) {
             console.log("Usando initialData como fallback:", initialData);
-            setAlternativa(initialData);
+            // Calcular totales también para initialData
+            const valorUnitarioInit = Number(initialData.valor_unitario) || 0;
+            const descuentoInit = Number(initialData.descuento_pl ?? initialData.descuento_plan) || 0;
+            const recargoInit = Number(initialData.recargo_plan) || 0;
+            const tipoGeneracionOrdenInit = initialData.Contratos?.id_GeneraracionOrdenTipo || 1;
+            const totalCantidadesInit = (initialData.cantidades || []).reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0);
+            const multiplicarFlagInit = Boolean(initialData.multiplicar_valor ?? initialData.multiplicar_valor_unitario);
+            const multiplicadorInit = multiplicarFlagInit ? (totalCantidadesInit > 0 ? totalCantidadesInit : 1) : 1;
+            let totalBrutoInit = 0;
+            let totalNetoInit = 0;
+            if (tipoGeneracionOrdenInit === 1) {
+              const totalNetoBaseInit = valorUnitarioInit * multiplicadorInit;
+              let totalConDescuentoInit = totalNetoBaseInit;
+              if (descuentoInit > 0) totalConDescuentoInit = totalNetoBaseInit - (totalNetoBaseInit * (descuentoInit / 100));
+              if (recargoInit > 0) totalNetoInit = totalConDescuentoInit + (totalConDescuentoInit * (recargoInit / 100));
+              else totalNetoInit = totalConDescuentoInit;
+              totalBrutoInit = Math.round(totalNetoInit / 0.85);
+            } else {
+              const totalBrutoBaseInit = valorUnitarioInit * multiplicadorInit;
+              let totalConDescuentoInit = totalBrutoBaseInit;
+              if (descuentoInit > 0) totalConDescuentoInit = totalBrutoBaseInit - (totalBrutoBaseInit * (descuentoInit / 100));
+              if (recargoInit > 0) totalBrutoInit = totalConDescuentoInit + (totalConDescuentoInit * (recargoInit / 100));
+              else totalBrutoInit = totalConDescuentoInit;
+              totalNetoInit = Math.round(totalBrutoInit * 0.85);
+            }
+            const ivaInit = Math.round(totalNetoInit * 0.19);
+            const totalOrdenInit = totalNetoInit + ivaInit;
+            setAlternativa({
+              ...initialData,
+              multiplicar_valor_unitario: multiplicarFlagInit,
+              total_bruto: Math.round(totalBrutoInit),
+              total_neto: Math.round(totalNetoInit),
+              iva: Math.round(ivaInit),
+              total_orden: Math.round(totalOrdenInit)
+            });
             
             if (initialData.calendar) {
                 try {
@@ -1841,13 +1900,18 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
         setLoading(true);
         
         // Usar el estado calendarData para el calendario
-        const calendarToSave = alternativa.cantidades || calendarData;
+      const calendarToSave = alternativa.cantidades || calendarData;
+      const cantidadesArrayFromRef = Object.keys(cantidadesRef.current).length > 0
+        ? Object.entries(cantidadesRef.current)
+            .filter(([, c]) => c !== '' && c !== null && c !== undefined)
+            .map(([d, c]) => ({ dia: d, cantidad: c }))
+        : calendarToSave;
         
         // Preparar los datos de la alternativa con el calendario
-        let alternativaData = {
-            ...alternativa,
-            calendar: JSON.stringify(calendarToSave)
-        };
+      let alternativaData = {
+          ...alternativa,
+          calendar: JSON.stringify(cantidadesArrayFromRef)
+      };
         
         // Eliminar campos que no existen en la tabla alternativa
         if (alternativaData.id_orden) {
@@ -1880,12 +1944,13 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
         }
         
         // Handle any other boolean fields that might be causing the error
-        Object.keys(alternativaData).forEach(key => {
-            if (typeof alternativaData[key] === 'boolean') {
-                console.log(`Converting boolean field ${key} to number`);
-                alternativaData[key] = alternativaData[key] ? 1 : 0;
-            }
-        });
+      Object.keys(alternativaData).forEach(key => {
+          if (typeof alternativaData[key] === 'boolean') {
+              console.log(`Converting boolean field ${key} to number`);
+              alternativaData[key] = alternativaData[key] ? 1 : 0;
+          }
+      });
+      alternativaData.multiplicar_valor = alternativa.multiplicar_valor_unitario ? 1 : 0;
         
         console.log("Saving alternativa data:", alternativaData);
         
@@ -1961,35 +2026,25 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
 };
 
   // Función para manejar cambios en el calendario
-const handleCalendarioChange = (dia, valor, todasLasCantidades) => {
-    if (todasLasCantidades) {
-        // Si recibimos todas las cantidades (desde auto-llenado o limpiar)
-        setAlternativa(prev => ({
-            ...prev,
-            cantidades: todasLasCantidades
-        }));
-    } else {
-        // Si solo recibimos un cambio individual
-        setAlternativa(prev => {
-            const nuevasCantidades = [...(prev.cantidades || [])];
-            const index = nuevasCantidades.findIndex(c => c.dia === dia);
-            
-            if (index !== -1) {
-                nuevasCantidades[index].cantidad = valor;
-            } else {
-                nuevasCantidades.push({ dia, cantidad: valor });
-            }
-            
-            return {
-                ...prev,
-                cantidades: nuevasCantidades
-            };
-        });
+  const handleCantidadInput = (dia, valor) => {
+    cantidadesRef.current[dia] = valor;
+    if (autoFillCantidades) {
+      const currentDate = new Date();
+      const anio = alternativa?.anio || currentDate.getFullYear();
+      const mes = alternativa?.mes || currentDate.getMonth() + 1;
+      const dias = getDiasDelMes(anio, mes);
+      dias.forEach(({ dia: d }) => {
+        cantidadesRef.current[d] = valor;
+      });
     }
-};
+  };
+  const handleActualizar = () => {
+    const currentVU = alternativa?.valor_unitario || 0;
+    handleMontoChange('valor_unitario', currentVU);
+  };
 
 // Componente para el calendario 
-const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => { 
+const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange, cantidadesRef, autoFillCantidades, setAutoFillCantidades }) => { 
     // Asegurarse de que anio y mes sean valores válidos 
     const currentDate = new Date(); 
     const validAnio = anio || currentDate.getFullYear(); 
@@ -1997,12 +2052,14 @@ const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
     
     const dias = getDiasDelMes(validAnio, validMes); 
     
-    // Estado para el auto-llenado - Importante: Usar useState para mantener el estado
-    const [autoFillEnabled, setAutoFillEnabled] = useState(false);
+    const inputRefs = React.useRef({});
+    const [focusedDia, setFocusedDia] = useState(null);
     
     const getCantidad = (dia) => { 
+        const fromRef = cantidadesRef?.current?.[dia]; 
+        if (fromRef !== undefined) return String(fromRef ?? ''); 
         const item = cantidades?.find(c => c.dia === dia); 
-        return item ? item.cantidad : ''; 
+        return item ? String(item.cantidad ?? '') : ''; 
     }; 
 
     const calcularTotal = () => { 
@@ -2012,50 +2069,22 @@ const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
         }, 0); 
     }; 
     
-    // Función para manejar cambios en un día específico con auto-llenado
-    const handleDayChange = (dia, valor) => {
-        // Crear una copia de las cantidades actuales
-        const nuevasCantidades = [...cantidades];
-        
-        // Encontrar el índice del día actual en el array de días
-        const diaIndex = dias.findIndex(d => d.dia === dia);
-        
-        // Si no se encuentra el día, salir
-        if (diaIndex === -1) {
-            onChange(dia, valor);
-            return;
-        }
-        
-        // Si el auto-llenado está activado, aplicar el valor a todos los días siguientes
-        if (autoFillEnabled) {
-            // Obtener todos los días a partir del día actual
-            const diasSiguientes = dias.slice(diaIndex).map(d => d.dia);
-            
-            // Actualizar el valor para el día actual y todos los siguientes
-            diasSiguientes.forEach(d => {
-                const existingIndex = nuevasCantidades.findIndex(c => c.dia === d);
-                if (existingIndex !== -1) {
-                    nuevasCantidades[existingIndex].cantidad = valor;
-                } else {
-                    nuevasCantidades.push({ dia: d, cantidad: valor });
-                }
+    const handleDayInput = (dia, valor) => {
+        const v = (valor || '').replace(/[^0-9]/g, '');
+        if (autoFillCantidades) {
+            dias.forEach(({ dia: d }) => {
+                onChange(d, v);
+                const el = inputRefs.current[d];
+                if (el) el.value = v;
             });
+            setFocusedDia(dia);
         } else {
-            // Si el auto-llenado está desactivado, solo actualizar el día específico
-            const existingIndex = nuevasCantidades.findIndex(c => c.dia === dia);
-            if (existingIndex !== -1) {
-                nuevasCantidades[existingIndex].cantidad = valor;
-            } else {
-                nuevasCantidades.push({ dia: dia, cantidad: valor });
-            }
+            onChange(dia, v);
         }
-        
-        // Llamar al onChange con todas las cantidades actualizadas
-        onChange(dia, valor, nuevasCantidades);
     };
     
     // Función para limpiar el calendario
-    const handleLimpiarCalendario = () => {
+  const handleLimpiarCalendario = () => {
         // Crear un nuevo array de cantidades con valores vacíos para todos los días
         const cantidadesLimpias = dias.map(d => ({ 
             dia: d.dia, 
@@ -2064,7 +2093,8 @@ const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
         
         // Llamar al onChange con las cantidades limpias
         onChange(null, '', cantidadesLimpias);
-    };
+  };
+
     
     // Si no hay días, mostrar mensaje informativo 
     if (!dias || dias.length === 0) { 
@@ -2090,8 +2120,8 @@ const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
                     <FormControlLabel 
                         control={ 
                             <Checkbox 
-                                checked={autoFillEnabled} 
-                                onChange={(e) => setAutoFillEnabled(e.target.checked)} 
+                                checked={autoFillCantidades} 
+                                onChange={(e) => setAutoFillCantidades(e.target.checked)} 
                                 size="small" 
                             /> 
                         } 
@@ -2188,14 +2218,17 @@ const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
                             alignItems: 'center'
                         }}>
                             <TextField
-                                type="number"
-                                value={getCantidad(dia)}
-                                onChange={(e) => handleDayChange(dia, e.target.value)}
+                                type="text"
+                                defaultValue={getCantidad(dia)}
+                                onChange={(e) => handleDayInput(dia, e.target.value)}
                                 size="small"
                                 variant="outlined"
+                                InputProps={{
+                                  inputRef: (el) => { inputRefs.current[dia] = el; }
+                                }}
                                 inputProps={{
-                                    step: "any",
-                                    min: "0"
+                                    inputMode: 'numeric',
+                                    pattern: '[0-9]*'
                                 }}
                                 sx={{
                                     width: '30px',
@@ -2306,9 +2339,9 @@ const TIPO_ITEMS = [
         groupedDays.push(daysInMonth.slice(i, i + 7));
     }
 
-    return (
-        <Box>
-            <Grid container spacing={2}>
+  return (
+    <Box>
+      <Grid container spacing={2}>
                 {/* Primera fila: Contrato y Soporte */}
                 <Grid item xs={6}>
                     <TextField
@@ -2562,12 +2595,28 @@ const TIPO_ITEMS = [
                         disabled
                     />
                 </Grid>
-                {/* Campos de valores y tarifas */}
-                <Grid item xs={12}>
-                    <Typography variant="subtitle1" gutterBottom>
-                        Valores y Tarifas
-                    </Typography>
-                </Grid>
+        {/* Campos de valores y tarifas */}
+        <Grid item xs={12}>
+          <Typography variant="subtitle1" gutterBottom>
+            Valores y Tarifas
+          </Typography>
+        </Grid>
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={Boolean(alternativa?.multiplicar_valor_unitario)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setAlternativa(prev => ({ ...prev, multiplicar_valor_unitario: checked }));
+                  const currentVU = alternativa?.valor_unitario || 0;
+                  handleMontoChange('valor_unitario', currentVU);
+                }}
+              />
+            }
+            label="Multiplicar valor unitario"
+          />
+        </Grid>
                 <Grid item xs={12}>
                     <Grid container spacing={2}>
                     <Grid item xs={12} md={2.4}>
@@ -2631,10 +2680,10 @@ const TIPO_ITEMS = [
         <Grid item xs={12} md={2.4}>
             <TextField
                 fullWidth
-                label={alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 ? "Total Bruto" : "Total Neto"}
+                label={alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 ? "Total Neto" : "Total Bruto"}
                 value={alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 
-                    ? (alternativa?.total_bruto || 0).toLocaleString() 
-                    : (alternativa?.total_neto || 0).toLocaleString()}
+                    ? (alternativa?.total_neto || 0).toLocaleString() 
+                    : (alternativa?.total_bruto || 0).toLocaleString()}
                 InputProps={{
                     readOnly: true,
                     startAdornment: (
@@ -2649,8 +2698,8 @@ const TIPO_ITEMS = [
         <Grid item xs={12} md={2.4}>
             <TextField
                 fullWidth
-                label="Total General"
-                value={(alternativa?.total_general || 0).toLocaleString()}
+                label="Total Orden"
+                value={(alternativa?.total_orden || 0).toLocaleString()}
                 InputProps={{
                     readOnly: true,
                     startAdornment: (
@@ -2670,26 +2719,20 @@ const TIPO_ITEMS = [
                 anio={alternativa.anio} 
                 mes={alternativa.mes} 
                 cantidades={alternativa.cantidades || []} 
-                onChange={handleCalendarioChange} 
+                onChange={handleCantidadInput} 
+                cantidadesRef={cantidadesRef}
+                autoFillCantidades={autoFillCantidades}
+                setAutoFillCantidades={setAutoFillCantidades}
             />
                 </Grid>
             </Grid>
             <Box display="flex" justifyContent="flex-end" mt={3}>
                 <Button 
-                    variant="outlined" 
-                    color="primary" 
-                    onClick={onCancel}
-                    sx={{ mr: 1 }}
-                >
-                    Cancelar
-                </Button>
-                <Button 
                     variant="contained" 
                     color="primary" 
-                    onClick={handleSave}
-                    disabled={loading}
+                    onClick={handleActualizar}
                 >
-                    {loading ? <CircularProgress size={24} /> : 'Guardar'}
+                    Actualizar
                 </Button>
             </Box>
             <Dialog 
