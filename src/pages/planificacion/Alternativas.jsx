@@ -2633,6 +2633,10 @@ const Alternativas = () => {
       total_orden: 0
     }));
   };
+  const handleActualizar = () => {
+    const currentVU = nuevaAlternativa?.valor_unitario || 0;
+    handleMontoChange('valor_unitario', currentVU);
+  };
   const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange, cantidadesRef, autoFillCantidades }) => {
     const inputRefs = useRef({});
     const [focusedDia, setFocusedDia] = useState(null);
@@ -2674,7 +2678,7 @@ const Alternativas = () => {
     
     return (
       <Box sx={{ mt: 2 }}>
-       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
   <Typography variant="h6">Calendario de Cantidades</Typography>
   <Box display="flex" alignItems="center">
     <FormControlLabel
@@ -2695,6 +2699,15 @@ const Alternativas = () => {
       sx={{ ml: 2 }}
     >
       Limpiar
+    </Button>
+    <Button 
+      variant="contained" 
+      color="primary" 
+      size="small" 
+      onClick={handleActualizar}
+      sx={{ ml: 1 }}
+    >
+      Actualizar
     </Button>
   </Box>
 </Box>
