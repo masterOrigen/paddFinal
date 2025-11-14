@@ -17,7 +17,13 @@ import {
     TableHead,
     TableRow,
     Paper,
-    Switch
+    Switch,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Box,
+    CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -41,13 +47,56 @@ const Campanas = () => {
     const [openModal, setOpenModal] = useState(false);
     const [openEditModal, setOpenEditModal] = useState(false);
     const [selectedCampana, setSelectedCampana] = useState(null);
+    const [openClienteModal, setOpenClienteModal] = useState(false);
+    const [clientes, setClientes] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCliente, setSelectedCliente] = useState(null);
 
     useEffect(() => {
-        fetchCampanas();
+        const shouldPersist = localStorage.getItem('campanas_persist_on_return') === '1';
+        const stored = localStorage.getItem('campanas_selected_cliente');
+        if (shouldPersist && stored) {
+            const cliente = JSON.parse(stored);
+            setSelectedCliente(cliente);
+            fetchCampanas(cliente.id_cliente);
+            localStorage.removeItem('campanas_persist_on_return');
+        } else {
+            setOpenClienteModal(true);
+            fetchClientes();
+        }
     }, []);
 
-    const fetchCampanas = async () => {
+    const fetchClientes = async () => {
         try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('Clientes')
+                .select('id_cliente, nombreCliente, razonSocial, RUT')
+                .order('nombreCliente');
+
+            if (error) throw error;
+            setClientes(data || []);
+        } catch (error) {
+            console.error('Error al cargar clientes:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar los clientes'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchCampanas = async (clienteIdParam) => {
+        try {
+            const clienteId = clienteIdParam ?? selectedCliente?.id_cliente;
+            if (!clienteId) {
+                setCampanas([]);
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
             const { data, error } = await supabase
                 .from('Campania')
                 .select(`
@@ -70,10 +119,11 @@ const Campanas = () => {
                         id,
                         NombreIdentificador
                     )
-                `);
+                `)
+                .eq('id_Cliente', clienteId)
+                .order('NombreCampania');
 
             if (error) throw error;
-            console.log('Datos obtenidos:', data);
             setCampanas(data || []);
         } catch (error) {
             console.error('Error al obtener campañas:', error);
@@ -84,6 +134,17 @@ const Campanas = () => {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleClienteSelect = async (cliente) => {
+        try {
+            setSelectedCliente(cliente);
+            localStorage.setItem('campanas_selected_cliente', JSON.stringify(cliente));
+            setOpenClienteModal(false);
+            await fetchCampanas(cliente.id_cliente);
+        } catch (error) {
+            console.error('Error al seleccionar cliente:', error);
         }
     };
 
@@ -158,6 +219,7 @@ const Campanas = () => {
     };
 
     const handleView = (campana) => {
+        localStorage.setItem('campanas_persist_on_return', '1');
         navigate(`/campanas/${campana.id_campania}`);
     };
 
@@ -241,20 +303,102 @@ const Campanas = () => {
         XLSX.writeFile(wb, 'Campañas.xlsx');
     };
 
-    if (loading) {
+    if (loading && selectedCliente) {
         return <div>Cargando...</div>;
     }
 
     return (
-        <Container maxWidth="xl">
-            <div style={{ marginBottom: '20px', marginTop: '20px' }}>
-                <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />}>
-                    <Link component={RouterLink} to="/dashboard" color="inherit">
-                        Inicio
-                    </Link>
-                    <Typography color="textPrimary">Campañas</Typography>
-                </Breadcrumbs>
-            </div>
+        <>
+            <Dialog 
+                open={openClienteModal || !selectedCliente}
+                maxWidth="md"
+                fullWidth
+                disableEscapeKeyDown
+            >
+                <DialogTitle>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Typography variant="h6">Seleccionar Cliente</Typography>
+                    </Box>
+                </DialogTitle>
+                <DialogContent>
+                    <TextField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Buscar cliente..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        sx={{ mt: 2 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon />
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+                    {loading ? (
+                        <Box display="flex" justifyContent="center" m={3}>
+                            <CircularProgress />
+                        </Box>
+                    ) : (
+                        <TableContainer component={Paper} sx={{ mt: 2 }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>Nombre del Cliente</TableCell>
+                                        <TableCell>Razón Social</TableCell>
+                                        <TableCell>RUT</TableCell>
+                                        <TableCell>Acción</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {clientes
+                                        .filter(cliente =>
+                                            cliente.nombreCliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            (cliente.razonSocial || '').toLowerCase().includes(searchTerm.toLowerCase())
+                                        )
+                                        .map((cliente) => (
+                                            <TableRow key={cliente.id_cliente}>
+                                                <TableCell>{cliente.nombreCliente}</TableCell>
+                                                <TableCell>{cliente.razonSocial}</TableCell>
+                                                <TableCell>{cliente.RUT}</TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        variant="contained"
+                                                        color="primary"
+                                                        onClick={() => handleClienteSelect(cliente)}
+                                                    >
+                                                        Seleccionar
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button 
+                        variant="outlined"
+                        onClick={() => {
+                            setOpenClienteModal(false);
+                        }}
+                    >
+                        Cerrar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Container maxWidth="xl">
+                <div style={{ marginBottom: '20px', marginTop: '20px' }}>
+                    <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />}>
+                        <Link component={RouterLink} to="/dashboard" color="inherit">
+                            Inicio
+                        </Link>
+                        <Typography color="textPrimary">Campañas</Typography>
+                    </Breadcrumbs>
+                </div>
 
             <Grid container spacing={3} style={{ marginBottom: '20px' }}>
                 <Grid item xs={12} sm={4}>
@@ -292,6 +436,20 @@ const Campanas = () => {
                     />
                 </Grid>
                 <Grid item xs={12} sm={4} container justifyContent="flex-end" spacing={1}>
+                    <Grid item>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => {
+                                setSelectedCliente(null);
+                                localStorage.removeItem('campanas_selected_cliente');
+                                setCampanas([]);
+                                setOpenClienteModal(true);
+                            }}
+                        >
+                            Cambiar cliente
+                        </Button>
+                    </Grid>
                     <Grid item>
                         <Button
                             variant="contained"
@@ -395,7 +553,8 @@ const Campanas = () => {
                 onCampanaUpdated={fetchCampanas}
                 campanaData={selectedCampana}
             />
-        </Container>
+            </Container>
+        </>
     );
 };
 
