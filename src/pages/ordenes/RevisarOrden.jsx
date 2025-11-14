@@ -132,7 +132,7 @@ const handleEditAlternative = (alternativa) => {
     setSelectedAlternativeToReplace(alternativa);
 };
  // Modificamos la función handleCancel
- const handleCancel = async () => {
+  const handleCancel = async () => {
     if (!selectedOrder) {
     Swal.fire({
     icon: 'warning',
@@ -169,7 +169,8 @@ const handleEditAlternative = (alternativa) => {
       .from('OrdenesDePublicidad')
       .update({ 
         estado: 'anulada',
-        usuario_registro: usuarioCancelador
+        usuario_registro: usuarioCancelador,
+        ...(selectedOrder?.created_at ? {} : { created_at: new Date().toISOString(), fechaCreacion: new Date().toISOString() })
       })
       .eq('id_ordenes_de_comprar', selectedOrder.id_ordenes_de_comprar);
 
@@ -212,6 +213,14 @@ const handleEditAlternative = (alternativa) => {
             icon: 'warning',
             title: 'Selección requerida',
             text: 'Por favor, seleccione una orden para anular y reemplazar'
+        });
+        return;
+    }
+    if (selectedOrder.estado === 'anulada') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Orden anulada',
+            text: 'No se puede anular y reemplazar una orden que ya está anulada'
         });
         return;
     }
@@ -417,7 +426,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 
    // Agregar función para guardar y reemplazar la orden
 // Modifica la función handleSaveAndReplaceOrder para corregir el tipo de dato
-const handleSaveAndReplaceOrder = async () => {
+  const handleSaveAndReplaceOrder = async () => {
     try {
         setLoading(true);
         
@@ -435,16 +444,18 @@ const handleSaveAndReplaceOrder = async () => {
         const { data: newOrder, error: newOrderError } = await supabase
             .from('OrdenesDePublicidad')
             .insert({
-                numero_correlativo: selectedOrder.numero_correlativo,
-                id_plan: selectedOrder.id_plan,
-                id_campania: selectedOrder.id_campania,
-                id_contrato: selectedOrder.id_contrato,
-                id_soporte: selectedOrder.id_soporte,
-                usuario_registro: selectedOrder.usuario_registro,
-                estado: 'activa',
-                // Corregir la lógica para el campo copia
-                copia: selectedOrder.copia === null || selectedOrder.copia === undefined ? 2 : (selectedOrder.copia + 1),
-                orden_remplaza: selectedOrder.id_ordenes_de_comprar
+              numero_correlativo: selectedOrder.numero_correlativo,
+              id_plan: selectedOrder.id_plan,
+              id_campania: selectedOrder.id_campania,
+              id_contrato: selectedOrder.id_contrato,
+              id_soporte: selectedOrder.id_soporte,
+              usuario_registro: selectedOrder.usuario_registro,
+              estado: 'activa',
+              // Corregir la lógica para el campo copia
+              copia: selectedOrder.copia === null || selectedOrder.copia === undefined ? 2 : (selectedOrder.copia + 1),
+              orden_remplaza: selectedOrder.id_ordenes_de_comprar,
+              created_at: new Date().toISOString(),
+              fechaCreacion: new Date().toISOString()
             })
             .select();
         
@@ -1016,15 +1027,15 @@ const handleSaveAndReplaceOrder = async () => {
 											Imprimir
 										</Button>
 									</Tooltip>
-									<Tooltip title="Anular y reemplazar orden">
-										<Button
-											onClick={handleCancelAndReplace}
-											startIcon={<SwapHorizIcon />}
-											disabled={!selectedOrder}
-										>
-											Anular y reemplazar
-										</Button>
-									</Tooltip>
+                                    <Tooltip title="Anular y reemplazar orden">
+                                        <Button
+                                            onClick={handleCancelAndReplace}
+                                            startIcon={<SwapHorizIcon />}
+                                            disabled={!selectedOrder || selectedOrder?.estado === 'anulada'}
+                                        >
+                                            Anular y reemplazar
+                                        </Button>
+                                    </Tooltip>
 									<Tooltip title="Anular orden">
 										<Button
 											onClick={handleCancel}
@@ -1068,7 +1079,7 @@ const handleSaveAndReplaceOrder = async () => {
 												<TableCell>{order.numero_correlativo || '-'}</TableCell>
 												<TableCell>{order.copia || '-'}</TableCell>
 												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
-												<TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell>{formatDate(order.created_at)}</TableCell>
 												<TableCell>{order.estado}</TableCell>
 											</TableRow>
 										))}
@@ -1415,3 +1426,12 @@ const handleSaveAndReplaceOrder = async () => {
 };
 
 export default RevisarOrden;
+const formatDate = (value) => {
+  if (!value) return '';
+  if (typeof value === 'number') {
+    const ms = value < 1e12 ? value * 1000 : value;
+    return new Date(ms).toLocaleDateString();
+  }
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+};
