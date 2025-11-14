@@ -383,6 +383,7 @@ const Campanas = () => {
                         variant="outlined"
                         onClick={() => {
                             setOpenClienteModal(false);
+                            navigate('/dashboard');
                         }}
                     >
                         Cerrar
