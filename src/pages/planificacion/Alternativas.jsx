@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import './Planificacion.css';
 import {
@@ -130,6 +130,7 @@ const Alternativas = () => {
     recargo_plan: '',
     total_bruto: '',
     total_neto: '',
+    multiplicar_valor_unitario: false,
     medio: '',
     bonificacion_ano: '',
     escala: '',
@@ -209,9 +210,55 @@ const Alternativas = () => {
     soporte_id: ''
   });
   const [soportesParaPrograma, setSoportesParaPrograma] = useState([]);
+  const cantidadesRef = useRef({});
 
   const handleOpenAddContratoModal = () => {
     setOpenAddContratoModal(true);
+  };
+  const handleCantidadInput = (dia, valor) => {
+    cantidadesRef.current[dia] = valor;
+    if (autoFillCantidades && valor !== '') {
+      const diaActual = parseInt(dia, 10);
+      for (let i = diaActual + 1; i <= 31; i++) {
+        const diaSiguiente = i.toString().padStart(2, '0');
+        cantidadesRef.current[diaSiguiente] = valor;
+      }
+    }
+  };
+  const handleToggleMultiplicar = (checked) => {
+    setNuevaAlternativa(prev => {
+      const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
+      const updated = { ...prev, multiplicar_valor_unitario: checked };
+      const valorUnitario = Number(updated.valor_unitario) || 0;
+      const descuento = Number(updated.descuento_plan) || 0;
+      const recargo = Number(updated.recargo_plan) || 0;
+      const totalCantidades = updated.cantidades.reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0);
+      const multiplicador = updated.multiplicar_valor_unitario ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
+      let totalBruto = 0;
+      let totalNeto = 0;
+      if (tipoGeneracionOrden === 1) {
+        const totalNetoBase = valorUnitario * multiplicador;
+        let totalConDescuento = totalNetoBase;
+        if (descuento > 0) totalConDescuento = totalNetoBase - (totalNetoBase * (descuento / 100));
+        totalNeto = recargo > 0 ? totalConDescuento + (totalConDescuento * (recargo / 100)) : totalConDescuento;
+        totalBruto = Math.round(totalNeto / 0.85);
+      } else {
+        const totalBrutoBase = valorUnitario * multiplicador;
+        let totalConDescuento = totalBrutoBase;
+        if (descuento > 0) totalConDescuento = totalBrutoBase - (totalBrutoBase * (descuento / 100));
+        totalBruto = recargo > 0 ? totalConDescuento + (totalConDescuento * (recargo / 100)) : totalConDescuento;
+        totalNeto = Math.round(totalBruto * 0.85);
+      }
+      const iva = Math.round(totalNeto * 0.19);
+      const totalOrden = totalNeto + iva;
+      return {
+        ...updated,
+        total_bruto: Math.round(totalBruto),
+        total_neto: Math.round(totalNeto),
+        iva: Math.round(iva),
+        total_orden: Math.round(totalOrden)
+      };
+    });
   };
 
   const handleCloseAddContratoModal = () => {
@@ -515,6 +562,7 @@ const Alternativas = () => {
     setOpenModal(false);
     setModoEdicion(false);
     setEditandoAlternativa(null);
+    cantidadesRef.current = {};
     // Reset nueva alternativa with all required fields including empty cantidades array
     setNuevaAlternativa({
       nlinea: '',
@@ -537,6 +585,7 @@ const Alternativas = () => {
       recargo_plan: '',
       total_bruto: '',
       total_neto: '',
+      multiplicar_valor_unitario: false,
       medio: '',
       bonificacion_ano: '',
       escala: '',
@@ -550,6 +599,13 @@ const Alternativas = () => {
     setSelectedPrograma(null);
     setTemaSeleccionado(null);
     setSelectedClasificacion(null);
+  };
+
+  const handleOpenNuevaAlternativa = () => {
+    cantidadesRef.current = {};
+    setModoEdicion(false);
+    setEditandoAlternativa(null);
+    setOpenModal(true);
   };
 
   const handleOpenEditContratoModal = () => {
@@ -1152,6 +1208,7 @@ const Alternativas = () => {
   const handleEditAlternativa = async (alternativaId) => {
     try {
       setLoading(true);
+      cantidadesRef.current = {};
        // Primero verificamos si la alternativa tiene número de orden
     const { data: alternativaCheck, error: checkError } = await supabase
     .from('alternativa')
@@ -1236,6 +1293,11 @@ const Alternativas = () => {
   
       // Prepare calendar data
       const calendarData = alternativa.calendar || [];
+      if (Array.isArray(calendarData)) {
+        calendarData.forEach(({ dia, cantidad }) => {
+          if (dia) cantidadesRef.current[dia] = cantidad ?? '';
+        });
+      }
       
       // Recalcular los valores monetarios para asegurar consistencia
       const tipoGeneracionOrden = alternativa.Contratos?.id_GeneraracionOrdenTipo || 1;
@@ -1278,7 +1340,8 @@ const Alternativas = () => {
         total_bruto: calculatedTotalBruto || 0,
         total_neto: calculatedTotalNeto || 0,
         iva: calculatedIva || 0,
-        total_orden: calculatedTotalOrden || 0
+        total_orden: calculatedTotalOrden || 0,
+        multiplicar_valor_unitario: Boolean(alternativa.multiplicar_valor)
       }));
   
       // Set edit mode and open modal
@@ -2372,18 +2435,16 @@ const Alternativas = () => {
       
       let totalBruto = 0;
       let totalNeto = 0;
-      
-      // Verificar si el medio del contrato es 35 o 38 para aplicar multiplicación por cantidades
-      const medioId = contratoSeleccionado?.medio?.id || contratoSeleccionado?.IdMedios;
-      const aplicarMultiplicacion = medioId === 35 || medioId === 38;
-      
-      // Calcular totales basados en cantidades solo si el medio es 35 o 38
-      const totalCantidades = prev.cantidades.reduce((sum, item) => {
+      const sourceCantidadesArray = Object.keys(cantidadesRef.current).length > 0
+        ? Object.entries(cantidadesRef.current)
+            .filter(([, c]) => c !== '' && c !== null && c !== undefined)
+            .map(([d, c]) => ({ dia: d, cantidad: c }))
+        : prev.cantidades;
+      const totalCantidades = sourceCantidadesArray.reduce((sum, item) => {
         return sum + (Number(item.cantidad) || 0);
       }, 0);
       
-      // Determinar el multiplicador según el tipo de medio
-      const multiplicador = aplicarMultiplicacion ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
+      const multiplicador = prev.multiplicar_valor_unitario ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
       
       if (tipoGeneracionOrden === 1) { // Neto
         // Calcular el total neto base (sin descuentos/recargos)
@@ -2429,13 +2490,17 @@ const Alternativas = () => {
       const iva = Math.round(totalNeto * 0.19);
       const totalOrden = totalNeto + iva;
       
-      return {
+      const result = {
         ...updated,
         total_bruto: Math.round(totalBruto),
         total_neto: Math.round(totalNeto),
         iva: Math.round(iva),
         total_orden: Math.round(totalOrden)
       };
+      if (campo === 'valor_unitario') {
+        result.cantidades = sourceCantidadesArray;
+      }
+      return result;
     });
   };
 
@@ -2493,17 +2558,12 @@ const Alternativas = () => {
       const recargo = Number(prev.recargo_plan) || 0;
       const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
       
-      // Verificar si el medio del contrato es 35 o 38 para aplicar multiplicación por cantidades
-      const medioId = contratoSeleccionado?.medio?.id || contratoSeleccionado?.IdMedios;
-      const aplicarMultiplicacion = medioId === 35 || medioId === 38;
-      
       // Calcular el total de cantidades
       const totalCantidades = cantidadesActualizadas.reduce((sum, item) => {
         return sum + (Number(item.cantidad) || 0);
       }, 0);
       
-      // Determinar el multiplicador según el tipo de medio
-      const multiplicador = aplicarMultiplicacion ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
+      const multiplicador = prev.multiplicar_valor_unitario ? (totalCantidades > 0 ? totalCantidades : 1) : 1;
       
       let totalBruto = 0;
       let totalNeto = 0;
@@ -2563,23 +2623,26 @@ const Alternativas = () => {
     });
   };
   const handleLimpiarCantidades = () => {
-    setNuevaAlternativa(prev => {
-      return {
-        ...prev,
-        cantidades: [],
-        total_bruto: 0,
-        total_neto: 0,
-        iva: 0,
-        total_orden: 0
-      };
-    });
+    cantidadesRef.current = {};
+    setNuevaAlternativa(prev => ({
+      ...prev,
+      cantidades: [],
+      total_bruto: 0,
+      total_neto: 0,
+      iva: 0,
+      total_orden: 0
+    }));
   };
-  const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange }) => {
+  const CalendarioAlternativa = ({ anio, mes, cantidades = [], onChange, cantidadesRef, autoFillCantidades }) => {
+    const inputRefs = useRef({});
+    const [focusedDia, setFocusedDia] = useState(null);
     const dias = getDiasDelMes(anio, mes);
     
     const getCantidad = (dia) => {
+      const fromRef = cantidadesRef?.current?.[dia];
+      if (fromRef !== undefined) return String(fromRef ?? '');
       const item = cantidades?.find(c => c.dia === dia);
-      return item ? item.cantidad : '';
+      return item ? String(item.cantidad ?? '') : '';
     };
 
     const calcularTotal = () => { 
@@ -2712,14 +2775,33 @@ const Alternativas = () => {
                 alignItems: 'center'
               }}>
                 <TextField
-                  type="number"
-                  value={getCantidad(dia)}
-                  onChange={(e) => onChange(dia, e.target.value)}
+                  type="text"
+                  defaultValue={getCantidad(dia)}
+                  onChange={(e) => {
+                    const v = (e.target.value || '').replace(/[^0-9]/g, '');
+                    if (autoFillCantidades) {
+                      const diasAll = getDiasDelMes(anio, mes);
+                      diasAll.forEach(({ dia: d }) => {
+                        onChange(d, v);
+                        const el = inputRefs.current[d];
+                        if (el) {
+                          el.value = v;
+                        }
+                      });
+                      setFocusedDia(dia);
+                    } else {
+                      onChange(dia, v);
+                    }
+                  }}
                   size="small"
                   variant="outlined"
+                  onFocus={() => setFocusedDia(dia)}
                   inputProps={{
-                    step: "any",
-                    min: "0"
+                    inputMode: 'numeric',
+                    pattern: '[0-9]*'
+                  }}
+                  InputProps={{
+                    inputRef: (el) => { if (el) inputRefs.current[dia] = el; }
                   }}
                   sx={{
                     width: '30px',
@@ -2866,7 +2948,8 @@ const Alternativas = () => {
         valor_unitario: cleanNumericValue(nuevaAlternativa.valor_unitario),
         medio: cleanNumericValue(nuevaAlternativa.id_medio),
         total_bruto: cleanNumericValue(nuevaAlternativa.total_bruto),
-        calendar: calendarData
+        calendar: calendarData,
+        multiplicar_valor: Boolean(nuevaAlternativa.multiplicar_valor_unitario)
       };
 
       console.log('Datos para inserción en alternativa:', alternativaData);
@@ -3034,7 +3117,7 @@ const Alternativas = () => {
             </Typography>
             <Button
               variant="contained"
-              onClick={() => setOpenModal(true)}
+              onClick={handleOpenNuevaAlternativa}
               startIcon={<AddIcon />}
               sx={{
                 backgroundColor: '#4F46E5',
@@ -3639,7 +3722,9 @@ const Alternativas = () => {
                 anio={nuevaAlternativa.anio}
                 mes={nuevaAlternativa.mes}
                 cantidades={nuevaAlternativa.cantidades}
-                onChange={handleCantidadChange}
+                onChange={handleCantidadInput}
+                cantidadesRef={cantidadesRef}
+                autoFillCantidades={autoFillCantidades}
               />
             </Box></Grid>
                 </Grid>
@@ -3651,6 +3736,17 @@ const Alternativas = () => {
     Montos
   </Typography>
   <Grid container spacing={2}>
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={nuevaAlternativa.multiplicar_valor_unitario}
+            onChange={(e) => handleToggleMultiplicar(e.target.checked)}
+          />
+        }
+        label="Multiplicar valor unitario"
+      />
+    </Grid>
     <Grid item xs={12}>
     <TextField
   label="Valor Unitario"
@@ -3684,6 +3780,11 @@ const Alternativas = () => {
   onChange={(e) => handleMontoChange('recargo_plan', e.target.value)}
   InputProps={{
     endAdornment: <InputAdornment position="end">%</InputAdornment>,
+  }}
+  sx={{
+    '& .MuiOutlinedInput-input': {
+      paddingLeft: '12px !important'
+    }
   }}
 />
     </Grid>
