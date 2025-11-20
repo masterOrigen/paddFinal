@@ -37,6 +37,7 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import EditIcon from '@mui/icons-material/Edit';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import BusinessIcon from '@mui/icons-material/Business';
+import NumbersIcon from '@mui/icons-material/Numbers';
 import BadgeIcon from '@mui/icons-material/Badge';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -87,6 +88,8 @@ const ViewProveedor = () => {
     nombreRepresentante: '',
     rutRepresentante: '',
     direccionFacturacion: '',
+    banco: '',
+    num_cuenta: '',
     id_region: '',
     id_comuna: '',
     telCelular: '',
@@ -243,6 +246,8 @@ const ViewProveedor = () => {
         nombreRepresentante: proveedor.nombreRepresentante || '',
         rutRepresentante: proveedor.rutRepresentante || '',
         direccionFacturacion: proveedor.direccionFacturacion || '',
+        banco: proveedor.banco || '',
+        num_cuenta: proveedor.num_cuenta || '',
         id_region: proveedor.id_region || '',
         id_comuna: proveedor.id_comuna || '',
         telCelular: proveedor.telCelular || '',
@@ -1648,6 +1653,38 @@ const ViewProveedor = () => {
                     startAdornment: (
                       <InputAdornment position="start">
                         <HomeIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Banco"
+                  name="banco"
+                  value={editForm.banco}
+                  onChange={handleEditInputChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BusinessIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Cuenta"
+                  name="num_cuenta"
+                  value={editForm.num_cuenta}
+                  onChange={handleEditInputChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <NumbersIcon />
                       </InputAdornment>
                     ),
                   }}
