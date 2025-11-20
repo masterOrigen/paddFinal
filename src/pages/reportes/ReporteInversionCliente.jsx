@@ -23,9 +23,6 @@ import {
 } from '@mui/material';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { es } from 'date-fns/locale';
 import { Pagination } from '@mui/material';
 
@@ -35,17 +32,18 @@ const ReporteInversionCliente = () => {
   const [filtros, setFiltros] = useState({
     cliente: null,
     anio: '',
-    fechaInicio: null,
-    fechaFin: null
+    mes: ''
   });
   const [clientes, setClientes] = useState([]);
   const [anios, setAnios] = useState([]);
+  const [meses, setMeses] = useState([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(25); // Más filas por página para este reporte
 
   useEffect(() => {
     fetchClientes();
     fetchAnios();
+    fetchMeses();
   }, []);
 
   const fetchClientes = async () => {
@@ -73,6 +71,20 @@ const ReporteInversionCliente = () => {
       setAnios(data || []);
     } catch (error) {
       console.error('Error al cargar años:', error);
+    }
+  };
+
+  const fetchMeses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Meses')
+        .select('Id, Nombre')
+        .order('Id');
+
+      if (error) throw error;
+      setMeses(data || []);
+    } catch (error) {
+      console.error('Error al cargar meses:', error);
     }
   };
 
@@ -130,71 +142,59 @@ const ReporteInversionCliente = () => {
         query = query.eq('plan.anio', filtros.anio);
       }
 
-      // Filtro por rango de fechas - usando IDs de mes y año
-      if (filtros.fechaInicio && filtros.fechaFin) {
-        const fechaInicio = new Date(filtros.fechaInicio);
-        const fechaFin = new Date(filtros.fechaFin);
-        
-        // Si es el mismo mes y año, obtener los IDs y filtrar
-        if (fechaInicio.getMonth() === fechaFin.getMonth() &&
-            fechaInicio.getFullYear() === fechaFin.getFullYear()) {
-          
-          // Obtener el nombre del mes en español y asegurar mayúscula inicial
-          let nombreMes = fechaInicio.toLocaleDateString('es-ES', { month: 'long' });
-          // Asegurar que la primera letra sea mayúscula
-          nombreMes = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
-          const anio = fechaInicio.getFullYear();
-          
-          console.log('Filtrando por mes:', nombreMes, 'año:', anio); // Debug
-          
-          // Buscar el ID del mes y año
-          const { data: mesData } = await supabase
-            .from('Meses')
-            .select('Id')
-            .eq('Nombre', nombreMes)
-            .single();
-            
-          const { data: anioData } = await supabase
-            .from('Anios')
-            .select('id')
-            .eq('years', anio)
-            .single();
-          
-          console.log('ID mes encontrado:', mesData?.Id, 'ID año encontrado:', anioData?.id); // Debug
-          
-          // Si encontramos los IDs, aplicar el filtro
-          if (mesData && anioData) {
-            query = query.eq('plan.mes', mesData.Id).eq('plan.anio', anioData.id);
-          }
-        } else {
-          // Para rangos de múltiples meses, usar fecha de creación como fallback
-          if (filtros.fechaInicio) {
-            const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
-            query = query.gte('fechaCreacion', fechaInicioFormateada);
-          }
-
-          if (filtros.fechaFin) {
-            const fechaFinFormateada = format(new Date(filtros.fechaFin), 'yyyy-MM-dd');
-            query = query.lte('fechaCreacion', fechaFinFormateada);
-          }
-        }
-      } else {
-        // Si solo hay una de las fechas, usar fecha de creación
-        if (filtros.fechaInicio) {
-          const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
-          query = query.gte('fechaCreacion', fechaInicioFormateada);
-        }
-
-        if (filtros.fechaFin) {
-          const fechaFinFormateada = format(new Date(filtros.fechaFin), 'yyyy-MM-dd');
-          query = query.lte('fechaCreacion', fechaFinFormateada);
-        }
+      if (filtros.mes) {
+        query = query.eq('plan.mes', filtros.mes);
       }
 
       const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: false });
 
       if (error) throw error;
-      setOrdenes(ordenesData || []);
+      
+      // Para cada orden, obtener sus alternativas para calcular el total neto y la tarifa bruta
+      const ordenesConTotales = await Promise.all(
+        ordenesData?.map(async (orden) => {
+          let totalNeto = 0;
+          let tarifaBruta = 0;
+          
+          // Obtener alternativas de esta orden
+          if (orden.alternativas_plan_orden) {
+            let idsAlternativas = [];
+            
+            // Extraer IDs de alternativas_plan_orden
+            try {
+              if (Array.isArray(orden.alternativas_plan_orden)) {
+                idsAlternativas = orden.alternativas_plan_orden;
+              } else if (typeof orden.alternativas_plan_orden === 'string') {
+                const parsed = JSON.parse(orden.alternativas_plan_orden);
+                idsAlternativas = Array.isArray(parsed) ? parsed : [];
+              }
+            } catch (e) {
+              console.error('Error parseando alternativas_plan_orden:', e);
+            }
+
+            if (idsAlternativas.length > 0) {
+              const { data: alternativas } = await supabase
+                .from('alternativa')
+                .select('total_neto, total_bruto')
+                .in('id', idsAlternativas);
+
+              if (alternativas && alternativas.length > 0) {
+                // Sumar todos los totales netos y brutos de las alternativas
+                totalNeto = alternativas.reduce((sum, alt) => sum + (alt.total_neto || 0), 0);
+                tarifaBruta = alternativas.reduce((sum, alt) => sum + (alt.total_bruto || 0), 0);
+              }
+            }
+          }
+
+          return {
+            ...orden,
+            totalNeto: totalNeto,
+            tarifaBruta: tarifaBruta
+          };
+        }) || []
+      );
+
+      setOrdenes(ordenesConTotales);
     } catch (error) {
       console.error('Error al buscar órdenes:', error);
     } finally {
@@ -205,9 +205,8 @@ const ReporteInversionCliente = () => {
   const limpiarFiltros = () => {
     setFiltros({
       cliente: null,
-      anio: anios.length > 0 ? anios[0].id : '',
-      fechaInicio: null,
-      fechaFin: null
+      anio: '',
+      mes: ''
     });
     setOrdenes([]);
   };
@@ -230,12 +229,12 @@ const ReporteInversionCliente = () => {
       'OC Cliente': orden.numero_correlativo || '',
       'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
       'Age.Crea': orden.Campania?.Agencia?.RazonSocial || orden.Campania?.Agencia?.NombreDeFantasia || 'ORIGEN COMUNICACIONES',
-      'Inv.Bruta': orden.Campania?.Presupuesto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.Campania.Presupuesto) : '',
+      'Inv.Bruta': orden.tarifaBruta ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.tarifaBruta) : '$0',
       'N° Fact.Prov.': '', // Este campo podría requerir una tabla adicional de facturas
       'Fecha Fact.Prov.': '', // Este campo podría requerir una tabla adicional de facturas
       'N° Fact.Age.': '', // Este campo podría requerir una tabla adicional de facturas
       'Fecha Fact.Age.': '', // Este campo podría requerir una tabla adicional de facturas
-      'Monto Neto Fact.': '', // Este campo podría requerir una tabla adicional de facturas
+      'Monto Neto Fact.': orden.totalNeto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.totalNeto) : '$0',
       'Tipo Ctto.': orden.Contratos?.NombreContrato || '',
       'Usuario Grupo': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || ''
     }));
@@ -316,37 +315,25 @@ const ReporteInversionCliente = () => {
           </Grid>
           
           <Grid item xs={12} sm={2}>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <DatePicker
-                label="Fecha inicio"
-                value={filtros.fechaInicio}
-                onChange={(newValue) => handleFiltroChange('fechaInicio', newValue)}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: 'small',
-                    variant: 'outlined'
+            <FormControl fullWidth size="small">
+              <InputLabel>Mes</InputLabel>
+              <Select
+                value={filtros.mes}
+                label="Mes"
+                onChange={(e) => handleFiltroChange('mes', e.target.value)}
+                sx={{
+                  '& .MuiSelect-select': {
+                    paddingLeft: '12px'
                   }
                 }}
-              />
-            </LocalizationProvider>
-          </Grid>
-          
-          <Grid item xs={12} sm={2}>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <DatePicker
-                label="Fecha fin"
-                value={filtros.fechaFin}
-                onChange={(newValue) => handleFiltroChange('fechaFin', newValue)}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: 'small',
-                    variant: 'outlined'
-                  }
-                }}
-              />
-            </LocalizationProvider>
+              >
+                {meses.map((mes) => (
+                  <MenuItem key={mes.Id} value={mes.Id}>
+                    {mes.Nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid item xs={12} sm={1.5}>
@@ -443,19 +430,27 @@ const ReporteInversionCliente = () => {
                       <TableCell>{orden.Campania?.Productos?.NombreDelProducto || 'N/A'}</TableCell>
                       <TableCell>{orden.Campania?.Agencia?.RazonSocial || orden.Campania?.Agencia?.NombreDeFantasia || 'ORIGEN COMUNICACIONES'}</TableCell>
                       <TableCell>
-                        {orden.Campania?.Presupuesto
+                        {orden.tarifaBruta
                           ? new Intl.NumberFormat('es-CL', {
                               style: 'currency',
                               currency: 'CLP',
                               minimumFractionDigits: 0
-                            }).format(orden.Campania.Presupuesto)
-                          : 'N/A'}
+                            }).format(orden.tarifaBruta)
+                          : '$0'}
                       </TableCell>
                       <TableCell>0</TableCell>
                       <TableCell>N/A</TableCell>
                       <TableCell>N/A</TableCell>
                       <TableCell>N/A</TableCell>
-                      <TableCell>0</TableCell>
+                      <TableCell>
+                        {orden.totalNeto
+                          ? new Intl.NumberFormat('es-CL', {
+                              style: 'currency',
+                              currency: 'CLP',
+                              minimumFractionDigits: 0
+                            }).format(orden.totalNeto)
+                          : '$0'}
+                      </TableCell>
                       <TableCell>{orden.Contratos?.NombreContrato || 'N/A'}</TableCell>
                       <TableCell>{orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || 'N/A'}</TableCell>
                     </TableRow>
