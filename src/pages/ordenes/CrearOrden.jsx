@@ -123,13 +123,16 @@ const CrearOrden = () => {
             Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
               FormaDePago (id, NombreFormadePago),
               Proveedores (id_proveedor, nombreProveedor, rutProveedor, direccionFacturacion, id_comuna),
-              TipoGeneracionDeOrden (id, NombreTipoOrden)
+              TipoGeneracionDeOrden (id, NombreTipoOrden),
+              medio:IdMedios (id, NombredelMedio),
+              Medios:IdMedios (id, NombredelMedio)
             ),
             tipo_item,
             Soportes (id_soporte, nombreIdentficiador),
             Clasificacion (id, NombreClasificacion),
             Temas (id_tema, NombreTema, Duracion, CodigoMegatime),
-            Programas (id, codigo_programa, hora_inicio, hora_fin, descripcion)
+            Programas (id, codigo_programa, hora_inicio, hora_fin, descripcion),
+            Medios:medio (id, NombredelMedio)
             `)
           .in('id', alternativaIds)
           .or('ordencreada.is.null,ordencreada.eq.false');
