@@ -1456,6 +1456,24 @@ const Alternativas = () => {
       return;
     }
 
+    // Validar rango de expiración respecto al periodo de la alternativa
+    try {
+      const periodoFin = (nuevaAlternativa.anio && nuevaAlternativa.mes)
+        ? new Date(nuevaAlternativa.anio, nuevaAlternativa.mes, 0)
+        : null;
+      const expira = contrato.FechaTermino ? new Date(contrato.FechaTermino) : null;
+      if (periodoFin && expira && expira < periodoFin) {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Contrato fuera de rango',
+          text: `El contrato expira el ${expira.toLocaleDateString()} y es anterior al periodo seleccionado.`,
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('Validación de expiración fallida:', e);
+    }
+
     // Asegurarnos de que el contrato tenga la estructura correcta con el proveedor
     const contratoCompleto = {
       ...contrato,
@@ -3938,6 +3956,7 @@ Cancelar
                     <TableCell>Proveedor</TableCell>
                     <TableCell>Medio</TableCell>
                     <TableCell>Forma de Pago</TableCell>
+                    <TableCell>Fecha Expiración</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Acciones</TableCell>
                   </TableRow>
@@ -3964,6 +3983,7 @@ Cancelar
                         <TableCell>{contrato.proveedor?.nombreProveedor}</TableCell>
                         <TableCell>{contrato.medio?.NombredelMedio}</TableCell>
                         <TableCell>{contrato.formaPago?.NombreFormadePago}</TableCell>
+                        <TableCell>{contrato.FechaTermino ? new Date(contrato.FechaTermino).toLocaleDateString() : 'N/A'}</TableCell>
                         <TableCell>
                           <Typography color={getEstadoColor(contrato.Estado)}>
                             {contrato.Estado}
@@ -3971,15 +3991,30 @@ Cancelar
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Seleccionar">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleSeleccionarContrato(contrato)}
-                              >
-                                <CheckIcon />
-                              </IconButton>
-                            </Tooltip>
+                            {(() => {
+                              const periodoFin = (nuevaAlternativa.anio && nuevaAlternativa.mes)
+                                ? new Date(nuevaAlternativa.anio, nuevaAlternativa.mes, 0)
+                                : null;
+                              const expira = contrato.FechaTermino ? new Date(contrato.FechaTermino) : null;
+                              const fueraDeRango = periodoFin && expira && expira < periodoFin;
+                              const tooltip = fueraDeRango
+                                ? `Contrato expira antes del periodo (${expira?.toLocaleDateString()})`
+                                : 'Seleccionar';
+                              return (
+                                <Tooltip title={tooltip}>
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="primary"
+                                      disabled={Boolean(fueraDeRango)}
+                                      onClick={() => handleSeleccionarContrato(contrato)}
+                                    >
+                                      <CheckIcon />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              );
+                            })()}
                             <Tooltip title="Editar">
                               <IconButton
                                 size="small"
