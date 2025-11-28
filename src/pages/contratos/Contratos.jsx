@@ -19,7 +19,11 @@ import {
     Paper,
     Switch,
     CircularProgress,
-    Box
+    Box,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -42,17 +46,59 @@ const Contratos = () => {
     const [openModal, setOpenModal] = useState(false);
     const [openEditModal, setOpenEditModal] = useState(false);
     const [selectedContrato, setSelectedContrato] = useState(null);
+    const [openClienteModal, setOpenClienteModal] = useState(false);
+    const [clientes, setClientes] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCliente, setSelectedCliente] = useState(null);
 
 
     
 
     useEffect(() => {
-        fetchContratos();
+        const shouldPersist = localStorage.getItem('contratos_persist_on_return') === '1';
+        const stored = localStorage.getItem('contratos_selected_cliente');
+        if (shouldPersist && stored) {
+            const cliente = JSON.parse(stored);
+            setSelectedCliente(cliente);
+            fetchContratos(cliente.id_cliente);
+            localStorage.removeItem('contratos_persist_on_return');
+        } else {
+            setOpenClienteModal(true);
+            fetchClientes();
+        }
     }, []);
 
-    const fetchContratos = async () => {
-        setLoading(true);
+    const fetchClientes = async () => {
         try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('Clientes')
+                .select('id_cliente, nombreCliente, razonSocial, RUT')
+                .order('nombreCliente');
+
+            if (error) throw error;
+            setClientes(data || []);
+        } catch (error) {
+            console.error('Error al cargar clientes:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudieron cargar los clientes'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchContratos = async (clienteIdParam) => {
+        try {
+            const clienteId = clienteIdParam ?? selectedCliente?.id_cliente;
+            if (!clienteId) {
+                setContratos([]);
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
             let { data: contratosData, error } = await supabase
                 .from('Contratos')
                 .select(`
@@ -63,7 +109,9 @@ const Contratos = () => {
                     formaPago:FormaDePago(id, NombreFormadePago),
                     tipoOrden:TipoGeneracionDeOrden(id, NombreTipoOrden),
                     c_orden
-                `);
+                `)
+                .eq('IdCliente', clienteId)
+                .order('NombreContrato');
 
             if (error) throw error;
             setContratos(contratosData || []);
@@ -76,6 +124,17 @@ const Contratos = () => {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleClienteSelect = async (cliente) => {
+        try {
+            setSelectedCliente(cliente);
+            localStorage.setItem('contratos_selected_cliente', JSON.stringify(cliente));
+            setOpenClienteModal(false);
+            await fetchContratos(cliente.id_cliente);
+        } catch (error) {
+            console.error('Error al seleccionar cliente:', error);
         }
     };
 
@@ -136,6 +195,7 @@ const Contratos = () => {
     };
 
     const handleView = (contrato) => {
+        localStorage.setItem('contratos_persist_on_return', '1');
         navigate(`/contratos/view/${contrato.id}`);
     };
 
@@ -189,7 +249,7 @@ const Contratos = () => {
         XLSX.writeFile(wb, 'Contratos.xlsx');
     };
 
-    if (loading) {
+    if (loading && selectedCliente) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
                 <CircularProgress />
@@ -198,7 +258,90 @@ const Contratos = () => {
     }
 
     return (
-        <Container maxWidth="xl">
+        <>
+            <Dialog 
+                open={openClienteModal || !selectedCliente}
+                maxWidth="md"
+                fullWidth
+                disableEscapeKeyDown
+            >
+                <DialogTitle>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Typography variant="h6">Seleccionar Cliente</Typography>
+                    </Box>
+                </DialogTitle>
+                <DialogContent>
+                    <TextField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Buscar cliente..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        sx={{ mt: 2 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon />
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+                    {loading ? (
+                        <Box display="flex" justifyContent="center" m={3}>
+                            <CircularProgress />
+                        </Box>
+                    ) : (
+                        <TableContainer component={Paper} sx={{ mt: 2 }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>Nombre del Cliente</TableCell>
+                                        <TableCell>Razón Social</TableCell>
+                                        <TableCell>RUT</TableCell>
+                                        <TableCell>Acción</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {clientes
+                                        .filter(cliente =>
+                                            cliente.nombreCliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            (cliente.razonSocial || '').toLowerCase().includes(searchTerm.toLowerCase())
+                                        )
+                                        .map((cliente) => (
+                                            <TableRow key={cliente.id_cliente}>
+                                                <TableCell>{cliente.nombreCliente}</TableCell>
+                                                <TableCell>{cliente.razonSocial}</TableCell>
+                                                <TableCell>{cliente.RUT}</TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        variant="contained"
+                                                        color="primary"
+                                                        onClick={() => handleClienteSelect(cliente)}
+                                                    >
+                                                        Seleccionar
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button 
+                        variant="outlined"
+                        onClick={() => {
+                            setOpenClienteModal(false);
+                            navigate('/dashboard');
+                        }}
+                    >
+                        Cerrar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Container maxWidth="xl">
             <div style={{ marginBottom: '20px', marginTop: '20px' }}>
                 <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />}>
                     <Link component={RouterLink} to="/dashboard" color="inherit">
@@ -244,6 +387,20 @@ const Contratos = () => {
                     />
                 </Grid>
                 <Grid item xs={12} sm={4} container justifyContent="flex-end" spacing={1}>
+                    <Grid item>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => {
+                                setSelectedCliente(null);
+                                localStorage.removeItem('contratos_selected_cliente');
+                                setContratos([]);
+                                setOpenClienteModal(true);
+                            }}
+                        >
+                            Cambiar cliente
+                        </Button>
+                    </Grid>
                     <Grid item>
                         <Button
                             variant="contained"
@@ -346,7 +503,8 @@ const Contratos = () => {
         contrato={selectedContrato} 
         onContratoUpdated={fetchContratos} 
     />
-        </Container>
+            </Container>
+        </>
     );
 };
 
