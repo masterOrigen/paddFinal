@@ -221,6 +221,11 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
   const tipoOrden = alternatives[0]?.Contratos?.TipoGeneracionDeOrden?.id || 1;
   const esBruto = tipoOrden === 2; // Asumiendo que id=2 es Bruto y id=1 es Neto
   const isCanceled = order?.estado === 'anulada';
+  const medioNombre =
+    (alternatives.find(a => a?.Contratos?.medio?.NombredelMedio)?.Contratos?.medio?.NombredelMedio) ||
+    (alternatives.find(a => a?.Contratos?.Medios?.NombredelMedio)?.Contratos?.Medios?.NombredelMedio) ||
+    (alternatives.find(a => a?.Medios?.NombredelMedio)?.Medios?.NombredelMedio) ||
+    null;
   
   return (
 	<Document>
@@ -239,9 +244,14 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         </Text>
     )}
 </View>
-				<View style={styles.yearContainer}>
-					<Text style={styles.yearText}>AÑO /{new Date().getFullYear()}</Text>
-				</View>
+                <View style={styles.yearContainer}>
+                    <Text style={styles.infoText3}>
+                        {upper(medioNombre || '')}
+                    </Text>
+                    <Text style={styles.yearText}>
+                        {upper(alternatives[0]?.Meses?.Nombre)} / {(alternatives[0]?.Anios?.years) ?? new Date().getFullYear()}
+                    </Text>
+                </View>
 			</View>
 
 			<View style={styles.infoContainer}>
@@ -274,10 +284,10 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 								<Text style={styles.infoLabel}>MES:</Text>
                                 <Text style={styles.infoValue}>{upper(alternatives[0]?.Meses?.Nombre)}</Text>
 							</View>
-							<View style={styles.rowex}>
-								<Text style={styles.infoLabel}>N° CONTRATO:</Text>
-								<Text style={styles.infoValue}>{alternatives[0]?.Contratos?.id}</Text>
-							</View>
+                            <View style={styles.rowex}>
+                                <Text style={styles.infoLabel}>N° CONTRATO:</Text>
+                                <Text style={styles.infoValue}>{upper(alternatives[0]?.Contratos?.NombreContrato)}</Text>
+                            </View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>FORMA DE PAGO:</Text>
                                 <Text style={styles.infoValue}>{upper(alternatives[0]?.Contratos?.FormaDePago?.NombreFormadePago)}</Text>
