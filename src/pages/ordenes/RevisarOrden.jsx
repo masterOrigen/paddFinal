@@ -73,10 +73,11 @@ const RevisarOrden = () => {
 
     try {
     await generateOrderPDF(
-    selectedOrder,
-    alternatives, // Pass all alternatives of the selected order
-    selectedCliente,
-    selectedCampana
+      selectedOrder,
+      alternatives,
+      selectedCliente,
+      selectedCampana,
+      selectedOrder?.plan
     );
     } catch (error) {
     console.error('Error al generar PDF:', error);
@@ -783,7 +784,9 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
                                 id_comuna,
                                 nombreComuna
                             )
-                        )
+                        ),
+                        medio:IdMedios (id, NombredelMedio),
+                        Medios:IdMedios (id, NombredelMedio)
                     ),
                     tipo_item,
                     Soportes (
@@ -805,7 +808,8 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
                         hora_inicio,
                         hora_fin,
                         descripcion
-                    )
+                    ),
+                    Medios:medio (id, NombredelMedio)
                 `)
                 .in('id', alternativeIds);
             
