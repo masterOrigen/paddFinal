@@ -82,7 +82,8 @@ const ModalAgregarCampana = ({ open, onClose, onCampanaAdded }) => {
                 .from('Anios')
                 .select('id, years');
             if (aniosError) throw aniosError;
-            setAnios(aniosData);
+            const currentYear = new Date().getFullYear();
+            setAnios((aniosData || []).filter(a => Number(a.years) >= currentYear));
 
         } catch (error) {
             console.error('Error al cargar datos:', error);
@@ -115,6 +116,17 @@ const ModalAgregarCampana = ({ open, onClose, onCampanaAdded }) => {
         setLoading(true);
 
         try {
+            const selectedYear = anios.find(a => a.id === formData.Anio)?.years;
+            const currentYear = new Date().getFullYear();
+            if (!selectedYear || Number(selectedYear) < currentYear) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Año inválido',
+                    text: 'No se puede seleccionar un año inferior al actual'
+                });
+                setLoading(false);
+                return;
+            }
             const { data, error } = await supabase
                 .from('Campania')
                 .insert([
