@@ -231,7 +231,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 	<Document>
 		<Page size={{ width: 800, height:1000  }} orientation="landscape" style={styles.page}>
 			<View style={styles.header}>
-				<Text style={styles.headerText}>RUT {cliente?.RUT}</Text>
+				<Text style={styles.headerText}></Text>
         <View style={styles.titleContainer}>
     <Text style={[styles.title, isCanceled ? { color: 'red' } : null]}>
         {isCanceled ? 'ORDEN ANULADA' : 'ORDEN DE PUBLICIDAD'} {order?.numero_correlativo}

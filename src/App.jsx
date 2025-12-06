@@ -38,6 +38,8 @@ import ReporteClienteDiario from './pages/reportes/ReporteClienteDiario';
 import OrdenesNoEmitidas from './pages/reportes/OrdenesNoEmitidas';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
+import RecuperarPassword from './pages/auth/RecuperarPassword';
+import RestablecerPassword from './pages/auth/RestablecerPassword';
 import './App.css';
 
 function App() {
@@ -110,6 +112,8 @@ function App() {
         ) : (
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/recuperar-password" element={<RecuperarPassword />} />
+            <Route path="/restablecer-password" element={<RestablecerPassword />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         )}
