@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
+import emailjs from '@emailjs/browser';
 import './Login.css'; // Reutilizamos estilos del login
+
+// Configuración de EmailJS
+// Las variables se cargan desde el archivo .env
+const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
 const RecuperarPassword = () => {
   const [email, setEmail] = useState('');
@@ -47,20 +54,29 @@ const RecuperarPassword = () => {
 
       if (updateError) throw updateError;
 
-      // 4. Enviar el correo (Aquí necesitas un servicio de email)
-      // Como no tienes backend, puedes usar EmailJS o simplemente mostrar el link por ahora para probar.
+      // 4. Enviar el correo con EmailJS
       const resetLink = `${window.location.origin}/restablecer-password?token=${token}`;
       
-      console.log('--- LINK DE RECUPERACIÓN (En producción esto se envía por email) ---');
-      console.log(resetLink);
+      const templateParams = {
+        to_email: email,
+        to_name: user.Nombre, // Asegúrate de que tu template use {{to_name}}
+        reset_link: resetLink // Asegúrate de que tu template use {{reset_link}}
+      };
 
-      // TODO: Integrar EmailJS aquí para enviar el correo real
-      
-      await Swal.fire({
-        icon: 'success',
-        title: 'Instrucciones enviadas',
-        text: 'Revisa tu correo (y la consola del navegador para probar) para restablecer tu contraseña.'
-      });
+      try {
+        await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
+        
+        await Swal.fire({
+          icon: 'success',
+          title: 'Instrucciones enviadas',
+          text: 'Revisa tu bandeja de entrada (y spam) para restablecer tu contraseña.'
+        });
+      } catch (emailError) {
+        console.error('Error al enviar email:', emailError);
+        // Aún así, el token se generó, pero el usuario no recibió el correo.
+        // Podríamos revertir el token o avisar al usuario.
+        throw new Error('Error al conectar con el servicio de correos.');
+      }
 
     } catch (error) {
       console.error(error);

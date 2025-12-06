@@ -114,7 +114,7 @@ const Login = () => {
             <div className="forgot-password-link" style={{ textAlign: 'left', marginBottom: '15px' }}>
               <a 
                 href="/recuperar-password" 
-                style={{ color: '#666', textDecoration: 'none', fontSize: '14px' }}
+                  
                 onClick={(e) => {
                   e.preventDefault();
                   navigate('/recuperar-password');

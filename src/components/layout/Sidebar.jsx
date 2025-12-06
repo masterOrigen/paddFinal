@@ -105,7 +105,7 @@ const Sidebar = () => {
     
     const perfil = user.Perfiles?.NombrePerfil;
     
-    if (perfil === 'Área de Planificación') {
+    if (perfil === 'Área de Planificación' || perfil === 'Área Planificación') {
       if (item.id === 'comercial' || item.id === 'usuarios') {
         return false;
       }
