@@ -1,0 +1,208 @@
+.proveedores-container {
+  padding: 20px;
+  background-color: #f4f6f9;
+}
+
+.header {
+  margin-bottom: 20px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: #6B7280;
+  font-size: 14px;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: none; /* General */
+}
+
+.breadcrumb a {
+  color: #6366F1;
+  text-decoration: none;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-content h1 {
+  font-size: 1.5rem;
+  color: #495057;
+  margin: 0;
+}
+
+.titulo-pagina {
+  color: #111827;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  margin-bottom: 24px !important;
+}
+
+.filtros-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.search-container {
+  flex: 1;
+  max-width: 300px;
+}
+
+.search-container .MuiTextField-root {
+  width: 100%;
+}
+
+.date-filters {
+  display: flex;
+  gap: 16px;
+}
+
+.actions-container {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-agregar {
+  background-color: #6366F1 !important;
+  text-transform: none !important;
+  padding: 6px 16px !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+}
+
+.btn-exportar {
+  min-width: 180px;
+  margin: 0 0 0 15px;
+  align-self: center;
+  background-color: #206e43 !important;
+}
+
+.btn-exportar:hover {
+  background-color: #185735 !important;
+}
+
+.data-grid-container {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.MuiTextField-root {
+  background-color: white;
+}
+
+.MuiInputBase-root {
+  border-radius: 6px !important;
+}
+
+.MuiDataGrid-root {
+  border: none !important;
+}
+
+.MuiDataGrid-columnHeaders {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.MuiDataGrid-columnHeaderTitle {
+  font-weight: 600 !important;
+  color: #374151 !important;
+}
+
+.MuiDataGrid-cell {
+  border-bottom: 1px solid #e5e7eb !important;
+  color: #4B5563 !important;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-buttons button {
+  padding: 4px !important;
+  min-width: unset !important;
+}
+
+.action-buttons .MuiSvgIcon-root {
+  font-size: 1.2rem;
+}
+
+.MuiButton-contained {
+  text-transform: none !important;
+  padding: 6px 16px !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+}
+
+.MuiTablePagination-root {
+  color: #4B5563 !important;
+}
+
+.MuiTablePagination-select {
+  margin-right: 16px !important;
+}
+
+/* Estilos para el modal */
+.modal-content {
+  padding: 24px;
+}
+
+.modal-title {
+  color: #374151;
+  margin-bottom: 20px;
+}
+
+.modal-form {
+  display: grid;
+  gap: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Estilos para los campos de formulario */
+.form-field {
+  margin-bottom: 16px;
+}
+
+.form-field label {
+  color: #4B5563;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+}
+
+.form-field .error {
+  color: #DC2626;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}

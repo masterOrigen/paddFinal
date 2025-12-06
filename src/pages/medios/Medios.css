@@ -1,0 +1,153 @@
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px 0;
+}
+
+.search-container {
+  flex: 1;
+  max-width: 340px;
+}
+
+.search-container .MuiTextField-root {
+  width: 100%;
+  background-color: white;
+  border-radius: 4px;
+}
+
+.checkbox-group {
+  margin-top: 20px;
+}
+
+.checkbox-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  width: 100%;
+}
+
+.checkbox-container .MuiFormControlLabel-root {
+  margin: 0;
+  min-width: 150px;
+}
+
+.checkbox-container .MuiCheckbox-root {
+  padding: 4px;
+}
+
+.checkbox-container .MuiFormControlLabel-label {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+/* Estilos para el DataGrid */
+.MuiDataGrid-root {
+  background-color: white;
+  border-radius: 8px;
+}
+
+.MuiDataGrid-cell {
+  padding: 8px 16px !important;
+}
+
+.MuiDataGrid-columnHeader {
+  background-color: #f9fafb;
+  padding: 8px 16px !important;
+}
+
+/* Estilos para el diálogo */
+.MuiDialog-paper {
+  border-radius: 12px !important;
+}
+
+.MuiDialogTitle-root {
+  background-color: #f9fafb;
+  padding: 16px 24px !important;
+}
+
+.MuiDialogContent-root {
+  padding: 20px 24px !important;
+}
+
+.MuiDialogActions-root {
+  padding: 16px 24px !important;
+  background-color: #f9fafb;
+}
+
+/* Estilos para los botones */
+.MuiButton-contained {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  padding: 6px 16px !important;
+}
+
+/* Estilos para los campos de texto */
+.MuiTextField-root {
+  margin-bottom: 16px !important;
+}
+
+.MuiInputLabel-root {
+  font-size: 14px !important;
+}
+
+.MuiOutlinedInput-root {
+  font-size: 14px !important;
+}
+
+/* Estilos para el Switch */
+.MuiSwitch-root {
+  padding: 8px;
+  margin-right: 8px;
+}
+
+.MuiSwitch-track {
+  background-color: #e2e8f0 !important;
+}
+
+.MuiSwitch-switchBase.Mui-checked {
+  color: #6777ef !important;
+}
+
+.MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track {
+  background-color: var(--DataGrid-rowBorderColor) !important;
+}
+
+.MuiFormControlLabel-root {
+  margin-left: 0 !important;
+}
+
+.switch-label {
+  display: flex;
+  align-items: center;
+}
+
+.switch-label svg {
+  margin-right: 8px;
+  color: #6777ef;
+}
+
+.MuiInputAdornment-root svg {
+  color: #424242;
+}
+
+/* Estilos para el Switch en la tabla */
+.MuiDataGrid-cell .MuiSwitch-root {
+  margin: 0;
+  padding: 0;
+}
+
+.MuiDataGrid-cell .MuiSwitch-switchBase {
+  padding: 8px;
+}
+
+/* Estilos para el Breadcrumb */
+.MuiBreadcrumbs-root {
+  padding: 12px 0;
+  background-color: transparent;
+}
+
+.MuiBreadcrumbs-separator {
+  color: rgba(0, 0, 0, 0.54);
+}
