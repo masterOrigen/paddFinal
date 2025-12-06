@@ -63,6 +63,8 @@ const RecuperarPassword = () => {
         reset_link: resetLink // Asegúrate de que tu template use {{reset_link}}
       };
 
+      console.log('Intentando enviar correo con params:', templateParams); // Debug
+
       try {
         await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
         
