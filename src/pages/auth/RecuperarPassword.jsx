@@ -28,11 +28,11 @@ const RecuperarPassword = () => {
         .single();
 
       if (searchError || !user) {
-        // Por seguridad, no decimos si el correo existe o no, pero mostramos éxito
+        // Mostramos mensaje específico indicando que el usuario no existe
         await Swal.fire({
-            icon: 'success',
-            title: 'Correo enviado',
-            text: 'Si el correo existe en nuestros registros, recibirás las instrucciones.'
+          icon: 'error',
+          title: 'Usuario no encontrado',
+          text: 'El correo electrónico no está registrado en el sistema.'
         });
         setLoading(false);
         return;
@@ -46,9 +46,9 @@ const RecuperarPassword = () => {
       // 3. Guardar el token en la base de datos
       const { error: updateError } = await supabase
         .from('Usuarios')
-        .update({ 
-            reset_token: token, 
-            reset_token_expires: expiresAt.toISOString() 
+        .update({
+          reset_token: token,
+          reset_token_expires: expiresAt.toISOString()
         })
         .eq('id_usuario', user.id_usuario);
 
@@ -56,7 +56,7 @@ const RecuperarPassword = () => {
 
       // 4. Enviar el correo con EmailJS
       const resetLink = `${window.location.origin}/restablecer-password?token=${token}`;
-      
+
       const templateParams = {
         to_email: email,
         to_name: user.Nombre, // Asegúrate de que tu template use {{to_name}}
@@ -67,7 +67,7 @@ const RecuperarPassword = () => {
 
       try {
         await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, PUBLIC_KEY);
-        
+
         await Swal.fire({
           icon: 'success',
           title: 'Instrucciones enviadas',
@@ -95,17 +95,17 @@ const RecuperarPassword = () => {
   return (
     <div className="login-container">
       <div className="login-box">
-        <img 
-          src="https://www.origenmedios.cl/wp-content/uploads/2023/10/logo-origen-2023-sm2.png" 
-          alt="Origen Medios" 
+        <img
+          src="https://www.origenmedios.cl/wp-content/uploads/2023/10/logo-origen-2023-sm2.png"
+          alt="Origen Medios"
           className="login-logo"
         />
         <div className="login-form">
           <h2>RECUPERAR CONTRASEÑA</h2>
-          <p style={{textAlign: 'center', marginBottom: '20px', color: '#666'}}>
+          <p style={{ textAlign: 'center', marginBottom: '20px', color: '#666' }}>
             Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
           </p>
-          
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Email</label>
@@ -121,7 +121,7 @@ const RecuperarPassword = () => {
               {loading ? 'Enviando...' : 'Enviar Enlace'}
             </button>
           </form>
-          
+
           <div style={{ marginTop: '20px' }} className="login-footer">
             <Link to="/login">Volver al inicio de sesión</Link>
           </div>
