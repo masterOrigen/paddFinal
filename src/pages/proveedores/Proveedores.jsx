@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
-import { 
-  Button, 
+import {
+  Button,
   Container,
   IconButton,
   TextField,
@@ -89,35 +89,35 @@ const Proveedores = () => {
 
   const validarRut = (rut) => {
     if (!rut) return false;
-    
+
     // Limpiar el RUT de puntos y guión
     let valor = rut.replace(/\./g, '').replace(/-/g, '');
-    
+
     // Aislar Cuerpo y Dígito Verificador
     let cuerpo = valor.slice(0, -1);
     let dv = valor.slice(-1).toUpperCase();
-    
+
     // Si no cumple con el mínimo de dígitos, es inválido
     if (cuerpo.length < 7) return false;
-    
+
     // Calcular Dígito Verificador esperado
     let suma = 0;
     let multiplo = 2;
-    
+
     // Para cada dígito del Cuerpo
     for (let i = cuerpo.length - 1; i >= 0; i--) {
       suma += Number(cuerpo[i]) * multiplo;
       multiplo = multiplo < 7 ? multiplo + 1 : 2;
     }
-    
+
     // Calcular Dígito Verificador
     let dvEsperado = 11 - (suma % 11);
-    
+
     // Casos Especiales
     if (dvEsperado === 11) dvEsperado = '0';
     if (dvEsperado === 10) dvEsperado = 'K';
     else dvEsperado = String(dvEsperado);
-    
+
     // Validar que el Dígito Verificador ingresado sea igual al esperado
     return dv === dvEsperado;
   };
@@ -189,7 +189,7 @@ const Proveedores = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Obtener proveedores y contar sus soportes
       const { data: proveedoresData, error: proveedoresError } = await supabase
         .from('Proveedores')
@@ -224,7 +224,59 @@ const Proveedores = () => {
       }, {});
       setComunasFiltradas(comunasObj);
 
-      const formattedRows = proveedoresData.map(proveedor => {
+      // Obtener los soportes para cada proveedor
+      const proveedoresConSoportes = await Promise.all(
+        proveedoresData.map(async (proveedor) => {
+          // Obtener los IDs de soportes asociados a este proveedor
+          const { data: proveedorSoportes, error: soportesError } = await supabase
+            .from('proveedor_soporte')
+            .select('id_soporte')
+            .eq('id_proveedor', proveedor.id_proveedor);
+
+          if (soportesError) {
+            console.error('Error fetching soportes for provider:', proveedor.id_proveedor, soportesError);
+            return {
+              ...proveedor,
+              soportes: []
+            };
+          }
+
+          if (proveedorSoportes && proveedorSoportes.length > 0) {
+            // Filtrar IDs nulos y obtener array de IDs válidos
+            const idsSoportes = proveedorSoportes
+              .map(ps => ps.id_soporte)
+              .filter(id => id != null);
+
+            if (idsSoportes.length > 0) {
+              // Obtener los detalles de los soportes
+              const { data: soportesData, error: soportesDetailsError } = await supabase
+                .from('Soportes')
+                .select('id_soporte, nombreIdentficiador')
+                .in('id_soporte', idsSoportes);
+
+              if (soportesDetailsError) {
+                console.error('Error fetching soportes details:', soportesDetailsError);
+                return {
+                  ...proveedor,
+                  soportes: []
+                };
+              }
+
+              return {
+                ...proveedor,
+                soportes: soportesData || []
+              };
+            }
+          }
+
+          return {
+            ...proveedor,
+            soportes: []
+          };
+        })
+      );
+
+      const formattedRows = proveedoresConSoportes.map(proveedor => {
         const fecha = new Date(proveedor.created_at);
         return {
           ...proveedor,
@@ -239,7 +291,8 @@ const Proveedores = () => {
             minute: '2-digit',
             second: '2-digit'
           }),
-          num_soportes: proveedor.proveedor_soporte?.[0]?.count || 0
+          num_soportes: proveedor.proveedor_soporte?.[0]?.count || 0,
+          nombres_soportes: proveedor.soportes.map(s => s.nombreIdentficiador).join(', ')
         };
       });
 
@@ -299,7 +352,8 @@ const Proveedores = () => {
       'Email': row.email,
       'Estado': row.estado ? 'Activo' : 'Inactivo',
       'Fecha Creación': row.fecha_formateada,
-      'N° Soportes': row.num_soportes
+      'N° Soportes': row.num_soportes,
+      'Soportes': row.nombres_soportes || ''
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -350,26 +404,26 @@ const Proveedores = () => {
       width: 150,
       flex: 1
     },
-    { 
-      field: 'razonSocial', 
-      headerName: 'Razón Social', 
+    {
+      field: 'razonSocial',
+      headerName: 'Razón Social',
       width: 150,
       flex: 1
     },
-    { 
-      field: 'rutProveedor', 
-      headerName: 'RUT', 
+    {
+      field: 'rutProveedor',
+      headerName: 'RUT',
       width: 120
     },
-    { 
-      field: 'region', 
-      headerName: 'Región', 
+    {
+      field: 'region',
+      headerName: 'Región',
       width: 130,
       flex: 1
     },
-    { 
-      field: 'comuna', 
-      headerName: 'Comuna', 
+    {
+      field: 'comuna',
+      headerName: 'Comuna',
       width: 130
     },
     {
@@ -408,15 +462,15 @@ const Proveedores = () => {
       align: 'center',
       renderCell: (params) => (
         <div className="action-buttons">
-          <IconButton 
-            size="small" 
+          <IconButton
+            size="small"
             className="view-button"
             onClick={() => navigate(`/proveedores/view/${params.row.id}`)}
           >
             <i className="fas fa-eye"></i>
           </IconButton>
-          <IconButton 
-            size="small" 
+          <IconButton
+            size="small"
             className="edit-button"
             onClick={() => handleEdit(params.row)}
           >
@@ -477,12 +531,12 @@ const Proveedores = () => {
             .from('Proveedores')
             .delete()
             .eq('id_proveedor', id);
-          
+
           if (error) throw error;
-          
+
           setRows(rows.filter(row => row.id !== id));
           setFilteredRows(filteredRows.filter(row => row.id !== id));
-          
+
           Swal.fire(
             'Eliminado',
             'El proveedor ha sido eliminado.',
@@ -502,7 +556,7 @@ const Proveedores = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'id_region') {
       // Cuando se selecciona una región, filtramos las comunas
       const comunasFiltradas = todasLasComunas
@@ -511,9 +565,9 @@ const Proveedores = () => {
           acc[comuna.id_comuna] = comuna.nombreComuna;
           return acc;
         }, {});
-      
+
       setComunasFiltradas(comunasFiltradas);
-      
+
       // Actualizar el estado correcto según si estamos editando o creando
       if (selectedProveedor) {
         setSelectedProveedor(prev => ({
@@ -547,7 +601,7 @@ const Proveedores = () => {
   const handleSave = async () => {
     try {
       const proveedorData = selectedProveedor ? selectedProveedor : newProveedor;
-      
+
       // Validar antes de guardar
       if (!validarFormulario(proveedorData)) {
         Swal.fire({
@@ -559,7 +613,7 @@ const Proveedores = () => {
       }
 
       setIsSaving(true);
-      
+
       // Extraer solo los campos que necesitamos para la base de datos
       const dataToSave = {
         nombreProveedor: proveedorData.nombreProveedor,
@@ -644,8 +698,8 @@ const Proveedores = () => {
   return (
     <div className="proveedores-container">
       <div className="header">
-        <Breadcrumbs 
-          separator={<NavigateNextIcon fontSize="small" />} 
+        <Breadcrumbs
+          separator={<NavigateNextIcon fontSize="small" />}
           aria-label="breadcrumb"
           className="breadcrumb"
         >
@@ -694,104 +748,104 @@ const Proveedores = () => {
 
         <Grid container spacing={3} style={{ marginBottom: '20px' }}>
           <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Buscar proveedor..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-              <SearchIcon sx={{ color: '#6777ef' }}/>
-              </InputAdornment>
-            ),
-            }}
-            sx={{
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': {
-              borderColor: '#6777ef',
-              },
-              '&.Mui-focused fieldset': {
-              borderColor: '#6777ef',
-              },
-            }
-            }}
-          />
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Buscar proveedor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: '#6777ef' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                }
+              }}
+            />
           </Grid>
           <Grid item xs={12} sm={2}>
-          <TextField
-            fullWidth
-            type="date"
-            variant="outlined"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ 
-            shrink: true,
-            sx: { color: '#666' }
-            }}
-            InputProps={{
-            sx: {
-              paddingLeft: '12px'
-            }
-            }}
-            sx={{
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': {
-              borderColor: '#6777ef',
-              },
-              '&.Mui-focused fieldset': {
-              borderColor: '#6777ef',
-              },
-            }
-            }}
-          />
+            <TextField
+              fullWidth
+              type="date"
+              variant="outlined"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+                sx: { color: '#666' }
+              }}
+              InputProps={{
+                sx: {
+                  paddingLeft: '12px'
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                }
+              }}
+            />
           </Grid>
           <Grid item xs={12} sm={2}>
-          <TextField
-            fullWidth
-            type="date"
-            variant="outlined"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ 
-            shrink: true,
-            sx: { color: '#666' }
-            }}
-            InputProps={{
-            sx: {
-              paddingLeft: '12px'
-            }
-            }}
-            sx={{
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': {
-              borderColor: '#6777ef',
-              },
-              '&.Mui-focused fieldset': {
-              borderColor: '#6777ef',
-              },
-            }
-            }}
-          />
+            <TextField
+              fullWidth
+              type="date"
+              variant="outlined"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+                sx: { color: '#666' }
+              }}
+              InputProps={{
+                sx: {
+                  paddingLeft: '12px'
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                }
+              }}
+            />
           </Grid>
           <Grid item xs={12} sm={2}>
-          <Button
-            variant="contained"
-            onClick={handleExportToExcel}
-            startIcon={<FileDownloadIcon />}
-            sx={{
-            backgroundColor: '#206e43',
-            color: '#fff',
-            height: '40px',
-            width: '80%',
-            '&:hover': {
-              backgroundColor: '#185735',
-            },
-            }}
-          >
-            Exportar Proveedores
-          </Button>
+            <Button
+              variant="contained"
+              onClick={handleExportToExcel}
+              startIcon={<FileDownloadIcon />}
+              sx={{
+                backgroundColor: '#206e43',
+                color: '#fff',
+                height: '40px',
+                width: '80%',
+                '&:hover': {
+                  backgroundColor: '#185735',
+                },
+              }}
+            >
+              Exportar Proveedores
+            </Button>
           </Grid>
         </Grid>
 
@@ -811,7 +865,7 @@ const Proveedores = () => {
             noRowsLabel: 'No hay datos para mostrar',
             footerRowSelected: count => `${count} fila${count !== 1 ? 's' : ''} seleccionada${count !== 1 ? 's' : ''}`,
             footerTotalRows: 'Filas totales:',
-            footerTotalVisibleRows: (visibleCount, totalCount) => 
+            footerTotalVisibleRows: (visibleCount, totalCount) =>
               `${visibleCount.toLocaleString()} de ${totalCount.toLocaleString()}`,
             footerPaginationRowsPerPage: 'Filas por página:',
             columnMenuLabel: 'Menú',
@@ -846,8 +900,8 @@ const Proveedores = () => {
       </div>
 
       {/* Modal de Nuevo/Editar Proveedor */}
-      <Dialog 
-        open={openModal} 
+      <Dialog
+        open={openModal}
         onClose={() => setOpenModal(false)}
         maxWidth="md"
         fullWidth
