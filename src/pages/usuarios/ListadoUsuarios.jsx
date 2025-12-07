@@ -27,8 +27,8 @@ import {
   MenuItem,
   CircularProgress
 } from '@mui/material';
-import { 
-  Edit as EditIcon, 
+import {
+  Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   FileDownload as FileDownloadIcon,
@@ -304,9 +304,14 @@ const EditUserModal = ({ open, onClose, usuario, onUserUpdated }) => {
                 value={formData.Estado.toString()}
                 onChange={handleChange}
                 required
+                sx={{
+                  '& .MuiSelect-select': {
+                    paddingLeft: '14px !important'
+                  }
+                }}
               >
-                <MenuItem value="true">Activo</MenuItem>
-                <MenuItem value="false">Inactivo</MenuItem>
+                <MenuItem value="true" sx={{ paddingLeft: '14px' }}>Activo</MenuItem>
+                <MenuItem value="false" sx={{ paddingLeft: '14px' }}>Inactivo</MenuItem>
               </TextField>
             </Grid>
           </Grid>
@@ -437,8 +442,8 @@ const AddUserModal = ({ open, onClose, onUserAdded }) => {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: error.message === 'Ya existe un usuario con este email' 
-          ? error.message 
+        text: error.message === 'Ya existe un usuario con este email'
+          ? error.message
           : 'No se pudo crear el usuario',
         timer: 1500,
         showConfirmButton: false
@@ -595,9 +600,14 @@ const AddUserModal = ({ open, onClose, onUserAdded }) => {
                 value={formData.Estado.toString()}
                 onChange={handleChange}
                 required
+                sx={{
+                  '& .MuiSelect-select': {
+                    paddingLeft: '14px !important'
+                  }
+                }}
               >
-                <MenuItem value="true">Activo</MenuItem>
-                <MenuItem value="false">Inactivo</MenuItem>
+                <MenuItem value="true" sx={{ paddingLeft: '14px' }}>Activo</MenuItem>
+                <MenuItem value="false" sx={{ paddingLeft: '14px' }}>Inactivo</MenuItem>
               </TextField>
             </Grid>
           </Grid>
@@ -633,7 +643,7 @@ const ListadoUsuarios = () => {
   const fetchUsuarios = async (start, limit, searchQuery = '') => {
     try {
       setLoading(true);
-      
+
       let query = supabase
         .from('Usuarios')
         .select('*', { count: 'exact', head: true });
@@ -804,8 +814,8 @@ const ListadoUsuarios = () => {
   };
 
   return (
-    <Box 
-      component="main" 
+    <Box
+      component="main"
       sx={{
         flexGrow: 1,
         bgcolor: 'background.default',
@@ -877,8 +887,8 @@ const ListadoUsuarios = () => {
         <Table sx={{ minWidth: 650 }} size="small">
           <TableHead>
             <TableRow>
-            <TableCell>Nombre</TableCell>
-            <TableCell>Apellido</TableCell>
+              <TableCell>Nombre</TableCell>
+              <TableCell>Apellido</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Perfil</TableCell>
               <TableCell>Grupo</TableCell>

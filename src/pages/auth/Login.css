@@ -117,11 +117,12 @@ h2 {
   .login-box {
     padding: 20px;
   }
-  
+
   .login-logo {
     width: 150px;
   }
 }
+
 /* Agregar al final del archivo Login.css */
 
 .button-content {
@@ -145,6 +146,7 @@ h2 {
   background-color: #f8f9fa;
   cursor: not-allowed;
 }
+
 /* Agregar al final del archivo Login.css */
 
 /* Estilos para los toasts */
@@ -169,4 +171,26 @@ h2 {
 
 .Toastify__toast-icon {
   color: #dc3545;
+}
+
+.forgot-password-link a {
+  text-decoration: none;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: #D74430;
+}
+
+.forgot-password-link a:hover {
+  color: #f2250a;
+}
+
+.login-footer a {
+  text-decoration: none;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: #D74430;
+}
+
+.login-footer a:hover {
+  color: #f2250a;
 }

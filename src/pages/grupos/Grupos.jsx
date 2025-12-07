@@ -109,12 +109,12 @@ function Grupos() {
 
       console.log('Usuarios obtenidos:', usuariosData);
 
-      // Organizar usuarios por grupo
+      // Organizar usuarios por grupo (solo usuarios activos)
       const usuariosPorGrupoTemp = {};
       if (gruposData) {
         gruposData.forEach(grupo => {
-          usuariosPorGrupoTemp[grupo.id_grupo] = usuariosData ? 
-            usuariosData.filter(usuario => usuario.id_grupo === grupo.id_grupo) : 
+          usuariosPorGrupoTemp[grupo.id_grupo] = usuariosData ?
+            usuariosData.filter(usuario => usuario.id_grupo === grupo.id_grupo && usuario.Estado === true) :
             [];
         });
       }
@@ -276,7 +276,7 @@ function Grupos() {
   const handleDeleteGroup = async (grupo) => {
     // Verificar si hay usuarios en el grupo
     const usuariosEnGrupo = usuariosPorGrupo[grupo.id_grupo]?.length || 0;
-    
+
     if (usuariosEnGrupo > 0) {
       await Swal.fire({
         title: 'No se puede eliminar',
@@ -370,8 +370,8 @@ function Grupos() {
                   sx={{ flex: 1 }}
                 >
                   {grupos.map((grupo, index) => (
-                    <Tab 
-                      key={grupo.id_grupo} 
+                    <Tab
+                      key={grupo.id_grupo}
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <span>{`${grupo.nombre_grupo} (${usuariosPorGrupo[grupo.id_grupo]?.length || 0})`}</span>
@@ -391,9 +391,9 @@ function Grupos() {
                                 e.stopPropagation();
                                 handleDeleteGroup(grupo);
                               }}
-                              sx={{ 
-                                '&:hover': { 
-                                  color: 'error.main' 
+                              sx={{
+                                '&:hover': {
+                                  color: 'error.main'
                                 }
                               }}
                             >
@@ -424,8 +424,8 @@ function Grupos() {
                         {usuariosPorGrupo[grupo.id_grupo]?.map((usuario) => (
                           <TableRow key={usuario.id_usuario}>
                             <TableCell>
-                              <Avatar 
-                                src={usuario.Avatar} 
+                              <Avatar
+                                src={usuario.Avatar}
                                 alt={`${usuario.Nombre} ${usuario.Apellido}`}
                                 sx={{ width: 40, height: 40 }}
                               >
@@ -435,7 +435,7 @@ function Grupos() {
                             <TableCell>{`${usuario.Nombre || ''} ${usuario.Apellido || ''}`}</TableCell>
                             <TableCell>{usuario.Email || '-'}</TableCell>
                             <TableCell>
-                              <span style={{ 
+                              <span style={{
                                 color: usuario.Estado ? '#4caf50' : '#f44336',
                                 fontWeight: 500
                               }}>
@@ -444,7 +444,7 @@ function Grupos() {
                             </TableCell>
                             <TableCell align="center">
                               <Tooltip title="Cambiar grupo">
-                                <IconButton 
+                                <IconButton
                                   onClick={(e) => handleOpenMenu(e, usuario)}
                                   color="primary"
                                 >
@@ -492,8 +492,8 @@ function Grupos() {
       </Card>
 
       {/* Diálogo para crear nuevo grupo */}
-      <Dialog 
-        open={openNewGroupDialog} 
+      <Dialog
+        open={openNewGroupDialog}
         onClose={handleCloseNewGroupDialog}
         maxWidth="sm"
         fullWidth
@@ -527,16 +527,16 @@ function Grupos() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button 
+          <Button
             onClick={handleCloseNewGroupDialog}
             variant="outlined"
             sx={{ mr: 1 }}
           >
             Cancelar
           </Button>
-          <Button 
-            onClick={handleCreateNewGroup} 
-            variant="contained" 
+          <Button
+            onClick={handleCreateNewGroup}
+            variant="contained"
             color="primary"
             startIcon={<AddIcon />}
           >
@@ -546,8 +546,8 @@ function Grupos() {
       </Dialog>
 
       {/* Diálogo para editar grupo */}
-      <Dialog 
-        open={editGroupDialog} 
+      <Dialog
+        open={editGroupDialog}
         onClose={handleCloseEditDialog}
         maxWidth="sm"
         fullWidth
@@ -582,16 +582,16 @@ function Grupos() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button 
+          <Button
             onClick={handleCloseEditDialog}
             variant="outlined"
             sx={{ mr: 1 }}
           >
             Cancelar
           </Button>
-          <Button 
-            onClick={handleEditGroup} 
-            variant="contained" 
+          <Button
+            onClick={handleEditGroup}
+            variant="contained"
             color="primary"
             startIcon={<EditIcon />}
           >
