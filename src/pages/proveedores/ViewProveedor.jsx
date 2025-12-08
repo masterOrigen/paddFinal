@@ -107,35 +107,35 @@ const ViewProveedor = () => {
 
   const validarRut = (rut) => {
     if (!rut) return false;
-    
+
     // Limpiar el RUT de puntos y guión
     let valor = rut.replace(/\./g, '').replace(/-/g, '');
-    
+
     // Aislar Cuerpo y Dígito Verificador
     let cuerpo = valor.slice(0, -1);
     let dv = valor.slice(-1).toUpperCase();
-    
+
     // Si no cumple con el mínimo de dígitos, es inválido
     if (cuerpo.length < 7) return false;
-    
+
     // Calcular Dígito Verificador esperado
     let suma = 0;
     let multiplo = 2;
-    
+
     // Para cada dígito del Cuerpo
     for (let i = cuerpo.length - 1; i >= 0; i--) {
       suma += Number(cuerpo[i]) * multiplo;
       multiplo = multiplo < 7 ? multiplo + 1 : 2;
     }
-    
+
     // Calcular Dígito Verificador
     let dvEsperado = 11 - (suma % 11);
-    
+
     // Casos Especiales
     if (dvEsperado === 11) dvEsperado = '0';
     if (dvEsperado === 10) dvEsperado = 'K';
     else dvEsperado = String(dvEsperado);
-    
+
     // Validar que el Dígito Verificador ingresado sea igual al esperado
     return dv === dvEsperado;
   };
@@ -167,18 +167,18 @@ const ViewProveedor = () => {
     if (!validarEmail(editForm.email)) {
       newErrors.email = 'Correo electrónico inválido';
     }
-    
+
     // Validar que al menos uno de los teléfonos esté presente y sea válido
     const celularValido = !editForm.telCelular || validarTelefonoCelular(editForm.telCelular);
     const fijoValido = !editForm.telFijo || validarTelefonoFijo(editForm.telFijo);
-    
+
     if (!celularValido) {
       newErrors.telCelular = 'Formato inválido. Debe ser un número celular chileno';
     }
     if (!fijoValido) {
       newErrors.telFijo = 'Formato inválido. Debe ser un número fijo chileno';
     }
-    
+
     if (!editForm.telCelular && !editForm.telFijo) {
       newErrors.telefono = 'Se requiere al menos un teléfono';
     } else if (!celularValido && !fijoValido) {
@@ -268,7 +268,7 @@ const ViewProveedor = () => {
   const fetchData = async () => {
     try {
       console.log('Fetching data for provider:', id);
-      
+
       // Obtener datos del proveedor
       const { data: proveedorData, error: proveedorError } = await supabase
         .from('Proveedores')
@@ -280,7 +280,7 @@ const ViewProveedor = () => {
         console.error('Error fetching proveedor:', proveedorError);
         throw proveedorError;
       }
-      
+
       setProveedor(proveedorData);
 
       // Obtener contactos
@@ -396,7 +396,7 @@ const ViewProveedor = () => {
       });
       return;
     }
-    setIsSubmitting(true); 
+    setIsSubmitting(true);
     showLoading();
 
     try {
@@ -431,7 +431,7 @@ const ViewProveedor = () => {
 
       hideLoading();
       setOpenContactoModal(false);
-      setIsSubmitting(false); 
+      setIsSubmitting(false);
 
       Swal.fire({
         icon: 'success',
@@ -453,7 +453,7 @@ const ViewProveedor = () => {
     } catch (error) {
       console.error('Error:', error);
       hideLoading();
-      setIsSubmitting(false); 
+      setIsSubmitting(false);
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -563,15 +563,15 @@ const ViewProveedor = () => {
             .from('soporte_medios')
             .delete()
             .eq('id_soporte', soporteId),
-          
+
           // Si hay medios seleccionados, prepararlos para inserción
-          selectedMedios.length > 0 
+          selectedMedios.length > 0
             ? supabase
-                .from('soporte_medios')
-                .insert(selectedMedios.map(medioId => ({
-                  id_soporte: soporteId,
-                  id_medio: parseInt(medioId)
-                })))
+              .from('soporte_medios')
+              .insert(selectedMedios.map(medioId => ({
+                id_soporte: soporteId,
+                id_medio: parseInt(medioId)
+              })))
             : Promise.resolve()
         ]);
       }
@@ -670,19 +670,19 @@ const ViewProveedor = () => {
   };
 
   const handleEditSoporte = async (soporte) => {
-      // Verificar si el soporte forma parte de una orden creada
-      if (soporte.c_orden === true) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'No se puede editar',
-          text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
-          confirmButtonColor: '#3085d6',
-        });
-        return;
-      }
+    // Verificar si el soporte forma parte de una orden creada
+    if (soporte.c_orden === true) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No se puede editar',
+        text: 'Este registro no se puede actualizar ya que forma parte de una Orden Creada.',
+        confirmButtonColor: '#3085d6',
+      });
+      return;
+    }
     try {
       showLoading();
-      
+
       // Obtener los medios asociados al soporte
       const { data: mediosData, error: mediosError } = await supabase
         .from('soporte_medios')
@@ -857,9 +857,9 @@ const ViewProveedor = () => {
 
   const CustomCheckboxList = ({ medios, selectedMedios, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
-    
+
     const handleToggle = () => setIsOpen(!isOpen);
-    
+
     const handleCheckboxChange = (medioId) => {
       const newSelection = selectedMedios.includes(medioId)
         ? selectedMedios.filter(id => id !== medioId)
@@ -938,8 +938,8 @@ const ViewProveedor = () => {
 
   return (
     <Container maxWidth="xl" sx={{ mt: 2 }}>
-           {/* Breadcrumb */}
-           <Box sx={{ mb: 3, mt: 2 }}>
+      {/* Breadcrumb */}
+      <Box sx={{ mb: 3, mt: 2 }}>
         <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} aria-label="breadcrumb">
           <Link
             to="/proveedores"
@@ -968,9 +968,9 @@ const ViewProveedor = () => {
       <Grid container spacing={3}>
         {/* Contenedor izquierdo */}
         <Grid item xs={12} md={4}>
-          <Paper 
-            elevation={3} 
-            sx={{ 
+          <Paper
+            elevation={3}
+            sx={{
               p: 2,
               width: '100%',
               position: 'relative'
@@ -985,9 +985,9 @@ const ViewProveedor = () => {
                 <i className="fas fa-edit"></i>
               </IconButton>
             </Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 color: '#4F46E5',
                 textAlign: 'center',
                 mb: 1
@@ -995,9 +995,9 @@ const ViewProveedor = () => {
             >
               {proveedor?.nombreFantasia}
             </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
+            <Typography
+              variant="body2"
+              sx={{
                 color: '#6B7280',
                 textAlign: 'center',
                 mb: 0.5
@@ -1005,9 +1005,9 @@ const ViewProveedor = () => {
             >
               Registrado el: {new Date(proveedor?.created_at).toLocaleDateString()}
             </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
+            <Typography
+              variant="body2"
+              sx={{
                 color: '#6B7280',
                 textAlign: 'center'
               }}
@@ -1020,7 +1020,7 @@ const ViewProveedor = () => {
         {/* Contenedor derecho */}
         <Grid item xs={12} md={8}>
           <Paper elevation={3}>
-            <Box sx={{ padding:1, width: '100%' }}>
+            <Box sx={{ padding: 1, width: '100%' }}>
               <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={value} onChange={(e, newValue) => setValue(newValue)}>
                   <Tab label="Datos Generales" />
@@ -1163,8 +1163,8 @@ const ViewProveedor = () => {
                 {value === 2 && (
                   <>
                     <Box sx={{ mb: 2 }}>
-                      <Button 
-                        variant="contained" 
+                      <Button
+                        variant="contained"
                         onClick={() => {
                           setContactoForm({
                             nombres: '',
@@ -1193,13 +1193,13 @@ const ViewProveedor = () => {
                           flex: 0.7,
                           renderCell: (params) => (
                             <>
-                              <IconButton 
+                              <IconButton
                                 color="primary"
                                 onClick={() => handleEditContacto(params.row)}
                               >
                                 <i className="fas fa-edit"></i>
                               </IconButton>
-                              <IconButton 
+                              <IconButton
                                 color="error"
                                 onClick={() => handleDeleteContacto(params.row.id_contacto)}
                               >
@@ -1223,8 +1223,8 @@ const ViewProveedor = () => {
                 {value === 3 && (
                   <>
                     <Box sx={{ mb: 2 }}>
-                      <Button 
-                        variant="contained" 
+                      <Button
+                        variant="contained"
                         onClick={() => setOpenSoporteModal(true)}
                       >
                         Agregar Soporte
@@ -1234,20 +1234,20 @@ const ViewProveedor = () => {
                       rows={soportes}
                       columns={[
                         { field: 'nombreIdentficiador', headerName: 'Identificador', flex: 1 },
-                        { 
-                          field: 'medios', 
-                          headerName: 'Medios', 
+                        {
+                          field: 'medios',
+                          headerName: 'Medios',
                           flex: 1.5,
                           renderCell: (params) => {
                             const mediosArray = params.row.medios || [];
                             return mediosArray.join(', ');
                           }
                         },
-                        { field: 'bonificacion_ano', headerName: 'Bonificación', flex: 1, sx: { mt: 2}},
+                        { field: 'bonificacion_ano', headerName: 'Bonificación', flex: 1, sx: { mt: 2 } },
                         { field: 'escala', headerName: 'Escala', flex: 1 },
-                        { 
-                          field: 'estado', 
-                          headerName: 'Estado', 
+                        {
+                          field: 'estado',
+                          headerName: 'Estado',
                           flex: 0.7,
                           renderCell: (params) => (
                             <Switch
@@ -1270,13 +1270,13 @@ const ViewProveedor = () => {
                               >
                                 <VisibilityIcon />
                               </IconButton>
-                              <IconButton 
+                              <IconButton
                                 color="primary"
                                 onClick={() => handleEditSoporte(params.row)}
                               >
-                                <i className="fas fa-edit"></i>
+                                <i className="fas fa-edit mipencil"></i>
                               </IconButton>
-                              <IconButton 
+                              <IconButton
                                 color="error"
                                 onClick={() => handleDeleteSoporte(params.row.id_soporte)}
                               >
@@ -1403,15 +1403,15 @@ const ViewProveedor = () => {
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button 
-              onClick={() => !isSubmitting && setOpenContactoModal(false)} 
+            <Button
+              onClick={() => !isSubmitting && setOpenContactoModal(false)}
               disabled={isSubmitting}
             >
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              variant="contained" 
+            <Button
+              type="submit"
+              variant="contained"
               disabled={isSubmitting}
               startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
             >
@@ -1421,8 +1421,8 @@ const ViewProveedor = () => {
         </form>
       </Dialog>
 
-      <Dialog 
-        open={openSoporteModal} 
+      <Dialog
+        open={openSoporteModal}
         onClose={() => setOpenSoporteModal(false)}
         maxWidth="sm"
         fullWidth
@@ -1439,7 +1439,7 @@ const ViewProveedor = () => {
                   label="Nombre Identificador"
                   name="nombreIdentficiador"
                   value={soporteForm.nombreIdentficiador}
-                  onChange={(e) => setSoporteForm({...soporteForm, nombreIdentficiador: e.target.value})}
+                  onChange={(e) => setSoporteForm({ ...soporteForm, nombreIdentficiador: e.target.value })}
                   required
                   InputProps={{
                     startAdornment: (
@@ -1451,7 +1451,7 @@ const ViewProveedor = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-          
+
                 <CustomCheckboxList
                   medios={medios}
                   selectedMedios={selectedMedios}
@@ -1465,7 +1465,7 @@ const ViewProveedor = () => {
                   name="bonificacion_ano"
                   type="text"
                   value={soporteForm.bonificacion_ano}
-                  onChange={(e) => setSoporteForm({...soporteForm, bonificacion_ano: e.target.value})}
+                  onChange={(e) => setSoporteForm({ ...soporteForm, bonificacion_ano: e.target.value })}
                   sx={{ mt: 2 }}
                   InputProps={{
                     startAdornment: (
@@ -1482,7 +1482,7 @@ const ViewProveedor = () => {
                   label="Escala"
                   name="escala"
                   value={soporteForm.escala}
-                  onChange={(e) => setSoporteForm({...soporteForm, escala: e.target.value})}
+                  onChange={(e) => setSoporteForm({ ...soporteForm, escala: e.target.value })}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -1503,8 +1503,8 @@ const ViewProveedor = () => {
         </form>
       </Dialog>
 
-      <Dialog 
-        open={openEditModal} 
+      <Dialog
+        open={openEditModal}
         onClose={() => setOpenEditModal(false)}
         maxWidth="md"
         fullWidth

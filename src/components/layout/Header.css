@@ -234,3 +234,9 @@
   overflow: hidden;
   padding-left: 10px !important;
 }
+
+.mipencil {
+  cursor: pointer;
+  color: #388e3c;
+  font-size: 16px;
+}
