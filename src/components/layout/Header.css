@@ -4,7 +4,7 @@
   align-items: center;
   padding: 10px 20px;
   background: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -77,7 +77,7 @@
   margin-top: 10px;
   background: white;
   border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   width: 180px;
   z-index: 1000;
   padding: 8px 0;
@@ -134,11 +134,11 @@
   .header-left h1 {
     font-size: 16px;
   }
-  
+
   .header-logo {
     height: 30px;
   }
-  
+
   .header-right span {
     display: none;
   }
@@ -147,41 +147,53 @@
 .MuiButtonGroup-root.MuiButtonGroup-contained.MuiButtonGroup-horizontal.MuiButtonGroup-colorPrimary.css-75uvui-MuiButtonGroup-root {
   box-shadow: none;
 }
-.css-75uvui-MuiButtonGroup-root .MuiButtonGroup-firstButton{
+
+.css-75uvui-MuiButtonGroup-root .MuiButtonGroup-firstButton {
   border-color: #1565c0;
   margin: 0px 5px;
 }
+
 .css-75uvui-MuiButtonGroup-root .MuiButtonGroup-middleButton {
   border-color: #1565c0;
   margin: 0px 5px;
 }
+
 .MuiButtonBase-root.MuiButton-root.MuiButton-contained.MuiButton-containedError.MuiButton-sizeMedium.MuiButton-containedSizeMedium.MuiButton-colorError.MuiButtonGroup-grouped.MuiButtonGroup-groupedHorizontal.MuiButtonGroup-groupedContained.MuiButtonGroup-groupedContainedHorizontal.MuiButtonGroup-groupedContainedPrimary.MuiButtonGroup-lastButton.css-1myc5fd-MuiButtonBase-root-MuiButton-root {
-	margin: 0px 5px;
+  margin: 0px 5px;
 }
-.css-1yz1dpb  {
+
+.css-1yz1dpb {
   justify-content: left !important;
 }
+
 .css-1l7p8i1 {
   justify-content: left !important;
 }
+
 .MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorError.MuiIconButton-sizeSmall.css-1cmn7xy-MuiButtonBase-root-MuiIconButton-root {
   width: 50%;
 }
+
 .MuiButtonBase-root.MuiIconButton-root.MuiIconButton-colorPrimary.MuiIconButton-sizeSmall.css-1mgprzk-MuiButtonBase-root-MuiIconButton-root {
   width: 50%;
 }
+
 .espaciadorx {
   height: 30px;
 }
+
 .MuiButtonGroup-root.MuiButtonGroup-contained.MuiButtonGroup-horizontal.MuiButtonGroup-colorPrimary.css-1cr7w74 {
   box-shadow: none;
 }
+
 .MuiButtonBase-root.MuiButton-root.MuiButton-contained.MuiButton-containedPrimary.MuiButton-sizeMedium.MuiButton-containedSizeMedium.MuiButton-colorPrimary.MuiButtonGroup-grouped.MuiButtonGroup-groupedHorizontal.MuiButtonGroup-groupedContained.MuiButtonGroup-groupedContainedHorizontal.MuiButtonGroup-groupedContainedPrimary.MuiButtonGroup-firstButton.css-ghr9bt {
   margin: 5px;
 }
+
 .MuiButtonBase-root.MuiButton-root.MuiButton-contained.MuiButton-containedPrimary.MuiButton-sizeMedium.MuiButton-containedSizeMedium.MuiButton-colorPrimary.MuiButtonGroup-grouped.MuiButtonGroup-groupedHorizontal.MuiButtonGroup-groupedContained.MuiButtonGroup-groupedContainedHorizontal.MuiButtonGroup-groupedContainedPrimary.MuiButtonGroup-middleButton.css-ghr9bt {
-	margin: 5px;
+  margin: 5px;
 }
+
 .MuiButtonBase-root.MuiButton-root.MuiButton-contained.MuiButton-containedError.MuiButton-sizeMedium.MuiButton-containedSizeMedium.MuiButton-colorError.MuiButtonGroup-grouped.MuiButtonGroup-groupedHorizontal.MuiButtonGroup-groupedContained.MuiButtonGroup-groupedContainedHorizontal.MuiButtonGroup-groupedContainedPrimary.MuiButtonGroup-lastButton.css-111i1hl {
   margin: 5px;
 }
@@ -193,4 +205,12 @@
   white-space: nowrap;
   overflow: hidden;
   padding-left: 7px !important;
+}
+
+.css-18q7h3i {
+  cursor: pointer;
+  text-align: center;
+  font-size: 20px !important;
+  color: rgb(25, 118, 210);
+  --IconButton-hoverBg: rgba(25, 118, 210, 0.04);
 }
