@@ -225,3 +225,12 @@
   fill: currentcolor;
   font-size: 1rem;
 }
+
+.css-uxvpzc.MuiSelect-select {
+  height: auto;
+  min-height: 1.4375em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-left: 10px !important;
+}
