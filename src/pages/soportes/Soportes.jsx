@@ -79,7 +79,31 @@ const Soportes = () => {
 
       if (soportesError) throw soportesError;
 
-      const formattedRows = soportesData.map(soporte => ({
+      // Obtener programas para cada soporte
+      const soportesConProgramas = await Promise.all(
+        soportesData.map(async (soporte) => {
+          const { data: programasData, error: programasError } = await supabase
+            .from('Programas')
+            .select('descripcion')
+            .eq('soporte_id', soporte.id_soporte)
+            .eq('estado', true);
+
+          if (programasError) {
+            console.error('Error fetching programas for soporte:', soporte.id_soporte, programasError);
+            return {
+              ...soporte,
+              programas: []
+            };
+          }
+
+          return {
+            ...soporte,
+            programas: programasData || []
+          };
+        })
+      );
+
+      const formattedRows = soportesConProgramas.map(soporte => ({
         id: soporte.id_soporte,
         nombreIdentficiador: soporte.nombreIdentficiador,
         bonificacion_ano: soporte.bonificacion_ano,
@@ -88,6 +112,7 @@ const Soportes = () => {
         nombreProveedor: soporte.proveedor_soporte[0]?.Proveedores?.nombreProveedor || 'Sin Proveedor',
         id_proveedor: soporte.proveedor_soporte[0]?.id_proveedor,
         medios: soporte.soporte_medios?.map(sm => sm.Medios?.NombredelMedio).filter(Boolean).join(', ') || 'Sin medios',
+        programas: soporte.programas?.map(p => p.descripcion).filter(Boolean).join(', ') || 'Sin programas',
         fechaCreacion: new Date(soporte.created_at).toLocaleDateString('es-CL', {
           day: '2-digit',
           month: '2-digit',
@@ -137,6 +162,7 @@ const Soportes = () => {
     const exportData = filteredRows.map(row => ({
       'Fecha Creación': row.fechaCreacion,
       'Identificador': row.nombreIdentficiador,
+      'Programas': row.programas,
       'Proveedor': row.nombreProveedor,
       'Bonificación Año': row.bonificacion_ano,
       'Escala': row.escala,
@@ -147,11 +173,12 @@ const Soportes = () => {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Soportes');
-    
+
     // Ajustar anchos de columna
     const colWidths = [
       { wch: 15 }, // Fecha
       { wch: 20 }, // Identificador
+      { wch: 30 }, // Programas
       { wch: 30 }, // Proveedor
       { wch: 15 }, // Bonificación
       { wch: 15 }, // Escala
@@ -160,10 +187,10 @@ const Soportes = () => {
     ];
     ws['!cols'] = colWidths;
 
-    const fileName = searchTerm || startDate || endDate ? 
-      'Soportes_Filtrados.xlsx' : 
+    const fileName = searchTerm || startDate || endDate ?
+      'Soportes_Filtrados.xlsx' :
       'Todos_Los_Soportes.xlsx';
-    
+
     XLSX.writeFile(wb, fileName);
   };
 
@@ -271,8 +298,8 @@ const Soportes = () => {
       align: 'center',
       renderCell: (params) => (
         <div className="action-buttons">
-          <IconButton 
-            size="small" 
+          <IconButton
+            size="small"
             className="view-button"
             onClick={() => navigate(`/proveedores/view/${params.row.id_proveedor}`)}
           >
@@ -298,8 +325,8 @@ const Soportes = () => {
   return (
     <div className="soportes-container">
       <div className="header">
-        <Breadcrumbs 
-          separator={<NavigateNextIcon fontSize="small" />} 
+        <Breadcrumbs
+          separator={<NavigateNextIcon fontSize="small" />}
           aria-label="breadcrumb"
           className="breadcrumb"
         >
@@ -313,130 +340,130 @@ const Soportes = () => {
           <Typography variant="h5" component="h1">
             Listado de Soportes
           </Typography>
-        
+
         </div>
 
         <Grid container spacing={3} style={{ marginBottom: '20px' }}>
           <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Buscar soporte..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-              <SearchIcon sx={{ color: '#6777ef' }}/>
-              </InputAdornment>
-            ),
-            }}
-            sx={{
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': {
-              borderColor: '#6777ef',
-              },
-              '&.Mui-focused fieldset': {
-              borderColor: '#6777ef',
-              },
-            }
-            }}
-          />
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Buscar soporte..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: '#6777ef' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                }
+              }}
+            />
           </Grid>
           <Grid item xs={12} sm={2}>
-          <TextField
-            fullWidth
-            type="date"
-            variant="outlined"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ 
-            shrink: true,
-            sx: { color: '#666' }
-            }}
-            InputProps={{
-            sx: {
-              paddingLeft: '12px'
-            }
-            }}
-            sx={{
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': {
-              borderColor: '#6777ef',
-              },
-              '&.Mui-focused fieldset': {
-              borderColor: '#6777ef',
-              },
-            }
-            }}
-          />
+            <TextField
+              fullWidth
+              type="date"
+              variant="outlined"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+                sx: { color: '#666' }
+              }}
+              InputProps={{
+                sx: {
+                  paddingLeft: '12px'
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                }
+              }}
+            />
           </Grid>
           <Grid item xs={12} sm={2}>
-          <TextField
-            fullWidth
-            type="date"
-            variant="outlined"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ 
-            shrink: true,
-            sx: { color: '#666' }
-            }}
-            InputProps={{
-            sx: {
-              paddingLeft: '12px'
-            }
-            }}
-            sx={{
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': {
-              borderColor: '#6777ef',
-              },
-              '&.Mui-focused fieldset': {
-              borderColor: '#6777ef',
-              },
-            }
-            }}
-          />
+            <TextField
+              fullWidth
+              type="date"
+              variant="outlined"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+                sx: { color: '#666' }
+              }}
+              InputProps={{
+                sx: {
+                  paddingLeft: '12px'
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6777ef',
+                  },
+                }
+              }}
+            />
           </Grid>
           <Grid item xs={12} sm={2}>
-          <Button
-            variant="contained"
-            onClick={handleExportToExcel}
-            startIcon={<FileDownloadIcon />}
-            sx={{
-            backgroundColor: '#206e43',
-            color: '#fff',
-            height: '40px',
-            width: '70%',
-            '&:hover': {
-              backgroundColor: '#185735',
-            },
-            }}
-          >
-            Exportar Soportes
-          </Button>
+            <Button
+              variant="contained"
+              onClick={handleExportToExcel}
+              startIcon={<FileDownloadIcon />}
+              sx={{
+                backgroundColor: '#206e43',
+                color: '#fff',
+                height: '40px',
+                width: '70%',
+                '&:hover': {
+                  backgroundColor: '#185735',
+                },
+              }}
+            >
+              Exportar Soportes
+            </Button>
           </Grid>
         </Grid>
 
       </div>
 
       <div className="data-grid-container">
-      <DataGrid
-  getRowId={(row) => row.id}
-  rows={filteredRows}
-  columns={columns}
-  pageSize={pageSize}
-  onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
-  rowsPerPageOptions={[5, 10, 25]}
-  disableSelectionOnClick
-  loading={loading}
-  autoHeight
+        <DataGrid
+          getRowId={(row) => row.id}
+          rows={filteredRows}
+          columns={columns}
+          pageSize={pageSize}
+          onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
+          rowsPerPageOptions={[5, 10, 25]}
+          disableSelectionOnClick
+          loading={loading}
+          autoHeight
           localeText={{
             noRowsLabel: 'No hay datos para mostrar',
             footerRowSelected: count => `${count} fila${count !== 1 ? 's' : ''} seleccionada${count !== 1 ? 's' : ''}`,
             footerTotalRows: 'Filas totales:',
-            footerTotalVisibleRows: (visibleCount, totalCount) => 
+            footerTotalVisibleRows: (visibleCount, totalCount) =>
               `${visibleCount.toLocaleString()} de ${totalCount.toLocaleString()}`,
             footerPaginationRowsPerPage: 'Filas por página:',
             columnMenuLabel: 'Menú',
@@ -471,8 +498,8 @@ const Soportes = () => {
       </div>
 
       {/* Modal de Nuevo/Editar Soporte */}
-      <Dialog 
-        open={openModal} 
+      <Dialog
+        open={openModal}
         onClose={handleCloseModal}
         maxWidth="md"
         fullWidth
@@ -487,9 +514,9 @@ const Soportes = () => {
           <Button onClick={handleCloseModal} color="inherit">
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSave} 
-            variant="contained" 
+          <Button
+            onClick={handleSave}
+            variant="contained"
             color="primary"
           >
             Guardar
