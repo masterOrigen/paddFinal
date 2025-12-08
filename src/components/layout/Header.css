@@ -210,7 +210,18 @@
 .css-18q7h3i {
   cursor: pointer;
   text-align: center;
-  font-size: 20px !important;
+  font-size: 17px !important;
   color: rgb(25, 118, 210);
   --IconButton-hoverBg: rgba(25, 118, 210, 0.04);
+}
+
+.css-q7mezt {
+  user-select: none;
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: fill 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  fill: currentcolor;
+  font-size: 1.3rem;
 }
