@@ -1,0 +1,60 @@
+.view-contrato-container {
+    padding: 24px;
+}
+
+.back-button {
+    margin-bottom: 20px;
+}
+
+.MuiTabs-root {
+    margin-bottom: 20px;
+}
+
+.MuiTab-root {
+    text-transform: none;
+}
+
+.MuiPaper-root {
+    background-color: white;
+}
+
+.info-section {
+    margin-bottom: 24px;
+}
+
+.info-section h6 {
+    color: #1976d2;
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.info-section .MuiSvgIcon-root {
+    margin-right: 8px;
+}
+
+.info-item {
+    margin-bottom: 8px;
+}
+
+.info-item strong {
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.estado-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.estado-vigente {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.estado-no-vigente {
+    background-color: #ffebee;
+    color: #c62828;
+}

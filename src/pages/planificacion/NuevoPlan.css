@@ -1,0 +1,78 @@
+.nuevo-plan-container {
+  padding: 24px;
+}
+
+.plan-paper {
+  padding: 24px;
+}
+
+.stepper {
+  margin: 24px 0 36px;
+}
+
+.step-content {
+  min-height: 400px;
+  padding: 24px 0;
+}
+
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.campaign-card, .themes-card {
+  height: 100%;
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+.campaign-card .MuiTableContainer-root, 
+.themes-card .MuiTableContainer-root {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.campaign-card .MuiTableHead-root,
+.themes-card .MuiTableHead-root {
+  position: sticky;
+  top: 0;
+  background-color: #fff;
+  z-index: 1;
+}
+
+.campaign-card .MuiTableRow-root:hover,
+.themes-card .MuiTableRow-root:hover {
+  background-color: #f5f5f5;
+}
+
+.campaign-card .MuiTableRow-root.Mui-selected,
+.themes-card .MuiTableRow-root.Mui-selected {
+  background-color: #e3f2fd;
+}
+
+.campaign-card .MuiTableCell-root,
+.themes-card .MuiTableCell-root {
+  padding: 8px 16px;
+}
+
+.campaign-card .MuiTableCell-head,
+.themes-card .MuiTableCell-head {
+  font-weight: 600;
+  background-color: #f5f5f5;
+}
+
+.MuiStepLabel-label {
+  font-size: 0.875rem !important;
+}
+
+.MuiStepLabel-label.Mui-active {
+  color: #1976d2 !important;
+  font-weight: 600 !important;
+}
+
+.MuiStepLabel-label.Mui-completed {
+  color: #2e7d32 !important;
+}

@@ -1,0 +1,71 @@
+/* Estilos para el componente de Reporte de Orden de Compra */
+
+.report-title {
+  margin-bottom: 24px;
+  color: #333;
+}
+
+.filter-paper {
+  margin-bottom: 24px;
+  padding: 16px;
+}
+
+.filter-title {
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.filter-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.results-paper {
+  padding: 16px;
+}
+
+.results-title {
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  text-align: center;
+  min-width: 100px;
+}
+
+.status-badge.approved {
+  background-color: #e6f7ed;
+  color: #0a7d3f;
+}
+
+.status-badge.pending {
+  background-color: #fff8e6;
+  color: #b78105;
+}
+
+.status-badge.rejected {
+  background-color: #fce8e8;
+  color: #d32f2f;
+}
+
+.empty-results {
+  padding: 24px;
+  text-align: center;
+  color: #666;
+}
+
+.MuiTextField-root {
+    margin-bottom: 0px !important;
+}
+.css-1jsm74t-MuiButton-startIcon {
+margin: 0 !important;
+}
+.css-pzw97e-MuiButtonBase-root-MuiButton-root {
+  margin-left: -10px !important;
+}
