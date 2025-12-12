@@ -251,7 +251,7 @@ const ReporteInversionCliente = () => {
       'Fecha Fact.Prov.': '', // Este campo podría requerir una tabla adicional de facturas
       'N° Fact.Age.': '', // Este campo podría requerir una tabla adicional de facturas
       'Fecha Fact.Age.': '', // Este campo podría requerir una tabla adicional de facturas
-      'Monto Neto Fact.': orden.totalNeto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.totalNeto) : '$0',
+      'Inv. Neta': orden.totalNeto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.totalNeto) : '$0',
       'Tipo Ctto.': orden.Contratos?.NombreContrato || '',
       'Usuario Grupo': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || '',
       'Usuario': orden.usuario_registro?.nombre || ''
