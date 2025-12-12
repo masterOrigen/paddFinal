@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabase';
+import Swal from 'sweetalert2';
 import {
   Container,
   Typography,
@@ -30,7 +31,7 @@ const ReporteInversionCliente = () => {
   const [loading, setLoading] = useState(false);
   const [ordenes, setOrdenes] = useState([]);
   const [filtros, setFiltros] = useState({
-    cliente: null,
+    cliente: { id_cliente: '', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' },
     anio: '',
     mes: ''
   });
@@ -98,7 +99,20 @@ const ReporteInversionCliente = () => {
   const buscarOrdenes = async () => {
     try {
       setLoading(true);
-      
+
+      // Validación: si no es "Todos", entonces año y mes son requeridos
+      if (filtros.cliente && filtros.cliente.id_cliente !== '') {
+        if (!filtros.anio || !filtros.mes) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Faltan datos',
+            text: 'Por favor seleccione año y mes para un cliente específico',
+            confirmButtonColor: '#1976d2'
+          });
+          return;
+        }
+      }
+
       let query = supabase
         .from('OrdenesDePublicidad')
         .select(`
@@ -134,10 +148,13 @@ const ReporteInversionCliente = () => {
           )
         `);
 
-      if (filtros.cliente) {
+      // Aplicar filtros condicionalmente
+      // Solo filtrar por cliente si no es "Todos"
+      if (filtros.cliente && filtros.cliente.id_cliente !== '') {
         query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
       }
 
+      // Solo filtrar por año y mes si están seleccionados
       if (filtros.anio) {
         query = query.eq('plan.anio', filtros.anio);
       }
@@ -149,17 +166,17 @@ const ReporteInversionCliente = () => {
       const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: false });
 
       if (error) throw error;
-      
+
       // Para cada orden, obtener sus alternativas para calcular el total neto y la tarifa bruta
       const ordenesConTotales = await Promise.all(
         ordenesData?.map(async (orden) => {
           let totalNeto = 0;
           let tarifaBruta = 0;
-          
+
           // Obtener alternativas de esta orden
           if (orden.alternativas_plan_orden) {
             let idsAlternativas = [];
-            
+
             // Extraer IDs de alternativas_plan_orden
             try {
               if (Array.isArray(orden.alternativas_plan_orden)) {
@@ -204,7 +221,7 @@ const ReporteInversionCliente = () => {
 
   const limpiarFiltros = () => {
     setFiltros({
-      cliente: null,
+      cliente: { id_cliente: '', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' },
       anio: '',
       mes: ''
     });
@@ -236,7 +253,8 @@ const ReporteInversionCliente = () => {
       'Fecha Fact.Age.': '', // Este campo podría requerir una tabla adicional de facturas
       'Monto Neto Fact.': orden.totalNeto ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(orden.totalNeto) : '$0',
       'Tipo Ctto.': orden.Contratos?.NombreContrato || '',
-      'Usuario Grupo': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || ''
+      'Usuario Grupo': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || '',
+      'Usuario': orden.usuario_registro?.nombre || ''
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -259,20 +277,20 @@ const ReporteInversionCliente = () => {
       <Typography variant="h6" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2', mb: 3 }}>
         Reporte Inversión Cliente
       </Typography>
-      
+
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', color: '#2c3e50' }}>
           Filtros
         </Typography>
-        
-        <Grid container spacing={1} sx={{ mb: 2, alignItems: 'center' }}>
-          <Grid item xs={12} sm={2}>
+
+        <Grid container spacing={2} sx={{ mb: 2, alignItems: 'center' }}>
+          <Grid item xs={12} sm={2.5}>
             <Autocomplete
               size="small"
               options={[{ id_cliente: '', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' }, ...clientes]}
               getOptionLabel={(option) => {
                 if (option.id_cliente === '') {
-                  return 'Todos';
+                  return 'Todos los clientes';
                 }
                 return `${option.nombreCliente} - ${option.razonSocial}`;
               }}
@@ -284,7 +302,7 @@ const ReporteInversionCliente = () => {
                   InputLabelProps={{ shrink: true }}
                 />
               )}
-              value={filtros.cliente || { id_cliente: '', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' }}
+              value={filtros.cliente}
               onChange={(event, newValue) => {
                 handleFiltroChange('cliente', newValue);
               }}
@@ -294,10 +312,22 @@ const ReporteInversionCliente = () => {
               }}
               clearText="Limpiar"
               noOptionsText="No hay clientes"
+              filterOptions={(options, { inputValue }) => {
+                if (!inputValue) return options;
+
+                const inputLower = inputValue.toLowerCase();
+                return options.filter(option => {
+                  if (option.id_cliente === '') {
+                    return 'todos los clientes'.includes(inputLower);
+                  }
+                  return option.nombreCliente.toLowerCase().includes(inputLower) ||
+                    option.razonSocial.toLowerCase().includes(inputLower);
+                });
+              }}
             />
           </Grid>
-          
-          <Grid item xs={12} sm={1.8}>
+
+          <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Año</InputLabel>
               <Select
@@ -313,7 +343,7 @@ const ReporteInversionCliente = () => {
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Mes</InputLabel>
@@ -336,7 +366,7 @@ const ReporteInversionCliente = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={1.5}>
+          <Grid item xs={12} sm={2}>
             <Button
               variant="contained"
               onClick={buscarOrdenes}
@@ -359,7 +389,7 @@ const ReporteInversionCliente = () => {
             </Button>
           </Grid>
         </Grid>
-        
+
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           {ordenes.length > 0 && (
             <Button variant="contained" color="success" onClick={exportarExcel}>
@@ -368,12 +398,12 @@ const ReporteInversionCliente = () => {
           )}
         </Box>
       </Paper>
-      
+
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
           Resultados
         </Typography>
-        
+
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress />
@@ -408,6 +438,7 @@ const ReporteInversionCliente = () => {
                     <TableCell sx={{ minWidth: 100 }}>Monto Neto Fact.</TableCell>
                     <TableCell sx={{ minWidth: 80 }}>Tipo Ctto.</TableCell>
                     <TableCell sx={{ minWidth: 100 }}>Usuario Grupo</TableCell>
+                    <TableCell sx={{ minWidth: 100 }}>Usuario</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -432,10 +463,10 @@ const ReporteInversionCliente = () => {
                       <TableCell>
                         {orden.tarifaBruta
                           ? new Intl.NumberFormat('es-CL', {
-                              style: 'currency',
-                              currency: 'CLP',
-                              minimumFractionDigits: 0
-                            }).format(orden.tarifaBruta)
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(orden.tarifaBruta)
                           : '$0'}
                       </TableCell>
                       <TableCell>0</TableCell>
@@ -445,14 +476,15 @@ const ReporteInversionCliente = () => {
                       <TableCell>
                         {orden.totalNeto
                           ? new Intl.NumberFormat('es-CL', {
-                              style: 'currency',
-                              currency: 'CLP',
-                              minimumFractionDigits: 0
-                            }).format(orden.totalNeto)
+                            style: 'currency',
+                            currency: 'CLP',
+                            minimumFractionDigits: 0
+                          }).format(orden.totalNeto)
                           : '$0'}
                       </TableCell>
                       <TableCell>{orden.Contratos?.NombreContrato || 'N/A'}</TableCell>
                       <TableCell>{orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || 'N/A'}</TableCell>
+                      <TableCell>{orden.usuario_registro?.nombre || 'N/A'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

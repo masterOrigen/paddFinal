@@ -32,7 +32,7 @@ const OrdenesNoEmitidas = () => {
   const [loading, setLoading] = useState(false);
   const [ordenesNoEmitidas, setOrdenesNoEmitidas] = useState([]);
   const [filtros, setFiltros] = useState({
-    cliente: null,
+    cliente: { id_cliente: 'all', nombreCliente: 'Todas las Órdenes', razonSocial: 'Todas las órdenes no emitidas' },
     anio: '',
     mes: ''
   });
@@ -56,7 +56,14 @@ const OrdenesNoEmitidas = () => {
         .order('nombreCliente');
 
       if (error) throw error;
-      setClientes(data || []);
+
+      // Agregar opción "Todas las Órdenes" al inicio de la lista
+      const clientesConTodos = [
+        { id_cliente: 'all', nombreCliente: 'Todas las Órdenes', razonSocial: 'Todas las órdenes no emitidas' },
+        ...(data || [])
+      ];
+
+      setClientes(clientesConTodos);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
     }
@@ -100,15 +107,18 @@ const OrdenesNoEmitidas = () => {
   const buscarOrdenesNoEmitidas = async () => {
     try {
       setLoading(true);
-      
-      if (!filtros.cliente || !filtros.anio) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Faltan datos',
-          text: 'Por favor seleccione cliente y año',
-          confirmButtonColor: '#1976d2'
-        });
-        return;
+
+      // Validación: si no es "Todas las Órdenes", entonces cliente y año son requeridos
+      if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+        if (!filtros.anio) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Faltan datos',
+            text: 'Por favor seleccione año para un cliente específico',
+            confirmButtonColor: '#1976d2'
+          });
+          return;
+        }
       }
 
       // Buscar órdenes que estén anuladas o que hayan sido reemplazadas
@@ -141,10 +151,16 @@ const OrdenesNoEmitidas = () => {
         `);
 
       // Aplicar filtros
-      query = query
-        .eq('Campania.id_Cliente', filtros.cliente.id_cliente)
-        .eq('plan.anio', filtros.anio);
-      
+      // Solo filtrar por cliente si no es "Todas las Órdenes"
+      if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+        query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
+      }
+
+      // Solo filtrar por año si está seleccionado
+      if (filtros.anio) {
+        query = query.eq('plan.anio', filtros.anio);
+      }
+
       // Aplicar filtro de mes solo si está seleccionado
       if (filtros.mes) {
         query = query.eq('plan.mes', filtros.mes);
@@ -162,7 +178,7 @@ const OrdenesNoEmitidas = () => {
         ordenesData?.map(async (orden) => {
           let motivoNoEmision = '';
           let tarifaBrutaTotal = 0;
-          
+
           // Determinar el motivo por el que no fue emitida
           if (orden.estado === 'anulada') {
             motivoNoEmision = 'Anulada';
@@ -171,11 +187,11 @@ const OrdenesNoEmitidas = () => {
             // Actualizar el estado para que muestre "Reemplazada"
             orden.estado = 'reemplazada';
           }
-          
+
           // Obtener alternativas para calcular tarifa bruta
           if (orden.alternativas_plan_orden) {
             let idsAlternativas = [];
-            
+
             try {
               if (Array.isArray(orden.alternativas_plan_orden)) {
                 idsAlternativas = orden.alternativas_plan_orden;
@@ -217,7 +233,7 @@ const OrdenesNoEmitidas = () => {
 
   const limpiarFiltros = () => {
     setFiltros({
-      cliente: null,
+      cliente: { id_cliente: 'all', nombreCliente: 'Todas las Órdenes', razonSocial: 'Todas las órdenes no emitidas' },
       anio: '',
       mes: ''
     });
@@ -252,17 +268,18 @@ const OrdenesNoEmitidas = () => {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Órdenes No Emitidas');
-    
-    const nombreArchivo = `Ordenes_No_Emitidas_${filtros.cliente?.nombreCliente || 'SinCliente'}_${filtros.anio}_${filtros.mes}_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
+
+    const nombreCliente = filtros.cliente?.nombreCliente === 'Todas las Órdenes' ? 'TodasLasOrdenes' : filtros.cliente?.nombreCliente || 'SinCliente';
+    const nombreArchivo = `Ordenes_No_Emitidas_${nombreCliente}_${filtros.anio}_${filtros.mes}_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
   };
 
   const formatCurrency = (value) => {
     if (!value && value !== 0) return '$0';
-    return new Intl.NumberFormat('es-CL', { 
-      style: 'currency', 
-      currency: 'CLP', 
-      minimumFractionDigits: 0 
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0
     }).format(value);
   };
 
@@ -281,18 +298,23 @@ const OrdenesNoEmitidas = () => {
       <Typography variant="h6" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2', mb: 3 }}>
         Órdenes No Emitidas
       </Typography>
-      
+
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', color: '#2c3e50' }}>
           Filtros
         </Typography>
-        
+
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} sm={4}>
             <Autocomplete
               size="small"
               options={clientes}
-              getOptionLabel={(option) => `${option.nombreCliente} - ${option.razonSocial}`}
+              getOptionLabel={(option) => {
+                if (option.id_cliente === 'all') {
+                  return 'Todas las Órdenes';
+                }
+                return `${option.nombreCliente} - ${option.razonSocial}`;
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -308,9 +330,21 @@ const OrdenesNoEmitidas = () => {
               isOptionEqualToValue={(option, value) => option?.id_cliente === value?.id_cliente}
               clearText="Limpiar"
               noOptionsText="No hay clientes"
+              filterOptions={(options, { inputValue }) => {
+                if (!inputValue) return options;
+
+                const inputLower = inputValue.toLowerCase();
+                return options.filter(option => {
+                  if (option.id_cliente === 'all') {
+                    return 'todas las órdenes'.includes(inputLower);
+                  }
+                  return option.nombreCliente.toLowerCase().includes(inputLower) ||
+                    option.razonSocial.toLowerCase().includes(inputLower);
+                });
+              }}
             />
           </Grid>
-          
+
           <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Año</InputLabel>
@@ -327,7 +361,7 @@ const OrdenesNoEmitidas = () => {
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Mes</InputLabel>
@@ -368,7 +402,7 @@ const OrdenesNoEmitidas = () => {
             </Button>
           </Grid>
         </Grid>
-        
+
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           {ordenesNoEmitidas.length > 0 && (
             <Button variant="contained" color="success" onClick={exportarExcel}>
@@ -378,12 +412,12 @@ const OrdenesNoEmitidas = () => {
         </Box>
       </Paper>
 
-      
+
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
           Resultados
         </Typography>
-        
+
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress />

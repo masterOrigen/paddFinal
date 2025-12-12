@@ -32,7 +32,7 @@ const ReporteClienteDiario = () => {
   const [loading, setLoading] = useState(false);
   const [ordenesAgrupadas, setOrdenesAgrupadas] = useState([]);
   const [filtros, setFiltros] = useState({
-    cliente: null,
+    cliente: { id_cliente: 'all', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' },
     anio: '',
     mes: ''
   });
@@ -56,7 +56,14 @@ const ReporteClienteDiario = () => {
         .order('nombreCliente');
 
       if (error) throw error;
-      setClientes(data || []);
+
+      // Agregar opción "Todos" al inicio de la lista
+      const clientesConTodos = [
+        { id_cliente: 'all', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' },
+        ...(data || [])
+      ];
+
+      setClientes(clientesConTodos);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
     }
@@ -100,15 +107,18 @@ const ReporteClienteDiario = () => {
   const buscarOrdenes = async () => {
     try {
       setLoading(true);
-      
-      if (!filtros.cliente || !filtros.anio || !filtros.mes) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Faltan datos',
-          text: 'Por favor seleccione cliente, año y mes',
-          confirmButtonColor: '#1976d2'
-        });
-        return;
+
+      // Validación: si no es "Todos", entonces año y mes son requeridos
+      if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+        if (!filtros.anio || !filtros.mes) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Faltan datos',
+            text: 'Por favor seleccione año y mes para un cliente específico',
+            confirmButtonColor: '#1976d2'
+          });
+          return;
+        }
       }
 
       let query = supabase
@@ -140,10 +150,19 @@ const ReporteClienteDiario = () => {
         `);
 
       // Aplicar filtros
-      query = query
-        .eq('Campania.id_Cliente', filtros.cliente.id_cliente)
-        .eq('plan.anio', filtros.anio)
-        .eq('plan.mes', filtros.mes);
+      // Solo filtrar por cliente si no está seleccionado "Todos"
+      if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+        query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
+      }
+
+      // Solo filtrar por año y mes si están seleccionados
+      if (filtros.anio) {
+        query = query.eq('plan.anio', filtros.anio);
+      }
+
+      if (filtros.mes) {
+        query = query.eq('plan.mes', filtros.mes);
+      }
 
       const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: true });
 
@@ -154,11 +173,11 @@ const ReporteClienteDiario = () => {
         ordenesData?.map(async (orden) => {
           let fechasExhibicion = '';
           let tarifaBrutaTotal = 0;
-          
+
           // Obtener alternativas de esta orden
           if (orden.alternativas_plan_orden) {
             let idsAlternativas = [];
-            
+
             // Extraer IDs de alternativas_plan_orden
             try {
               if (Array.isArray(orden.alternativas_plan_orden)) {
@@ -192,7 +211,7 @@ const ReporteClienteDiario = () => {
               if (alternativas && alternativas.length > 0) {
                 // Calcular tarifa bruta total
                 tarifaBrutaTotal = alternativas.reduce((total, alt) => total + (alt.total_bruto || 0), 0);
-                
+
                 // Procesar calendario para obtener rangos de fechas
                 const rangos = [];
                 alternativas.forEach(alt => {
@@ -208,11 +227,11 @@ const ReporteClienteDiario = () => {
                         const dias = calendarData
                           .map(item => item.dia)
                           .sort((a, b) => a - b);
-                        
+
                         if (dias.length > 0) {
                           let rangoInicio = dias[0];
                           let rangoFin = dias[0];
-                          
+
                           for (let i = 1; i < dias.length; i++) {
                             if (dias[i] === rangoFin + 1) {
                               rangoFin = dias[i];
@@ -233,21 +252,26 @@ const ReporteClienteDiario = () => {
 
                 // Formatear rangos de fechas
                 if (rangos.length > 0) {
-                  const nombreMes = meses.find(m => m.Id === filtros.mes)?.Nombre || '';
+                  // Si es "Todos los clientes", usar el mes del plan de la orden
+                  // Si es cliente específico, usar el mes del filtro
+                  const mesId = (filtros.cliente && filtros.cliente.id_cliente === 'all')
+                    ? orden.plan?.mes
+                    : filtros.mes;
+                  const nombreMes = meses.find(m => m.Id === mesId)?.Nombre || '';
                   const anio = anios.find(a => a.id === filtros.anio)?.years || '';
-                  
+
                   // Obtener todos los días únicos ordenados
-                  const todosLosDias = [...new Set(rangos.flatMap(r => 
-                    r.inicio === r.fin ? [r.inicio] : 
-                    Array.from({length: r.fin - r.inicio + 1}, (_, i) => r.inicio + i)
+                  const todosLosDias = [...new Set(rangos.flatMap(r =>
+                    r.inicio === r.fin ? [r.inicio] :
+                      Array.from({ length: r.fin - r.inicio + 1 }, (_, i) => r.inicio + i)
                   ))].sort((a, b) => a - b);
-                  
+
                   // Agrupar días consecutivos
                   const rangosFinales = [];
                   if (todosLosDias.length > 0) {
                     let inicio = todosLosDias[0];
                     let fin = todosLosDias[0];
-                    
+
                     for (let i = 1; i < todosLosDias.length; i++) {
                       if (todosLosDias[i] === fin + 1) {
                         fin = todosLosDias[i];
@@ -259,7 +283,7 @@ const ReporteClienteDiario = () => {
                     }
                     rangosFinales.push({ inicio, fin });
                   }
-                  
+
                   // Formatear salida
                   if (rangosFinales.length === 1) {
                     if (rangosFinales[0].inicio === rangosFinales[0].fin) {
@@ -268,7 +292,7 @@ const ReporteClienteDiario = () => {
                       fechasExhibicion = `${rangosFinales[0].inicio} al ${rangosFinales[0].fin} de ${nombreMes}`;
                     }
                   } else {
-                    const diasIndividuales = rangosFinales.map(r => 
+                    const diasIndividuales = rangosFinales.map(r =>
                       r.inicio === r.fin ? r.inicio.toString() : `${r.inicio} al ${r.fin}`
                     );
                     fechasExhibicion = `${diasIndividuales.join(', ')} de ${nombreMes}`;
@@ -288,11 +312,11 @@ const ReporteClienteDiario = () => {
 
       // Agrupar órdenes por día
       const ordenesPorDia = {};
-      
+
       ordenesConFechasExhibicion.forEach(orden => {
         const fecha = orden.fechaCreacion;
         const dia = format(new Date(fecha), 'yyyy-MM-dd');
-        
+
         if (!ordenesPorDia[dia]) {
           ordenesPorDia[dia] = {
             fecha: dia,
@@ -302,7 +326,7 @@ const ReporteClienteDiario = () => {
             totalOrdenes: 0
           };
         }
-        
+
         ordenesPorDia[dia].ordenes.push(orden);
         ordenesPorDia[dia].totalOrdenes++;
         ordenesPorDia[dia].totalInversion += orden.Campania?.Presupuesto || 0;
@@ -316,7 +340,7 @@ const ReporteClienteDiario = () => {
       // Identificar y marcar órdenes por versión
       // Obtener todas las órdenes de forma plana
       const todasLasOrdenes = agrupadas.flatMap(dia => dia.ordenes);
-      
+
       // Agrupar órdenes por número correlativo
       const ordenesPorNumero = {};
       todasLasOrdenes.forEach(orden => {
@@ -330,12 +354,12 @@ const ReporteClienteDiario = () => {
       // Para cada grupo de órdenes con el mismo número, encontrar la versión mayor
       Object.keys(ordenesPorNumero).forEach(numOrden => {
         const ordenesMismoNumero = ordenesPorNumero[numOrden];
-        
+
         if (ordenesMismoNumero.length > 1) {
           // Encontrar la versión mayor
           let versionMayor = -1;
           let ordenActiva = null;
-          
+
           ordenesMismoNumero.forEach(orden => {
             const version = parseInt(orden.copia) || 0;
             if (version > versionMayor) {
@@ -343,7 +367,7 @@ const ReporteClienteDiario = () => {
               ordenActiva = orden;
             }
           });
-          
+
           // Marcar la de versión mayor como activa y las demás como anuladas
           ordenesMismoNumero.forEach(orden => {
             if (orden === ordenActiva) {
@@ -365,7 +389,7 @@ const ReporteClienteDiario = () => {
 
   const limpiarFiltros = () => {
     setFiltros({
-      cliente: null,
+      cliente: { id_cliente: 'all', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' },
       anio: '',
       mes: ''
     });
@@ -374,10 +398,10 @@ const ReporteClienteDiario = () => {
 
   const exportarExcel = async () => {
     const dataToExport = [];
-    
+
     // Recopilar todas las órdenes no anuladas
     const ordenesNoAnuladas = [];
-    
+
     for (const dia of ordenesAgrupadas) {
       for (const orden of dia.ordenes) {
         // Omitir órdenes anuladas
@@ -391,11 +415,11 @@ const ReporteClienteDiario = () => {
     // Procesar cada orden para obtener sus días de exhibición
     for (const orden of ordenesNoAnuladas) {
       let diasExhibicion = [];
-      
+
       // Obtener los días individuales de exhibición para esta orden
       if (orden.alternativas_plan_orden) {
         let idsAlternativas = [];
-        
+
         try {
           if (Array.isArray(orden.alternativas_plan_orden)) {
             idsAlternativas = orden.alternativas_plan_orden;
@@ -425,7 +449,7 @@ const ReporteClienteDiario = () => {
 
           if (!error && alternativas && alternativas.length > 0) {
             const todosLosDias = new Set();
-            
+
             alternativas.forEach(alt => {
               if (alt.calendar) {
                 try {
@@ -448,7 +472,7 @@ const ReporteClienteDiario = () => {
             });
 
             diasExhibicion = Array.from(todosLosDias).sort((a, b) => a - b);
-            
+
             // Guardar datos adicionales de las alternativas para usarlos en el Excel
             orden.datosAlternativas = alternativas;
           }
@@ -462,17 +486,17 @@ const ReporteClienteDiario = () => {
 
       // Crear una línea por cada día de exhibición
       const nombreMes = meses.find(m => m.Id === filtros.mes)?.Nombre || '';
-      
+
       diasExhibicion.forEach(diaNum => {
         // Formatear fecha como DD/MM/YYYY
         // Obtener el año correcto desde el objeto de años
         const anioSeleccionado = anios.find(a => a.id === filtros.anio);
         const anioReal = anioSeleccionado ? anioSeleccionado.years : new Date().getFullYear();
         const fechaFormateada = format(new Date(anioReal, filtros.mes - 1, diaNum), 'dd/MM/yyyy');
-        
+
         // Obtener datos de la primera alternativa para los campos adicionales
         const primeraAlternativa = orden.datosAlternativas && orden.datosAlternativas.length > 0 ? orden.datosAlternativas[0] : null;
-        
+
         dataToExport.push({
           'Cliente': orden.Campania?.Clientes?.nombreCliente || '',
           'Mes': orden.plan?.Meses?.Id || '',
@@ -504,17 +528,18 @@ const ReporteClienteDiario = () => {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Reporte Cliente Diario');
-    
-    const nombreArchivo = `Reporte_Cliente_Diario_${filtros.cliente?.nombreCliente || 'SinCliente'}_${filtros.anio}_${filtros.mes}_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
+
+    const nombreCliente = filtros.cliente?.nombreCliente === 'Todos' ? 'TodosLosClientes' : filtros.cliente?.nombreCliente || 'SinCliente';
+    const nombreArchivo = `Reporte_Cliente_Diario_${nombreCliente}_${filtros.anio}_${filtros.mes}_${format(new Date(), 'dd-MM-yyyy')}.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
   };
 
   const formatCurrency = (value) => {
     if (!value && value !== 0) return '$0';
-    return new Intl.NumberFormat('es-CL', { 
-      style: 'currency', 
-      currency: 'CLP', 
-      minimumFractionDigits: 0 
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0
     }).format(value);
   };
 
@@ -524,7 +549,7 @@ const ReporteClienteDiario = () => {
 
   // Obtener todas las órdenes de forma plana para paginación
   const todasLasOrdenes = ordenesAgrupadas.flatMap((dia) => dia.ordenes);
-  
+
   const paginatedOrdenes = todasLasOrdenes.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage
@@ -536,18 +561,23 @@ const ReporteClienteDiario = () => {
       <Typography variant="h6" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#1976d2', mb: 3 }}>
         Reporte Cliente Diario
       </Typography>
-      
+
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 'medium', color: '#2c3e50' }}>
           Filtros
         </Typography>
-        
+
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} sm={4}>
             <Autocomplete
               size="small"
               options={clientes}
-              getOptionLabel={(option) => `${option.nombreCliente} - ${option.razonSocial}`}
+              getOptionLabel={(option) => {
+                if (option.id_cliente === 'all') {
+                  return 'Todos los clientes';
+                }
+                return `${option.nombreCliente} - ${option.razonSocial}`;
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -565,16 +595,19 @@ const ReporteClienteDiario = () => {
               noOptionsText="No hay clientes"
               filterOptions={(options, { inputValue }) => {
                 if (!inputValue) return options;
-                
+
                 const inputLower = inputValue.toLowerCase();
-                return options.filter(option =>
-                  option.nombreCliente.toLowerCase().includes(inputLower) ||
-                  option.razonSocial.toLowerCase().includes(inputLower)
-                );
+                return options.filter(option => {
+                  if (option.id_cliente === 'all') {
+                    return 'todos los clientes'.includes(inputLower);
+                  }
+                  return option.nombreCliente.toLowerCase().includes(inputLower) ||
+                    option.razonSocial.toLowerCase().includes(inputLower);
+                });
               }}
             />
           </Grid>
-          
+
           <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Año</InputLabel>
@@ -591,7 +624,7 @@ const ReporteClienteDiario = () => {
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} sm={2}>
             <FormControl fullWidth size="small">
               <InputLabel>Mes</InputLabel>
@@ -632,7 +665,7 @@ const ReporteClienteDiario = () => {
             </Button>
           </Grid>
         </Grid>
-        
+
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           {ordenesAgrupadas.length > 0 && (
             <Button variant="contained" color="success" onClick={exportarExcel}>
@@ -642,12 +675,12 @@ const ReporteClienteDiario = () => {
         </Box>
       </Paper>
 
-      
+
       <Paper elevation={3} sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
           Resultados
         </Typography>
-        
+
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress />
@@ -665,6 +698,7 @@ const ReporteClienteDiario = () => {
                     <TableCell sx={{ minWidth: 120 }}>Medio</TableCell>
                     <TableCell sx={{ minWidth: 120 }}>Producto</TableCell>
                     <TableCell sx={{ minWidth: 120 }}>Proveedor</TableCell>
+                    <TableCell sx={{ minWidth: 80 }}>Mes</TableCell>
                     <TableCell sx={{ minWidth: 150 }}>Fecha Exhib./Pub.</TableCell>
                     <TableCell sx={{ minWidth: 100 }} align="right">Tarifa Bruta</TableCell>
                     <TableCell sx={{ minWidth: 80 }}>Estado</TableCell>
@@ -674,11 +708,11 @@ const ReporteClienteDiario = () => {
                 <TableBody>
                   {paginatedOrdenes.map((orden) => {
                     // Encontrar la fecha de creación para esta orden
-                    const diaOrden = ordenesAgrupadas.find(dia => 
+                    const diaOrden = ordenesAgrupadas.find(dia =>
                       dia.ordenes.some(o => o.id_ordenes_de_comprar === orden.id_ordenes_de_comprar)
                     );
                     const fechaCreacion = diaOrden ? diaOrden.fecha : orden.fechaCreacion;
-                    
+
                     return (
                       <TableRow key={orden.id_ordenes_de_comprar}>
                         <TableCell>
@@ -701,6 +735,9 @@ const ReporteClienteDiario = () => {
                         </TableCell>
                         <TableCell>
                           {orden.Contratos?.Proveedores?.nombreProveedor || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {orden.plan?.Meses?.Nombre || 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
