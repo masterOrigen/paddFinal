@@ -379,7 +379,16 @@ const ReporteClienteDiario = () => {
         }
       });
 
-      setOrdenesAgrupadas(agrupadas);
+      // Filtrar órdenes anuladas solo cuando se selecciona "Todos los clientes"
+      let ordenesFinales = agrupadas;
+      if (filtros.cliente && filtros.cliente.id_cliente === 'all') {
+        ordenesFinales = agrupadas.map(dia => ({
+          ...dia,
+          ordenes: dia.ordenes.filter(orden => orden.estado !== 'anulada')
+        })).filter(dia => dia.ordenes.length > 0); // Eliminar días sin órdenes
+      }
+
+      setOrdenesAgrupadas(ordenesFinales);
     } catch (error) {
       console.error('Error al buscar órdenes:', error);
     } finally {
@@ -404,8 +413,8 @@ const ReporteClienteDiario = () => {
 
     for (const dia of ordenesAgrupadas) {
       for (const orden of dia.ordenes) {
-        // Omitir órdenes anuladas
-        if (orden.estado === 'anulada') {
+        // Omitir órdenes anuladas solo cuando se selecciona "Todos los clientes"
+        if (filtros.cliente && filtros.cliente.id_cliente === 'all' && orden.estado === 'anulada') {
           continue;
         }
         ordenesNoAnuladas.push({ ...orden, fechaCreacion: dia.fecha });
