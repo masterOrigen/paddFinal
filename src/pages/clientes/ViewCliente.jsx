@@ -33,6 +33,7 @@ import {
 } from '@mui/material';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import { Add as AddIcon } from '@mui/icons-material';
+import { Edit as EditIcon } from '@mui/icons-material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import PersonIcon from '@mui/icons-material/Person';
@@ -104,6 +105,7 @@ const ViewCliente = () => {
     cargo: '',
     id_cliente: ''
   });
+  const [editingContacto, setEditingContacto] = useState(null);
 
   const [openEditModal, setOpenEditModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -392,12 +394,76 @@ const ViewCliente = () => {
     }
   };
 
+  const handleEditContacto = (contacto) => {
+    setEditingContacto(contacto);
+    setContactoForm({
+      nombre: contacto.nombre,
+      telefono: contacto.telefono,
+      correo: contacto.correo,
+      cargo: contacto.cargo,
+      id_cliente: cliente.id_cliente
+    });
+    setOpenContactoModal(true);
+  };
+
+  const handleUpdateContacto = async () => {
+    try {
+      if (!editingContacto?.id) {
+        throw new Error('ID de contacto no disponible');
+      }
+
+      const { error } = await supabase
+        .from('contactocliente')
+        .update({
+          ...contactoForm
+        })
+        .eq('id', editingContacto.id);
+
+      if (error) {
+        console.error('Error updating contact:', error);
+        throw error;
+      }
+
+      setOpenContactoModal(false);
+      setEditingContacto(null);
+      setContactoForm({
+        nombre: '',
+        telefono: '',
+        correo: '',
+        cargo: '',
+        id_cliente: cliente?.id_cliente || ''
+      });
+
+      // Actualizar la lista de contactos
+      await fetchContactos();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Éxito',
+        text: 'Contacto actualizado correctamente',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
+
   const handleOpenContactoModal = () => {
     setOpenContactoModal(true);
   };
 
   const handleCloseContactoModal = () => {
     setOpenContactoModal(false);
+    setEditingContacto(null);
+    setContactoForm({
+      nombre: '',
+      telefono: '',
+      correo: '',
+      cargo: '',
+      id_cliente: cliente?.id_cliente || ''
+    });
   };
 
   const handleTabChange = (event, newValue) => {
@@ -1507,6 +1573,12 @@ const ViewCliente = () => {
                             <TableCell>{contacto.cargo || '-'}</TableCell>
                             <TableCell>
                               <IconButton
+                                onClick={() => handleEditContacto(contacto)}
+                                color="primary"
+                              >
+                                <EditIcon />
+                              </IconButton>
+                              <IconButton
                                 onClick={() => handleDeleteContacto(contacto.id)}
                                 color="error"
                               >
@@ -1696,7 +1768,7 @@ const ViewCliente = () => {
 
       <Dialog open={openContactoModal} onClose={handleCloseContactoModal} maxWidth="sm" fullWidth>
         <DialogTitle>
-          Agregar Contacto
+          {editingContacto ? 'Editar Contacto' : 'Agregar Contacto'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
@@ -1791,9 +1863,9 @@ const ViewCliente = () => {
           <Button 
             variant="contained" 
             color="primary" 
-            onClick={handleAddContacto}
+            onClick={editingContacto ? handleUpdateContacto : handleAddContacto}
           >
-            Agregar
+            {editingContacto ? 'Guardar' : 'Agregar'}
           </Button>
         </DialogActions>
       </Dialog>
