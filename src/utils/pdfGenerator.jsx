@@ -424,7 +424,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     return (
       <>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
+          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL NETO:' : 'TOTAL NETO:'}</Text>
           <Text style={styles.totalValue}>
             ${sumNeto.toLocaleString('es-CL').split(',')[0]}
           </Text>

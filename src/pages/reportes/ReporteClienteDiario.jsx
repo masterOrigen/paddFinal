@@ -522,6 +522,9 @@ const ReporteClienteDiario = () => {
           diasExhibicion = [new Date(orden.fechaCreacion).getDate()];
         }
 
+        // Calcular inversión neta dividida por la cantidad de fechas de exhibición
+        const inversionNetaDividida = (orden.tarifaNetaTotal || 0) / (diasExhibicion.length || 1);
+
         // Crear una línea por cada día de exhibición
         const nombreMes = meses.find(m => m.Id === filtros.mes)?.Nombre || '';
 
@@ -552,7 +555,7 @@ const ReporteClienteDiario = () => {
             'Prog./Elem./Formato': primeraAlternativa?.Programas?.descripcion || primeraAlternativa?.Clasificacion?.NombreClasificacion || '',
             'Año': orden.plan?.Anios?.years || '',
             'Fecha Exhib./Pub.': fechaFormateada,
-            'Inversion Neta': orden.tarifaNetaTotal || 0,
+            'Inversion Neta': inversionNetaDividida,
             'Agen.Creativa': orden.Campania?.Agencias?.NombreIdentificador || '',
             'Cod. Univ. Aviso': '', // Campo no disponible en la estructura actual
             'Cod. Univ. Prog': primeraAlternativa?.Programas?.codigo_programa || '',

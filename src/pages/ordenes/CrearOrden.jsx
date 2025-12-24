@@ -552,7 +552,7 @@ const handleCrearOrden = async () => {
         open={openClienteModal} 
         maxWidth="md" 
         fullWidth
-        disableEscapeKeyDown
+        onClose={handleClose}
         >
         <DialogTitle sx={{ m: 0, p: 2 }}>
           <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -629,6 +629,7 @@ const handleCrearOrden = async () => {
         open={openCampanaModal} 
         maxWidth="md" 
         fullWidth
+        onClose={handleClose}
         >
         <DialogTitle sx={{ m: 0, p: 2 }}>
           <Box display="flex" alignItems="center" justifyContent="space-between">

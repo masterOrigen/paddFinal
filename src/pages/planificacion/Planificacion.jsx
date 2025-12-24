@@ -902,7 +902,7 @@ const Planificacion = () => {
           open={openClienteModal} 
           maxWidth="md" 
           fullWidth
-          disableEscapeKeyDown
+          onClose={handleClose}
         >
           <DialogTitle sx={{ m: 0, p: 2 }}>
           <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -984,7 +984,7 @@ const Planificacion = () => {
           open={openCampanaModal} 
           maxWidth={false}
           fullWidth
-          disableEscapeKeyDown
+          onClose={handleCloseCampanaModal}
           PaperProps={{
           sx: {
             minHeight: '90vh',

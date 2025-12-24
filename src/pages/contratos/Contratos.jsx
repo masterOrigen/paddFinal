@@ -273,7 +273,10 @@ const Contratos = () => {
                 open={openClienteModal || !selectedCliente}
                 maxWidth="md"
                 fullWidth
-                disableEscapeKeyDown
+                onClose={() => {
+                    setOpenClienteModal(false);
+                    navigate('/dashboard');
+                }}
             >
                 <DialogTitle>
                     <Box display="flex" alignItems="center" justifyContent="space-between">

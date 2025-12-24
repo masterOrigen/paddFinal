@@ -199,7 +199,10 @@ const ReporteInversionCliente = () => {
           // Marcar la de versión mayor como activa y las demás como anuladas
           ordenesMismoNumero.forEach(orden => {
             if (orden === ordenActiva) {
-              orden.estado = 'activa';
+              // Si la orden ya viene anulada de BD, respetamos ese estado
+              if (orden.estado !== 'anulada') {
+                orden.estado = 'activa';
+              }
             } else {
               orden.estado = 'anulada';
             }

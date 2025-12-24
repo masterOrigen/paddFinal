@@ -1002,7 +1002,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     open={openClienteModal} 
     maxWidth="md" 
     fullWidth
-    disableEscapeKeyDown
+    onClose={handleClose}
     >
     <DialogTitle sx={{ m: 0, p: 2 }}>
     <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -1074,6 +1074,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     open={openCampanaModal} 
     maxWidth="md" 
     fullWidth
+    onClose={handleClose}
     >
     <DialogTitle sx={{ m: 0, p: 2 }}>
     <Box>

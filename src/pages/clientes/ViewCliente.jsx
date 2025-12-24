@@ -550,7 +550,9 @@ const ViewCliente = () => {
                   {new Date(comision.inicioComision).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  {new Date(comision.finComision).toLocaleDateString()}
+                  {(comision.finComision && new Date(comision.finComision).getFullYear() > 1970) 
+                    ? new Date(comision.finComision).toLocaleDateString() 
+                    : ''}
                 </TableCell>
                 <TableCell>
                   <IconButton
@@ -711,7 +713,7 @@ const ViewCliente = () => {
       tipomoneda: comision.tipomoneda,
       valorComision: comision.valorComision,
       inicioComision: comision.inicioComision,
-      finComision: comision.finComision
+      finComision: (comision.finComision && new Date(comision.finComision).getFullYear() > 1970) ? comision.finComision : ''
     });
     setOpenComisionModal(true);
   };
@@ -748,8 +750,7 @@ const ViewCliente = () => {
       if (!newComision.tipomoneda) camposFaltantes.push('Tipo de Moneda');
       if (!newComision.valorComision) camposFaltantes.push('Valor de Comisión');
       if (!newComision.inicioComision) camposFaltantes.push('Fecha de Inicio');
-      if (!newComision.finComision) camposFaltantes.push('Fecha de Término');
-
+      
       if (camposFaltantes.length > 0) {
         await Swal.fire({
           icon: 'warning',
@@ -759,8 +760,8 @@ const ViewCliente = () => {
         return;
       }
 
-      // Validar que la fecha de término sea posterior a la fecha de inicio
-      if (new Date(newComision.finComision) <= new Date(newComision.inicioComision)) {
+      // Validar que la fecha de término sea posterior a la fecha de inicio (solo si se ingresó fecha de término)
+      if (newComision.finComision && new Date(newComision.finComision) <= new Date(newComision.inicioComision)) {
         await Swal.fire({
           icon: 'warning',
           title: 'Error en Fechas',
@@ -778,7 +779,7 @@ const ViewCliente = () => {
             tipomoneda: newComision.tipomoneda,
             valorComision: newComision.valorComision,
             inicioComision: newComision.inicioComision,
-            finComision: newComision.finComision
+            finComision: newComision.finComision || null
           })
           .eq('id_comision', editingComision.id_comision);
 
@@ -801,7 +802,7 @@ const ViewCliente = () => {
             tipomoneda: newComision.tipomoneda,
             valorComision: newComision.valorComision,
             inicioComision: newComision.inicioComision,
-            finComision: newComision.finComision
+            finComision: newComision.finComision || null
           }]);
 
         if (error) throw error;
@@ -1705,7 +1706,7 @@ const ViewCliente = () => {
                   label="Fecha de Término"
                   name="finComision"
                   type="date"
-                  value={newComision.finComision}
+                  value={newComision.finComision || ''}
                   onChange={handleComisionInputChange}
                   InputProps={{
                     startAdornment: (
