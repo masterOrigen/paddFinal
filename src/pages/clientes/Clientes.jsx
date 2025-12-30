@@ -455,8 +455,9 @@ const Clientes = () => {
 
   const validatePhoneNumber = (phone) => {
     if (!phone) return true; // No es obligatorio
-    // Validar formato de teléfono chileno (puede ser fijo o celular)
-    return /^(\+?56|0)?(\s?)(2|9)(\s?)[0-9]{8}$/.test(phone);
+    // Permite formatos internacionales: + opcional, números, espacios y guiones
+    // Mínimo 8 caracteres, máximo 20
+    return /^(\+?)[0-9\s-]{8,20}$/.test(phone);
   };
 
   const formatRut = (rut) => {
