@@ -142,11 +142,10 @@ const ViewCliente = () => {
     'OFF LINE %',
     'OFF LINE FEE',
     'FEE',
-    'COMISION % FEE',
-    '%'
+    'COMISION % FEE'
   ];
 
-  const monedasDisponibles = ['UF', 'PESO', 'DOLAR'];
+  const monedasDisponibles = ['UF', 'PESO', 'DOLAR', '%'];
 
   const fetchClienteData = async () => {
     try {
