@@ -142,7 +142,8 @@ const ViewCliente = () => {
     'OFF LINE %',
     'OFF LINE FEE',
     'FEE',
-    'COMISION % FEE'
+    'COMISION % FEE',
+    '%'
   ];
 
   const monedasDisponibles = ['UF', 'PESO', 'DOLAR'];
