@@ -145,7 +145,7 @@ const ViewCliente = () => {
     'COMISION % FEE'
   ];
 
-  const monedasDisponibles = ['UF', 'PESO', 'DOLAR', '%'];
+  const monedasDisponibles = ['UF', 'PESO', 'DOLAR'];
 
   const fetchClienteData = async () => {
     try {
@@ -226,7 +226,7 @@ const ViewCliente = () => {
       try {
         setLoading(true);
         // Actualizar tiposMoneda con los valores estáticos
-        setTiposMoneda(['UF', 'PESO', 'DOLAR']);
+        setTiposMoneda(['UF', 'PESO', 'DOLAR', '%']);
         
         const { data: clienteData, error: clienteError } = await supabase
           .from('Clientes')
@@ -1653,7 +1653,7 @@ const ViewCliente = () => {
                     ),
                   }}
                 >
-                  {['UF', 'PESO', 'DOLAR'].map((moneda) => (
+                  {['UF', 'PESO', 'DOLAR', '%'].map((moneda) => (
                     <MenuItem key={moneda} value={moneda}>
                       {moneda}
                     </MenuItem>
