@@ -1038,7 +1038,12 @@ const ViewCliente = () => {
   const validatePhoneNumber = (phone) => {
     if (!phone) return true; // No es obligatorio
     // Validar formato de teléfono chileno (puede ser fijo o celular)
-    return /^(\+?56|0)?(\s?)(2|9)(\s?)[0-9]{8}$/.test(phone);
+    // Se permite formato con +56, 56, 0 o sin prefijo
+    // Se eliminan espacios para la validación
+    // Se acepta cualquier dígito inicial (no solo 2 o 9) para cubrir regiones
+    // Se acepta longitud entre 8 y 12 dígitos para cubrir diversos formatos
+    const cleanPhone = phone.replace(/\s/g, '');
+    return /^(\+?56|0)?[0-9]{8,12}$/.test(cleanPhone);
   };
 
   const formatRut = (rut) => {
