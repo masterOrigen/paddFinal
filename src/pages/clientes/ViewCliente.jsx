@@ -106,6 +106,7 @@ const ViewCliente = () => {
     id_cliente: ''
   });
   const [editingContacto, setEditingContacto] = useState(null);
+  const [editingProducto, setEditingProducto] = useState(null);
 
   const [openEditModal, setOpenEditModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -226,7 +227,7 @@ const ViewCliente = () => {
       try {
         setLoading(true);
         // Actualizar tiposMoneda con los valores estáticos
-        setTiposMoneda(['UF', 'PESO', 'DOLAR', '%']);
+        setTiposMoneda(['UF', 'PESO', 'DOLAR']);
         
         const { data: clienteData, error: clienteError } = await supabase
           .from('Clientes')
@@ -609,6 +610,12 @@ const ViewCliente = () => {
               </TableCell>
               <TableCell align="center">
                 <IconButton
+                  onClick={() => handleEditProducto(producto)}
+                  color="primary"
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton
                   onClick={() => handleDeleteProducto(producto.id)}
                   color="error"
                 >
@@ -834,34 +841,57 @@ const ViewCliente = () => {
 
   const handleCloseProductosModal = () => {
     setOpenProductosModal(false);
+    setEditingProducto(null);
   };
 
-  const handleAddProducto = async (productoData) => {
-    try {
-      const { error } = await supabase
-        .from('Productos')
-        .insert([{
-          ...productoData,
-          Id_Cliente: id,
-          Estado: true // Por defecto activo
-        }]);
+  const handleEditProducto = (producto) => {
+    setEditingProducto(producto);
+    setOpenProductosModal(true);
+  };
 
-      if (error) {
-        console.error('Error adding producto:', error);
-        throw error;
+  const handleSaveProducto = async (productoData) => {
+    try {
+      if (editingProducto) {
+        // Actualizar producto
+        const { error } = await supabase
+          .from('Productos')
+          .update(productoData)
+          .eq('id', editingProducto.id);
+
+        if (error) throw error;
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'Éxito',
+          text: 'Producto actualizado correctamente',
+          showConfirmButton: false,
+          timer: 1500
+        });
+      } else {
+        // Crear nuevo producto
+        const { error } = await supabase
+          .from('Productos')
+          .insert([{
+            ...productoData,
+            Id_Cliente: id,
+            Estado: true // Por defecto activo
+          }]);
+
+        if (error) throw error;
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'Éxito',
+          text: 'Producto agregado correctamente',
+          showConfirmButton: false,
+          timer: 1500
+        });
       }
 
       // Actualizar la lista de productos
       await fetchProductos();
-      setOpenProductosModal(false);
+      handleCloseProductosModal();
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Éxito',
-        text: 'Producto agregado correctamente',
-        showConfirmButton: false,
-        timer: 1500
-      });
     } catch (error) {
       console.error('Error:', error);
       Swal.fire('Error', error.message, 'error');
@@ -1733,7 +1763,7 @@ const ViewCliente = () => {
 
       <Dialog open={openProductosModal} onClose={handleCloseProductosModal} maxWidth="sm" fullWidth>
         <DialogTitle>
-          Agregar Producto
+          {editingProducto ? 'Editar Producto' : 'Agregar Producto'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
@@ -1741,7 +1771,7 @@ const ViewCliente = () => {
               fullWidth
               label="Nombre del Producto"
               name="NombreDelProducto"
-              defaultValue={''}
+              defaultValue={editingProducto ? editingProducto.NombreDelProducto : ''}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -1759,10 +1789,10 @@ const ViewCliente = () => {
             color="primary" 
             onClick={() => {
               const nombreProducto = document.querySelector('input[name="NombreDelProducto"]').value;
-              handleAddProducto({ NombreDelProducto: nombreProducto });
+              handleSaveProducto({ NombreDelProducto: nombreProducto });
             }}
           >
-            Agregar
+            {editingProducto ? 'Guardar' : 'Agregar'}
           </Button>
         </DialogActions>
       </Dialog>
