@@ -455,10 +455,11 @@ const ModalAgregarTema = ({ open, onClose, onTemaAdded, idCampania, medioId, med
                         {visibleFields.color && (
                             <Grid item xs={12} sm={6}>
                                 <TextField
+                                    select
                                     fullWidth
                                     label="Color"
                                     name="color"
-                                    value={formData.color}
+                                    value={formData.color || ''}
                                     onChange={handleChange}
                                     InputProps={{
                                         startAdornment: (
@@ -467,7 +468,16 @@ const ModalAgregarTema = ({ open, onClose, onTemaAdded, idCampania, medioId, med
                                             </InputAdornment>
                                         ),
                                     }}
-                                />
+                                >
+                                    <MenuItem value="">
+                                        <em>Seleccione un color</em>
+                                    </MenuItem>
+                                    <MenuItem value="5-B/N">5-B/N</MenuItem>
+                                    <MenuItem value="1 Color">1 Color</MenuItem>
+                                    <MenuItem value="2 Colores">2 Colores</MenuItem>
+                                    <MenuItem value="3 Colores">3 Colores</MenuItem>
+                                    <MenuItem value="4 Colores">4 Colores</MenuItem>
+                                </TextField>
                             </Grid>
                         )}
                         {visibleFields.codigo_megatime && (
