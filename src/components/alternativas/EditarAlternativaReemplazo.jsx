@@ -2603,14 +2603,15 @@ const TIPO_ITEMS = [
           <FormControlLabel
             control={
               <Checkbox
-                checked={Boolean(alternativa?.multiplicar_valor_unitario)}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setAlternativa(prev => ({ ...prev, multiplicar_valor_unitario: checked }));
-                  const currentVU = alternativa?.valor_unitario || 0;
-                  handleMontoChange('valor_unitario', currentVU);
-                }}
-              />
+                        checked={Boolean(alternativa?.multiplicar_valor_unitario)}
+                        onChange={(e) => {
+                            const checked = e.target.checked;
+                            setAlternativa(prev => {
+                                const updated = { ...prev, multiplicar_valor_unitario: checked };
+                                return calculateTotals(updated);
+                            });
+                        }}
+                    />
             }
             label="Multiplicar valor unitario"
           />
