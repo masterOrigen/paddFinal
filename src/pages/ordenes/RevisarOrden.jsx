@@ -521,9 +521,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
             delete alternativaData._isReplacement;
             delete alternativaData.original_id;
             delete alternativaData._originalData;
-            
-            // Corregir los nombres de las columnas
-            // Cambiar id_anio a anio si existe
+              // Cambiar id_anio a anio si existe
             if (alternativaData.id_anio !== undefined) {
                 alternativaData.anio = alternativaData.id_anio;
                 delete alternativaData.id_anio;
@@ -582,6 +580,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
             delete alternativaData.iva;
             delete alternativaData.total_orden;
             delete alternativaData.total_general;
+            delete alternativaData.multiplicar_valor_unitario;
             
             // Eliminar cualquier otro campo que pueda causar conflicto
             if ('clasificacion' in alternativaData) delete alternativaData.clasificacion;
