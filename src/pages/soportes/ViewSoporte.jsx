@@ -691,12 +691,15 @@ const ViewSoporte = () => {
   const handleEditPrograma = async () => {
 
     try {
-      const { id: programaId, ...formData } = programaForm;
+      const { id: programaId } = programaForm;
       
       const updateData = {
-        ...formData,
-        hora_inicio: formData.hora_inicio.length === 5 ? formData.hora_inicio : null,
-        hora_fin: formData.hora_fin.length === 5 ? formData.hora_fin : null
+        codigo_programa: programaForm.codigo_programa,
+        descripcion: programaForm.descripcion,
+        hora_inicio: programaForm.hora_inicio && programaForm.hora_inicio.length === 5 ? programaForm.hora_inicio : null,
+        hora_fin: programaForm.hora_fin && programaForm.hora_fin.length === 5 ? programaForm.hora_fin : null,
+        cod_prog_megatime: programaForm.cod_prog_megatime,
+        estado: programaForm.estado
       };
 
       const { error } = await supabase
