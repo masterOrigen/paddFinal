@@ -273,7 +273,7 @@ const OrdenesNoEmitidas = () => {
         'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
         'Fecha Creación': orden.fechaCreacion ? format(new Date(orden.fechaCreacion), 'dd/MM/yyyy') : '',
         'Motivo No Emisión': orden.motivoNoEmision || '',
-        'Inversión Bruta': orden.tarifaBrutaTotal || 0,
+        'Inversión Neta': 0,
         'Estado': orden.estado || '',
         'Usuario Crea': orden.usuario_registro?.nombre || '',
         'Grupo Usuario': orden.usuario_registro?.grupo || ''
@@ -460,7 +460,7 @@ const OrdenesNoEmitidas = () => {
                     <TableCell sx={{ minWidth: 120 }}>Proveedor</TableCell>
                     <TableCell sx={{ minWidth: 150 }}>Fecha Creación</TableCell>
                     <TableCell sx={{ minWidth: 150 }}>Motivo No Emisión</TableCell>
-                    <TableCell sx={{ minWidth: 100 }} align="right">Tarifa Bruta</TableCell>
+                    <TableCell sx={{ minWidth: 100 }} align="right">Tarifa Neta</TableCell>
                     <TableCell sx={{ minWidth: 100 }}>Estado</TableCell>
                     <TableCell sx={{ minWidth: 100 }}>Usuario Crea</TableCell>
                   </TableRow>
@@ -497,7 +497,7 @@ const OrdenesNoEmitidas = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        {formatCurrency(orden.tarifaBrutaTotal || 0)}
+                        {formatCurrency(0)}
                       </TableCell>
                       <TableCell>
                         <Chip
