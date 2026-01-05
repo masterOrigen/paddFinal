@@ -419,6 +419,7 @@ const handleCrearOrden = async () => {
           copia: 1,
           // Guardar la fecha de creación explícitamente para evitar epoch 1970
           created_at: new Date().toISOString(),
+          fecha_creacion2: new Date().toISOString(),
           usuario_registro: user2 ? {
             nombre: user2.Nombre,
             email: user2.Email
