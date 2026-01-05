@@ -453,6 +453,14 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     <Text style={{ fontSize: 8, color: '#666' }}>
         {order?.usuario_registro?.email || order?.usuario?.email || 'Sin email'}
     </Text>
+    <Text style={{ fontSize: 8, color: '#666', marginTop: 5, alignItems: 'center', textAlign: 'center' }}>
+        {(() => {
+            const dateObj = order?.fecha_creacion2 ? new Date(order.fecha_creacion2) : (order?.created_at ? new Date(order.created_at) : new Date());
+            const dateStr = dateObj.toLocaleDateString('es-CL');
+            const timeStr = dateObj.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+            return `FECHA DE EMISIÓN: ${dateStr}\nHORA: ${timeStr}`;
+        })()}
+    </Text>
 </View>
 </View>
         </Page>
