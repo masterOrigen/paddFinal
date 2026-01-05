@@ -494,7 +494,8 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
               copia: selectedOrder.copia === null || selectedOrder.copia === undefined ? 2 : (selectedOrder.copia + 1),
               orden_remplaza: selectedOrder.id_ordenes_de_comprar,
               created_at: new Date().toISOString(),
-              fechaCreacion: new Date().toISOString()
+              fechaCreacion: new Date().toISOString(),
+              fecha_creacion2: new Date().toISOString()
             })
             .select();
         
