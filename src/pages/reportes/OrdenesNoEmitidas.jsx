@@ -272,7 +272,7 @@ const OrdenesNoEmitidas = () => {
         'Plan de Medios': orden.plan?.nombre_plan || '',
         'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
         'Fecha Creación': orden.fechaCreacion ? format(new Date(orden.fechaCreacion), 'dd/MM/yyyy') : '',
-        'Motivo No Emisión': orden.motivoNoEmision || '',
+        //'Motivo No Emisión': orden.motivoNoEmision || '',
         'Inversión Neta': 0,
         'Estado': orden.estado || '',
         'Usuario Crea': orden.usuario_registro?.nombre || '',
