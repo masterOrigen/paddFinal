@@ -451,11 +451,11 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     try {
         setLoading(true);
         
-        // 1. Marcar la orden original como anulada
+        // 1. Marcar la orden original como anulada y remplazada
         const { error: cancelError } = await supabase
             .from('OrdenesDePublicidad')
             .update({ 
-                estado: 'anulada'
+                estado: 'anulada y remplazada'
             })
             .eq('id_ordenes_de_comprar', selectedOrder.id_ordenes_de_comprar);
         
@@ -1189,7 +1189,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
                                         <Button
                                             onClick={handleCancelAndReplace}
                                             startIcon={<SwapHorizIcon />}
-                                            disabled={!selectedOrder || selectedOrder?.estado === 'anulada'}
+                                            disabled={!selectedOrder || selectedOrder?.estado === 'anulada' || selectedOrder?.estado === 'anulada y remplazada'}
                                         >
                                             Anular y reemplazar
                                         </Button>
@@ -1199,7 +1199,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 											onClick={handleCancel}
 											startIcon={<CancelIcon />}
 											color="error"
-											disabled={!selectedOrder}
+											disabled={!selectedOrder || selectedOrder?.estado === 'anulada' || selectedOrder?.estado === 'anulada y remplazada'}
 										>
 											Anular
 										</Button>
