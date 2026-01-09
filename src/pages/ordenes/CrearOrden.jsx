@@ -125,7 +125,7 @@ const CrearOrden = () => {
             *,
             Anios (id, years),
             Meses (Id, Nombre),
-            Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
+            Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor, id_GeneraracionOrdenTipo,
               FormaDePago (id, NombreFormadePago),
               Proveedores (id_proveedor, nombreProveedor, rutProveedor, direccionFacturacion, id_comuna),
               TipoGeneracionDeOrden (id, NombreTipoOrden),
