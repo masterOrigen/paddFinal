@@ -218,9 +218,13 @@ totalsContainer: {
 const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
   const upper = (s) => (typeof s === 'string' ? s.toUpperCase() : s);
   // Determinar si es bruto o neto basado en el TipoGeneracionDeOrden del contrato
-  const tipoOrden = alternatives[0]?.Contratos?.TipoGeneracionDeOrden?.id || 1;
-  const esBruto = tipoOrden === 2; // Asumiendo que id=2 es Bruto y id=1 es Neto
+  const tipoOrdenData = alternatives[0]?.Contratos?.TipoGeneracionDeOrden;
+  // Fallback: usar el ID directo del contrato si el objeto TipoGeneracionDeOrden no está cargado
+  const idTipoOrden = alternatives[0]?.Contratos?.id_GeneraracionOrdenTipo;
+  
+  const esBruto = tipoOrdenData?.NombreTipoOrden === 'Bruto' || tipoOrdenData?.id === 2 || idTipoOrden === 2;
   const isCanceled = order?.estado === 'anulada';
+  const isReplaced = order?.estado === 'anulada y remplazada';
   const medioNombre =
     (alternatives.find(a => a?.Contratos?.medio?.NombredelMedio)?.Contratos?.medio?.NombredelMedio) ||
     (alternatives.find(a => a?.Contratos?.Medios?.NombredelMedio)?.Contratos?.Medios?.NombredelMedio) ||
@@ -233,8 +237,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 			<View style={styles.header}>
 				<Text style={styles.headerText}></Text>
         <View style={styles.titleContainer}>
-    <Text style={[styles.title, isCanceled ? { color: 'red' } : null]}>
-        {isCanceled ? 'ORDEN ANULADA' : 'ORDEN DE PUBLICIDAD'} {order?.numero_correlativo}
+    <Text style={[styles.title, (isCanceled || isReplaced) ? { color: 'red' } : null]}>
+        {isCanceled ? 'ORDEN ANULADA' : (isReplaced ? 'ORDEN ANULADA Y REMPLAZADA' : 'ORDEN DE PUBLICIDAD')} {order?.numero_correlativo}
         {order?.copia ? ` - ${order?.copia}` : ''}
     </Text>
     {order?.orden_remplaza && (
@@ -365,7 +369,9 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         <Text style={[styles.tableCell, { width: '1%' }]}>TOTAL NETO</Text>
     </View>
 
-    {alternatives.map((alt, index) => (
+    {alternatives.map((alt, index) => {
+        const totalDias = (Array.isArray(alt.calendar) ? alt.calendar : []).reduce((sum, item) => sum + (parseInt(item.cantidad) || 0), 0);
+        return (
             <View key={index} style={styles.tableRow}>
                 <Text style={{ padding:4, width: 100, borderRightWidth: 1, borderRightColor: '#e0e0e0' }}>
                         <Text style={styles.themeTitle}>
@@ -396,7 +402,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     );
 })}
                 <Text style={[styles.tableCell, { width: '1%' }]}>
-                    {(Array.isArray(alt.calendar) ? alt.calendar : []).reduce((sum, item) => sum + (parseInt(item.cantidad) || 0), 0)}
+                    {totalDias}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
                     ${((isCanceled ? 0 : alt.total_bruto) || 0).toLocaleString('es-CL')}
@@ -405,14 +411,14 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                     {isCanceled ? 0 : (alt.descuento_pl || 0)}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
-                    ${((isCanceled ? 0 : alt.valor_unitario) || 0).toLocaleString('es-CL')}
+                    ${((isCanceled ? 0 : (alt.valor_unitario / (totalDias || 1))) || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
                     ${((isCanceled ? 0 : alt.total_neto) || 0).toLocaleString('es-CL')}
                 </Text>
             </View>
-        ))
-    }
+        );
+    })}
 </View>
 
 <View style={styles.totalsContainer}>
@@ -424,7 +430,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     return (
       <>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL NETO:' : 'TOTAL NETO:'}</Text>
+          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
           <Text style={styles.totalValue}>
             ${sumNeto.toLocaleString('es-CL').split(',')[0]}
           </Text>
@@ -493,8 +499,9 @@ export const generateOrderPDF = async (order, alternatives, cliente, campana, pl
         // Usar el número de copia de la orden, por defecto 0 si no existe
         const copia = order?.copia ? `-${order.copia}` : '';
         const isCanceled = order?.estado === 'anulada';
-        const prefix = isCanceled ? 'Orden-Anulada' : 'orden';
-        link.setAttribute('download', `${fileNumber}${copia}.pdf`);
+        const isReplaced = order?.estado === 'anulada y remplazada';
+        const prefix = isCanceled ? 'Orden-Anulada' : (isReplaced ? 'Orden-Anulada-Remplazada' : 'orden');
+        link.setAttribute('download', `${prefix}-${fileNumber}${copia}.pdf`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
