@@ -908,6 +908,11 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
                         num_contrato,
                         id_FormadePago,
                         IdProveedor,
+                        id_GeneraracionOrdenTipo,
+                        TipoGeneracionDeOrden (
+                            id,
+                            NombreTipoOrden
+                        ),
                         FormaDePago (
                             id,
                             NombreFormadePago
