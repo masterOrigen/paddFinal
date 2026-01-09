@@ -366,7 +366,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         <Text style={[styles.tableCell, { width: '1%' }]}>Tarifa Bruta</Text>
         <Text style={{ padding:4,width: 50,fontSize:7 }}>Dto</Text>
         <Text style={[styles.tableCell, { width: '1%' }]}>Tarifa Negociada</Text>
-        <Text style={[styles.tableCell, { width: '1%' }]}>{esBruto ? 'TOTAL GRAL' : 'TOTAL NETO'}</Text>
+        <Text style={[styles.tableCell, { width: '1%' }]}>{esBruto ? 'Total Gral' : 'Total Neto'}</Text>
     </View>
 
     {alternatives.map((alt, index) => {
