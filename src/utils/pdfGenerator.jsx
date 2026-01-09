@@ -366,7 +366,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         <Text style={[styles.tableCell, { width: '1%' }]}>Tarifa Bruta</Text>
         <Text style={{ padding:4,width: 50,fontSize:7 }}>Dto</Text>
         <Text style={[styles.tableCell, { width: '1%' }]}>Tarifa Negociada</Text>
-        <Text style={[styles.tableCell, { width: '1%' }]}>TOTAL NETO</Text>
+        <Text style={[styles.tableCell, { width: '1%' }]}>{esBruto ? 'TOTAL GRAL' : 'TOTAL NETO'}</Text>
     </View>
 
     {alternatives.map((alt, index) => {
@@ -414,7 +414,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                     ${((isCanceled ? 0 : (alt.valor_unitario / (totalDias || 1))) || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}
                 </Text>
                 <Text style={[styles.tableCell, { width: '1%' }]}>
-                    ${((isCanceled ? 0 : alt.total_neto) || 0).toLocaleString('es-CL')}
+                    ${((isCanceled ? 0 : (esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0))) || 0).toLocaleString('es-CL')}
                 </Text>
             </View>
         );
@@ -425,7 +425,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
   {(() => {
     const isCanceled = order?.estado === 'anulada';
     const sumBase = isCanceled ? 0 : Math.round(alternatives.reduce((sum, alt) => {
-        const val = esBruto ? (alt.total_bruto || 0) : (alt.total_neto || 0);
+        const val = esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0);
         return sum + val;
     }, 0));
     const iva = Math.round(sumBase * 0.19);
@@ -433,7 +433,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     return (
       <>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
+          <Text style={styles.totalLabel}>{esBruto ? 'TOTAL GRAL:' : 'TOTAL NETO:'}</Text>
           <Text style={styles.totalValue}>
             ${sumBase.toLocaleString('es-CL').split(',')[0]}
           </Text>
