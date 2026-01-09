@@ -424,15 +424,18 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 <View style={styles.totalsContainer}>
   {(() => {
     const isCanceled = order?.estado === 'anulada';
-    const sumNeto = isCanceled ? 0 : Math.round(alternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0));
-    const iva = Math.round(sumNeto * 0.19);
-    const totalOrden = sumNeto + iva;
+    const sumBase = isCanceled ? 0 : Math.round(alternatives.reduce((sum, alt) => {
+        const val = esBruto ? (alt.total_bruto || 0) : (alt.total_neto || 0);
+        return sum + val;
+    }, 0));
+    const iva = Math.round(sumBase * 0.19);
+    const totalOrden = sumBase + iva;
     return (
       <>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>{esBruto ? 'TOTAL BRUTO:' : 'TOTAL NETO:'}</Text>
           <Text style={styles.totalValue}>
-            ${sumNeto.toLocaleString('es-CL').split(',')[0]}
+            ${sumBase.toLocaleString('es-CL').split(',')[0]}
           </Text>
         </View>
         <View style={styles.totalRow}>
