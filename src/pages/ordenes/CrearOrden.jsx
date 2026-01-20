@@ -169,7 +169,8 @@ const CrearOrden = () => {
             Medios:medio (id, NombredelMedio)
             `)
           .in('id', alternativaIds)
-          .or('ordencreada.is.null,ordencreada.eq.false');
+          .or('ordencreada.is.null,ordencreada.eq.false')
+          .is('numerorden', null);
 
         if (altError) {
           console.error('Error al obtener alternativas:', altError);

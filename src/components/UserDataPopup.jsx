@@ -28,7 +28,7 @@ import {
   Save as SaveIcon,
   CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
-import { supabase } from '../config/supabase';
+import { supabase, supabaseUrl } from '../config/supabase';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 
@@ -198,7 +198,7 @@ const UserDataPopup = ({ open, onClose }) => {
       // Reemplazar localhost por el dominio correcto en la URL generada por Supabase
       let publicUrl = urlData?.publicUrl || '';
       if (publicUrl.includes('localhost:8000')) {
-        publicUrl = publicUrl.replace('http://localhost:8000', 'https://stnwcwzhazopsphgzkvl.supabase.co');
+        publicUrl = publicUrl.replace('http://localhost:8000', supabaseUrl);
       }
       
       console.log('URL original de Supabase:', urlData?.publicUrl);

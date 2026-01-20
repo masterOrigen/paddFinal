@@ -1,12 +1,11 @@
-async function eliminarContacto(idContacto, idProveedor3) {
-    const SUPABASE_API_KEY =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc';
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
 
+async function eliminarContacto(idContacto, idProveedor3) {
     if (!await confirmarEliminar()) return; // Confirmar la eliminación con el usuario
 
     try {
         // Realiza la solicitud DELETE a la API de contactos
-        const response = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/contactos?id_contacto=eq.${idContacto}`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/contactos?id_contacto=eq.${idContacto}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json', // Asegúrate de incluir el tipo de contenido JSON
@@ -96,8 +95,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 async function actualizarContacto(event) {
     event.preventDefault(); // Evita que el formulario se envíe de la manera tradicional
-    const SUPABASE_API_KEY =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc';
 
     const formData = new FormData(event.target); // Obtiene los datos del formulario
     const idProveedor2 = formData.get('id_proveedor'); // Utiliza `get` para obtener el valor
@@ -113,7 +110,7 @@ async function actualizarContacto(event) {
     };
 console.log(data,"acutalizarrr");
     try {
-        const response = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/contactos?id_contacto=eq.${id}`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/contactos?id_contacto=eq.${id}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',

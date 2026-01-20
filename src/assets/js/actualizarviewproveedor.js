@@ -1,3 +1,5 @@
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
+
 
 function loadProveedorData(button) {
     var idProveedor = button.getAttribute('data-idproveedor');
@@ -107,13 +109,13 @@ async function submitForm3(event) {
 
     const headersList = {
         "Content-Type": "application/json",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc"
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": `Bearer ${SUPABASE_API_KEY}`
     };
 
     try {
         // Actualizar el proveedor
-        const response = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Proveedores?id_proveedor=eq.${idProveedor}`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/Proveedores?id_proveedor=eq.${idProveedor}`, {
             method: "PATCH",
             body: JSON.stringify(proveedorData),
             headers: headersList
@@ -121,7 +123,7 @@ async function submitForm3(event) {
     
         if (response.ok) {
             // Eliminar registros antiguos de proveedor_medios asociados al id_proveedor
-            const deleteResponse = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/proveedor_medios?id_proveedor=eq.${idProveedor}`, {
+            const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/proveedor_medios?id_proveedor=eq.${idProveedor}`, {
                 method: "DELETE",
                 headers: headersList
             });
@@ -134,7 +136,7 @@ async function submitForm3(event) {
                         id_medio: id_medio
                     }));
     
-                    const insertResponse = await fetch("https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/proveedor_medios", {
+                    const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/proveedor_medios`, {
                         method: "POST",
                         body: JSON.stringify(proveedorMediosData),
                         headers: headersList
@@ -199,13 +201,13 @@ async function submitForm4(event) {
 
     const headersList = {
         "Content-Type": "application/json",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc"
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": `Bearer ${SUPABASE_API_KEY}`
     };
 
     try {
         // Actualizar el proveedor
-        const response = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Programas?id=eq.${idProgramas}`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/Programas?id=eq.${idProgramas}`, {
             method: "PATCH",
             body: JSON.stringify(programaData),
             headers: headersList
@@ -213,7 +215,7 @@ async function submitForm4(event) {
     
         if (response.ok) {
             // Eliminar registros antiguos de proveedor_medios asociados al id_proveedor
-            const deleteResponse = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/programa_medios?id_programa=eq.${idProgramas}`, {
+            const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/programa_medios?id_programa=eq.${idProgramas}`, {
                 method: "DELETE",
                 headers: headersList
             });
@@ -226,7 +228,7 @@ async function submitForm4(event) {
                         id_medios: id_medio
                     }));
     
-                    const insertResponse = await fetch("https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/programa_medios", {
+                    const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/programa_medios`, {
                         method: "POST",
                         body: JSON.stringify(proveedorMediosData),
                         headers: headersList

@@ -1,3 +1,5 @@
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     $('#agregarsoporteprov').on('shown.bs.modal', function (event) {
         var button = $(event.relatedTarget);
@@ -8,10 +10,10 @@ document.addEventListener('DOMContentLoaded', function () {
         inputPrueba.value = idProveedor;
 
         // Realizar la petición para obtener todos los soportes vinculados al proveedor actual
-        fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/proveedor_soporte?select=id_soporte&id_proveedor=eq.${idProveedor}`, {
+        fetch(`${SUPABASE_URL}/rest/v1/proveedor_soporte?select=id_soporte&id_proveedor=eq.${idProveedor}`, {
             headers: {
-                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc',
-                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc',
+                'apikey': SUPABASE_API_KEY,
+                'Authorization': `Bearer ${SUPABASE_API_KEY}`,
             }
         })
         .then(response => response.json())
@@ -24,13 +26,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Realizar la petición para obtener soportes no vinculados o todos los soportes si no hay vinculados
             const url = vinculados_str 
-                ? `https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Soportes?id_soporte=not.in.(${vinculados_str})&select=*`
-                : `https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Soportes?select=*`;
+                ? `${SUPABASE_URL}/rest/v1/Soportes?id_soporte=not.in.(${vinculados_str})&select=*`
+                : `${SUPABASE_URL}/rest/v1/Soportes?select=*`;
 
             return fetch(url, {
                 headers: {
-                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc',
-                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc',
+                    'apikey': SUPABASE_API_KEY,
+                    'Authorization': `Bearer ${SUPABASE_API_KEY}`,
                 }
             })
         })
@@ -68,12 +70,12 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    fetch('https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/proveedor_soporte', {
+    fetch(`${SUPABASE_URL}/rest/v1/proveedor_soporte`, {
         method: 'POST',
         headers: {
                     "Content-Type": "application/json",
-                    "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc"
+                    "apikey": SUPABASE_API_KEY,
+        "Authorization": `Bearer ${SUPABASE_API_KEY}`
                 },
         body: JSON.stringify({
             id_proveedor: idProveedor,

@@ -60,6 +60,23 @@ const RevisarOrden = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [alternatives, setAlternatives] = useState([]);
     const [selectedAlternative, setSelectedAlternative] = useState(null);
+    const [ordersOrder, setOrdersOrder] = useState('desc');
+    const [ordersOrderBy, setOrdersOrderBy] = useState('numero_correlativo');
+
+    const handleRequestSortOrders = (property) => {
+        const isAsc = ordersOrderBy === property && ordersOrder === 'asc';
+        setOrdersOrder(isAsc ? 'desc' : 'asc');
+        setOrdersOrderBy(property);
+    };
+
+    const sortedOrders = [...orders].sort((a, b) => {
+        if (ordersOrderBy === 'numero_correlativo') {
+            const valA = Number(a.numero_correlativo) || 0;
+            const valB = Number(b.numero_correlativo) || 0;
+            return ordersOrder === 'asc' ? valA - valB : valB - valA;
+        }
+        return 0;
+    });
 
 	
     const handlePrint = async () => {
@@ -1209,7 +1226,15 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 									<TableHead>
 										<TableRow>
 											<TableCell>ID Orden</TableCell>
-											<TableCell>N° de Orden</TableCell>
+											<TableCell>
+                                                <TableSortLabel
+                                                    active={ordersOrderBy === 'numero_correlativo'}
+                                                    direction={ordersOrderBy === 'numero_correlativo' ? ordersOrder : 'asc'}
+                                                    onClick={() => handleRequestSortOrders('numero_correlativo')}
+                                                >
+                                                    N° de Orden
+                                                </TableSortLabel>
+                                            </TableCell>
 											<TableCell>N° de copias</TableCell>
 											<TableCell>Plan</TableCell>
 											<TableCell>Fecha</TableCell>
@@ -1217,7 +1242,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 										</TableRow>
 									</TableHead>
 									<TableBody>
-										{orders.map((order) => (
+										{sortedOrders.map((order) => (
 											<TableRow 
 												key={order.id_ordenes_de_comprar}
 												onClick={() => {

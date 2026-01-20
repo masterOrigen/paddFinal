@@ -1,11 +1,13 @@
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
+
 async function getLastProveedorId() {
     const headersList = {
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc"
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": `Bearer ${SUPABASE_API_KEY}`
     };
 
     try {
-        const response = await fetch("https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Proveedores?select=id_proveedor&order=id_proveedor.desc&limit=1", {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/Proveedores?select=id_proveedor&order=id_proveedor.desc&limit=1`, {
             method: "GET",
             headers: headersList
         });
@@ -53,13 +55,13 @@ async function submitForm(event) {
 
     const headersList = {
         "Content-Type": "application/json",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": `Bearer ${SUPABASE_API_KEY}`,
         "Prefer": "return=representation"
     };
 
     try {
-        const response = await fetch("https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Proveedores", {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/Proveedores`, {
             method: "POST",
             body: bodyContent,
             headers: headersList
@@ -77,7 +79,7 @@ async function submitForm(event) {
                 nombre_soporte: formData.nombreIdentificador
             };
 
-            const soporteResponse = await fetch("https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Soportes", {
+            const soporteResponse = await fetch(`${SUPABASE_URL}/rest/v1/Soportes`, {
                 method: "POST",
                 body: JSON.stringify(soporteData),
                 headers: headersList
@@ -86,7 +88,7 @@ async function submitForm(event) {
             if (soporteResponse.ok) {
                 mostrarExito('¡Soporte agregado exitosamente!');
                 $('#agregarSoportessss').modal('hide');
-                window.location.href = ListProveedores.php?expandir=${proveedorData[0].id_proveedor}&nuevoSoporte=${nuevoSoporte[0].id_soporte};
+                window.location.href = `ListProveedores.php?expandir=${proveedorData[0].id_proveedor}&nuevoSoporte=${nuevoSoporte[0].id_soporte}`;
             } else {
                 const errorText = await soporteResponse.text();
                 console.error("Error en el registro de soporte:", errorText);
@@ -113,11 +115,11 @@ function mostrarExito(mensaje) {
 }
 async function actualizarTablaSoportes(idProveedor) {
     try {
-        const response = await fetch(get_soportes.php?proveedor_id=${idProveedor});
+        const response = await fetch(`get_soportes.php?proveedor_id=${idProveedor}`);
         const soportes = await response.json();
         
         // Obtener los datos del proveedor (puedes ajustar esto según cómo almacenes los datos del proveedor)
-        const proveedorRow = document.querySelector(tr[data-proveedor-id="${idProveedor}"]);
+        const proveedorRow = document.querySelector(`tr[data-proveedor-id="${idProveedor}"]`);
         const proveedor = {
             razonSocial: proveedorRow.dataset.razonSocial,
             nombreFantasia: proveedorRow.dataset.nombreFantasia,
@@ -135,7 +137,7 @@ async function actualizarTablaSoportes(idProveedor) {
         };
 
         const table = $('#tableExportadora').DataTable();
-        const row = table.row(tr[data-proveedor-id="${idProveedor}"]);
+        const row = table.row(`tr[data-proveedor-id="${idProveedor}"]`);
         
         if (row.child.isShown()) {
             // Si la fila está expandida, actualizamos su contenido

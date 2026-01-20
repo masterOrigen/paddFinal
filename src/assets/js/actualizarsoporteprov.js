@@ -1,3 +1,5 @@
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
+
 function loadsoportepro(button) {
     var idSoporte = button.getAttribute('data-id-soporte');
     var soporte = getSoporteData(idSoporte);
@@ -24,12 +26,12 @@ function loadsoportepro(button) {
         // Encabezados necesarios para la solicitud fetch
         let headersList = {
             "Content-Type": "application/json",
-            "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc"
+            "apikey": SUPABASE_API_KEY,
+            "Authorization": `Bearer ${SUPABASE_API_KEY}`
         };
 
         // Ahora, obtenemos los medios vinculados a este soporte
-        fetch('https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/soporte_medios?select=*&id_soporte=eq.' + idSoporte, {
+        fetch(`${SUPABASE_URL}/rest/v1/soporte_medios?select=*&id_soporte=eq.` + idSoporte, {
             method: "GET",
             headers: headersList
         })
@@ -126,13 +128,13 @@ async function submitForm3(event) {
 
     const headersList = {
         "Content-Type": "application/json",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc"
+        "apikey": SUPABASE_API_KEY,
+        "Authorization": `Bearer ${SUPABASE_API_KEY}`
     };
 
     try {
         // Actualizar el soporte
-        let response = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Soportes?id_soporte=eq.${idSoporte}`, {
+        let response = await fetch(`${SUPABASE_URL}/rest/v1/Soportes?id_soporte=eq.${idSoporte}`, {
             method: "PATCH",
             body: JSON.stringify(soporteData),
             headers: headersList
@@ -143,7 +145,7 @@ async function submitForm3(event) {
     
         if (response.ok) {
             // Eliminar registros antiguos de soporte_medios asociados al id_soporte
-            const deleteResponse = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/soporte_medios?id_soporte=eq.${idSoporte}`, {
+            const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/soporte_medios?id_soporte=eq.${idSoporte}`, {
                 method: "DELETE",
                 headers: headersList
             });
@@ -157,7 +159,7 @@ async function submitForm3(event) {
                         id_medio: id_medio
                     }));
     
-                    const insertResponse = await fetch("https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/soporte_medios", {
+                    const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/soporte_medios`, {
                         method: "POST",
                         body: JSON.stringify(soporteMediosData),
                         headers: headersList

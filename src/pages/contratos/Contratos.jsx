@@ -114,15 +114,37 @@ const Contratos = () => {
                     *,
                     cliente:Clientes(id_cliente, nombreCliente),
                     proveedor:Proveedores(id_proveedor, nombreProveedor),
-                    medio:Medios(id, NombredelMedio),
-                    formaPago:FormaDePago(id, NombreFormadePago),
-                    tipoOrden:TipoGeneracionDeOrden(id, NombreTipoOrden),
-                    c_orden
+                    medio:Medios(id, NombredelMedio)
                 `)
                 .eq('IdCliente', clienteId)
                 .order('NombreContrato');
 
             if (error) throw error;
+
+            // Fetch manual de FormaDePago para evitar errores de relación
+            if (contratosData && contratosData.length > 0) {
+                const formaPagoIds = [...new Set(contratosData.map(c => c.id_FormadePago).filter(id => id))];
+                
+                if (formaPagoIds.length > 0) {
+                    const { data: formasPagoData, error: fpError } = await supabase
+                        .from('FormaDePago')
+                        .select('id, NombreFormadePago')
+                        .in('id', formaPagoIds);
+                        
+                    if (!fpError && formasPagoData) {
+                        const formasPagoMap = {};
+                        formasPagoData.forEach(fp => {
+                            formasPagoMap[fp.id] = fp;
+                        });
+                        
+                        contratosData = contratosData.map(c => ({
+                            ...c,
+                            formaPago: formasPagoMap[c.id_FormadePago] || null
+                        }));
+                    }
+                }
+            }
+
             setContratos(contratosData || []);
         } catch {
             Swal.fire({

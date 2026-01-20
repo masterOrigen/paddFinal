@@ -1,3 +1,5 @@
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
+
 // Asegurarse de que este código se ejecute solo una vez
 (function() {
     if (window.hasRun) return;
@@ -37,11 +39,11 @@
         let idAgencia = document.querySelector('input[name="id_agencia"]').value;
         let headersList = {
             "Content-Type": "application/json",
-            "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc"
+            "apikey": SUPABASE_API_KEY,
+            "Authorization": `Bearer ${SUPABASE_API_KEY}`
         };
         try {
-            let response = await fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Agencias?id=eq.${idAgencia}`, {
+            let response = await fetch(`${SUPABASE_URL}/rest/v1/Agencias?id=eq.${idAgencia}`, {
                 method: "PATCH",
                 body: bodyContent,
                 headers: headersList

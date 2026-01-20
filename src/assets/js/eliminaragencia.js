@@ -1,3 +1,5 @@
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
+
 function eliminarAgencia(idAgencia) {
     console.log("Se obtuvo el id " + idAgencia);
   
@@ -17,14 +19,14 @@ function eliminarAgencia(idAgencia) {
         let headersList = {
           "Accept": "*/*",
           "User-Agent": "Thunder Client (https://www.thunderclient.com)",
-          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc",
+          "apikey": SUPABASE_API_KEY,
+          "Authorization": `Bearer ${SUPABASE_API_KEY}`,
           "Content-Type": "application/json"
         };
   
         let bodyContent = JSON.stringify({});
   
-        let response =  fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Agencias?id=eq.${idAgencia}`, {
+        let response =  fetch(`${SUPABASE_URL}/rest/v1/Agencias?id=eq.${idAgencia}`, {
           method: "DELETE",
           body: bodyContent,
           headers: headersList

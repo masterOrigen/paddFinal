@@ -1,3 +1,5 @@
+import { supabaseUrl as SUPABASE_URL, supabaseAnonKey as SUPABASE_API_KEY } from '../../config/supabase.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Script deleteProducto.js cargado correctamente');
 
@@ -17,11 +19,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Confirmación recibida, procediendo con la eliminación');
                 document.body.classList.add('loaded');
 
-                fetch(`https://ekyjxzjwhxotpdfzcpfq.supabase.co/rest/v1/Productos?id=eq.${idProducto}`, {
+                fetch(`${SUPABASE_URL}/rest/v1/Productos?id=eq.${idProducto}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
-                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVreWp4emp3aHhvdHBkZnpjcGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjAyNzEwOTMsImV4cCI6MjAzNTg0NzA5M30.Vh4XAp1X6eJlEtqNNzYIoIuTPEweat14VQc9-InHhXc'
+                        'apikey': SUPABASE_API_KEY
                     }
                 })
                 .then(response => {
