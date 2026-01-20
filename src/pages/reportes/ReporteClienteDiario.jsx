@@ -653,8 +653,9 @@ const ReporteClienteDiario = () => {
                   if (option.id_cliente === 'all') {
                     return 'todos los clientes'.includes(inputLower);
                   }
-                  return option.nombreCliente.toLowerCase().includes(inputLower) ||
-                    option.razonSocial.toLowerCase().includes(inputLower);
+                  const nombreCliente = option.nombreCliente?.toLowerCase() || '';
+                  const razonSocial = option.razonSocial?.toLowerCase() || '';
+                  return nombreCliente.includes(inputLower) || razonSocial.includes(inputLower);
                 });
               }}
             />
