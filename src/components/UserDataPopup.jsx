@@ -198,7 +198,7 @@ const UserDataPopup = ({ open, onClose }) => {
       // Reemplazar localhost por el dominio correcto en la URL generada por Supabase
       let publicUrl = urlData?.publicUrl || '';
       if (publicUrl.includes('localhost:8000')) {
-        publicUrl = publicUrl.replace('http://localhost:8000', 'https://supabase.origenmedios.cl');
+        publicUrl = publicUrl.replace('http://localhost:8000', 'https://stnwcwzhazopsphgzkvl.supabase.co');
       }
       
       console.log('URL original de Supabase:', urlData?.publicUrl);
