@@ -1,0 +1,361 @@
+.sidebar {
+  width: 250px;
+  height: 100%;
+  background: #f8f9fa;
+  border-right: 1px solid #eee;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.sidebar-header {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  background: white;
+  border-top: 1px solid #eee;
+}
+
+.sidebar-brand {
+  padding: 15px 20px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-logo {
+  height: 55px !important;
+  width: auto;
+}
+
+.brand-logo-text {
+  height: 40px !important;
+  width: auto;
+}
+
+.menu-title {
+  color: #666;
+  font-size: 12px;
+  font-weight: 500;
+  padding-left: 5px;
+}
+
+.sidebar-nav {
+  padding: 10px 0;
+}
+
+.menu-item {
+  margin-bottom: 1px;
+}
+
+.menu-link {
+  display: block;
+  padding: 10px 15px;
+  color: #666;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.menu-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menu-content i {
+  width: 20px;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.menu-content span {
+  font-size: 13px;
+  flex-grow: 1;
+}
+
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+  background: #fff;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.submenu.expanded {
+  max-height: 500px;
+  opacity: 1;
+  visibility: visible;
+  transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.submenu-link {
+  display: block;
+  padding: 10px 20px 10px 45px;
+  color: #666;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.3s ease;
+  transform: translateY(-5px);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.submenu.expanded .submenu-link {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition-delay: 0.1s;
+}
+
+.submenu-link:hover,
+.submenu-link.active {
+  color: #EF4D36;
+  background: #fff;
+}
+
+.submenu-icon {
+  float: right;
+  transition: transform 0.3s ease;
+  font-size: 10px;
+  margin-top: 3px;
+  color: #999;
+  position: absolute;
+  right: 15px;
+}
+
+.submenu-icon.expanded {
+  transform: rotate(90deg);
+}
+
+/* Estilos para los submenús anidados */
+.submenu .submenu {
+  padding-left: 15px;
+  background: #f8f9fa;
+}
+
+.submenu .submenu-link {
+  position: relative;
+  padding-right: 30px;
+}
+
+/* Ajuste del padding para submenús de segundo nivel */
+.submenu .submenu .submenu-link {
+  padding-left: 60px !important;
+}
+
+.menu-link:hover,
+.menu-link.active {
+  color: #EF4D36;
+  background: #fff;
+}
+
+.menu-link:hover i,
+.menu-link.active i {
+  color: #EF4D36;
+}
+
+.menu-item.active > .menu-link {
+  color: #EF4D36;
+  background: #fff;
+}
+
+.menu-item.active > .menu-link i {
+  color: #EF4D36;
+}
+
+/* Estilos para el scrollbar */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 2px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
+}
+
+.header-left h1 {
+  color: #EF4D36;
+  font-size: 20px;
+  margin: 0px 50px !important;
+  font-weight: 500;
+}
+
+input:checked + .slider {
+  background-color: #6777ef !important;
+}
+
+.css-1q55ijt-MuiInputBase-input-MuiOutlinedInput-input {
+  font: inherit;
+  letter-spacing: inherit;
+  color: currentColor;
+  padding: 9px 15px 9px !important;
+  border: 0;
+  box-sizing: content-box;
+  background: none;
+  height: 1.4375em;
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  display: block;
+  min-width: 0;
+  width: 100%;
+  -webkit-animation-name: mui-auto-fill-cancel;
+  animation-name: mui-auto-fill-cancel;
+  -webkit-animation-duration: 10ms;
+  animation-duration: 10ms;
+  padding-top: 1px;
+  padding: 16.5px 14px;
+  padding: 8.5px 14px;
+  padding-left: 0;
+}
+
+.MuiDrawer-paper {
+  background-color: #fff !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+.MuiListItem-root.Mui-selected {
+  background-color: rgba(244, 67, 54, 0.08) !important;
+}
+
+.MuiListItem-root.Mui-selected:hover {
+  background-color: rgba(244, 67, 54, 0.12) !important;
+}
+
+.MuiListItem-root:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+.MuiListItemIcon-root {
+  color: rgba(0, 0, 0, 0.54) !important;
+}
+
+.Mui-selected .MuiListItemIcon-root {
+  color: #f44336 !important;
+}
+
+.MuiListItemText-primary {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+.MuiTypography-root.MuiTypography-body1.css-k16oju-MuiTypography-root {
+  font-size: 15px !important;
+}
+
+.MuiTypography-root.MuiTypography-h6.css-1miy0lu-MuiTypography-root {
+  font-size: 16px;
+}
+
+.MuiButtonBase-root.MuiButton-root.MuiButton-contained.MuiButton-containedPrimary.MuiButton-sizeMedium.MuiButton-containedSizeMedium.MuiButton-colorPrimary.css-1hhmxa0-MuiButtonBase-root-MuiButton-root {
+  background-color: #f44336 !important;
+  font-size: 12px !important;
+}
+
+/* Añade estos estilos a tu archivo CSS existente */
+
+.menu-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-icon {
+  width: 20px;
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.menu-text {
+  flex: 1;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+}
+
+.submenu-link {
+  padding-left: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Estilos para los submenús anidados */
+.nested-submenu-container {
+  width: 100%;
+}
+
+.nested-parent {
+  font-weight: 500;
+}
+
+.nested-submenu {
+  display: none;
+  background-color: white;
+  padding-left: 20px; /* mayor sangría para indicar jerarquía */
+  border-left: 2px solid #e6e6e6; /* línea visual de jerarquía */
+  margin-left: 8px;
+}
+
+.nested-submenu.expanded {
+  display: block;
+}
+
+.nested-submenu-link {
+  display: block;
+  padding: 8px 15px 8px 45px; /* aumenta padding izquierdo para más claridad */
+  text-decoration: none;
+  color: #333;
+  background-color: white;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.nested-submenu-link:hover,
+.nested-submenu-link.active {
+  background-color: #f5f5f5;
+  color: #EF4D36;
+}
+
+.submenu-icon {
+  transition: transform 0.3s;
+}
+
+.submenu-icon.expanded {
+  transform: rotate(90deg);
+}
+
+/* Asegúrate de que el sidebar tenga el espaciado adecuado */
+.sidebar-nav {
+  padding-top: 10px;
+}
+
+.menu-item {
+  margin-bottom: 5px;
+}
+/* Asegura que todos los elementos del menú tengan el mismo tamaño de fuente */
+.sidebar-nav, 
+.menu-text, 
+.submenu-link, 
+.nested-parent, 
+.nested-submenu-link {
+  font-size: 13px; /* Establece un tamaño de fuente consistente */
+}
