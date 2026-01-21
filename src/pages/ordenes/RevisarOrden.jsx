@@ -424,18 +424,18 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
         
         if (cancelError) throw cancelError;
 
-        // 1.1 Marcar las alternativas originales como anuladas si fueron reemplazadas
-        const originalIdsToAnnul = modifiedAlternatives
-            .filter(alt => alt._isReplacement && alt.original_id)
-            .map(alt => alt.original_id);
+        // 1.1 Marcar TODAS las alternativas de la orden original como anuladas
+        // Usamos selectedOrder.alternativas_plan_orden que contiene los IDs de las alternativas asociadas a la orden
+        const alternativesToAnnul = selectedOrder.alternativas_plan_orden || [];
 
-        if (originalIdsToAnnul.length > 0) {
+        if (alternativesToAnnul.length > 0) {
             const { error: annulError } = await supabase
                 .from('alternativa')
                 .update({ anulada: true })
-                .in('id', originalIdsToAnnul);
+                .in('id', alternativesToAnnul);
             
             if (annulError) {
+                console.error('Error al anular alternativas antiguas:', annulError);
                 // No lanzamos error para no interrumpir el flujo principal
             }
         }
