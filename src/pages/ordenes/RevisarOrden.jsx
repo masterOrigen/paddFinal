@@ -958,20 +958,27 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
             
             // Procesar los datos para asegurarse de que cantidades esté disponible para la UI
             const processedData = (data || []).map(alt => {
-                // Si calendar existe y es un string JSON, convertirlo a cantidades para la UI
-                if (alt.calendar && typeof alt.calendar === 'string') {
-                    try {
-                        const parsed = JSON.parse(alt.calendar);
-                        alt.cantidades = parsed;
-                        // También actualizamos calendar para que sea compatible con pdfGenerator
-                        alt.calendar = parsed;
-                    } catch (e) {
+                // Manejar calendar y cantidades
+                if (alt.calendar) {
+                    if (typeof alt.calendar === 'string') {
+                        try {
+                            const parsed = JSON.parse(alt.calendar);
+                            alt.cantidades = parsed;
+                            alt.calendar = parsed;
+                        } catch (e) {
+                            alt.cantidades = [];
+                            alt.calendar = [];
+                        }
+                    } else if (Array.isArray(alt.calendar)) {
+                        // Si ya es un array (por ejemplo, tipo JSONB en Supabase), usarlo directamente
+                        alt.cantidades = alt.calendar;
+                    } else {
                         alt.cantidades = [];
-                        alt.calendar = [];
+                        if (!Array.isArray(alt.calendar)) alt.calendar = [];
                     }
                 } else {
                     alt.cantidades = [];
-                    if (!alt.calendar) alt.calendar = [];
+                    alt.calendar = [];
                 }
 
                 // Calcular total_general si no existe (Total Neto + IVA 19%)
