@@ -524,8 +524,7 @@ const Agencias = () => {
           telFijo: newAgencia.telFijo,
           Email: newAgencia.Email,
           codigo_megatime: newAgencia.codigo_megatime || null,
-          estado: newAgencia.estado,
-          created_at: new Date().toISOString()
+          estado: newAgencia.estado
         }]);
 
       if (error) throw error;
