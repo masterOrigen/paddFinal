@@ -507,9 +507,22 @@ const Agencias = () => {
 
   const insertAgencia = async () => {
     try {
+      // Obtener el ID máximo actual
+      const { data: maxIdData, error: maxIdError } = await supabase
+        .from('Agencias')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (maxIdError) throw maxIdError;
+
+      // Generar nuevo ID
+      const newId = maxIdData && maxIdData.length > 0 ? maxIdData[0].id + 1 : 1;
+
       const { error } = await supabase
         .from('Agencias')
         .insert([{
+          id: newId,
           NombreIdentificador: newAgencia.NombreIdentificador || null,
           RazonSocial: newAgencia.RazonSocial || null,
           NombreDeFantasia: newAgencia.NombreDeFantasia || null,
@@ -524,7 +537,8 @@ const Agencias = () => {
           telFijo: newAgencia.telFijo,
           Email: newAgencia.Email,
           codigo_megatime: newAgencia.codigo_megatime || null,
-          estado: newAgencia.estado
+          estado: newAgencia.estado,
+          created_at: new Date().toISOString()
         }]);
 
       if (error) throw error;
