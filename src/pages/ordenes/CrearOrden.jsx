@@ -451,7 +451,6 @@ const handleCrearOrden = async () => {
       const altsDelGrupo = grupo.alternativas;
       
       // Crear el registro en OrdenesDePublicidad
-      // NO incluir id_ordenes_de_comprar - se genera automáticamente
       const { data, error } = await supabase
         .from('OrdenesDePublicidad')
         .insert({
@@ -464,6 +463,7 @@ const handleCrearOrden = async () => {
           copia: 1,
           // Guardar la fecha de creación explícitamente para evitar epoch 1970
           created_at: new Date().toISOString(),
+          fechaCreacion: new Date().toISOString().split('T')[0],
           fecha_creacion2: new Date().toISOString(),
           usuario_registro: user2 ? {
             nombre: user2.Nombre,
