@@ -451,6 +451,7 @@ const handleCrearOrden = async () => {
       const altsDelGrupo = grupo.alternativas;
       
       // Crear el registro en OrdenesDePublicidad
+      // NO incluir id_ordenes_de_comprar - se genera automáticamente
       const { data, error } = await supabase
         .from('OrdenesDePublicidad')
         .insert({
