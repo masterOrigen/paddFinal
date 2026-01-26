@@ -65,7 +65,7 @@ const ReporteClienteDiario = () => {
 
       setClientes(clientesConTodos);
     } catch (error) {
-      console.error('Error al cargar clientes:', error);
+      // Error al cargar clientes
     }
   };
 
@@ -79,7 +79,7 @@ const ReporteClienteDiario = () => {
       if (error) throw error;
       setAnios(data || []);
     } catch (error) {
-      console.error('Error al cargar años:', error);
+      // Error al cargar años
     }
   };
 
@@ -93,7 +93,7 @@ const ReporteClienteDiario = () => {
       if (error) throw error;
       setMeses(data || []);
     } catch (error) {
-      console.error('Error al cargar meses:', error);
+      // Error al cargar meses
     }
   };
 
@@ -137,9 +137,10 @@ const ReporteClienteDiario = () => {
             Productos!id_Producto (id, NombreDelProducto),
             Agencias!Id_Agencia (id, NombreIdentificador)
           ),
-          Contratos (id, NombreContrato, num_contrato, IdProveedor, IdMedios,
+          Contratos (id, NombreContrato, num_contrato, IdProveedor, IdMedios, id_GeneraracionOrdenTipo,
             Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial),
-            Medios (id, NombredelMedio)
+            Medios (id, NombredelMedio),
+            TipoGeneracionDeOrden!id_GeneraracionOrdenTipo (id, NombreTipoOrden)
           ),
           Soportes!left (id_soporte, nombreIdentficiador, id_medios,
             Medios!left (id, NombredelMedio)
@@ -189,7 +190,7 @@ const ReporteClienteDiario = () => {
                 idsAlternativas = Array.isArray(parsed) ? parsed : [];
               }
             } catch (e) {
-              console.error('Error parseando alternativas_plan_orden:', e);
+              // Error parseando alternativas_plan_orden
             }
 
             if (idsAlternativas.length > 0) {
@@ -251,7 +252,7 @@ const ReporteClienteDiario = () => {
                         }
                       }
                     } catch (e) {
-                      console.error('Error procesando calendar:', e);
+                      // Error procesando calendar
                     }
                   }
                 });
@@ -400,7 +401,7 @@ const ReporteClienteDiario = () => {
 
       setOrdenesAgrupadas(ordenesFinales);
     } catch (error) {
-      console.error('Error al buscar órdenes:', error);
+      // Error al buscar órdenes
     } finally {
       setLoading(false);
     }
@@ -461,7 +462,7 @@ const ReporteClienteDiario = () => {
               idsAlternativas = Array.isArray(parsed) ? parsed : [];
             }
           } catch (e) {
-            console.error('Error parseando alternativas_plan_orden:', e);
+            // Error parseando alternativas_plan_orden
           }
 
           if (idsAlternativas.length > 0) {
@@ -501,7 +502,7 @@ const ReporteClienteDiario = () => {
                       });
                     }
                   } catch (e) {
-                    console.error('Error procesando calendar:', e);
+                    // Error procesando calendar
                   }
                 }
               });
@@ -538,6 +539,13 @@ const ReporteClienteDiario = () => {
           // Obtener datos de la primera alternativa para los campos adicionales
           const primeraAlternativa = orden.datosAlternativas && orden.datosAlternativas.length > 0 ? orden.datosAlternativas[0] : null;
 
+          // Determinar si el contrato es Neto (id=1) o Bruto (id=2)
+          const tipoOrden = orden.Contratos?.id_GeneraracionOrdenTipo || 1;
+          const esNeto = tipoOrden === 1;
+          
+          // Calcular inversión bruta dividida por la cantidad de fechas de exhibición
+          const inversionBrutaDividida = (orden.tarifaBrutaTotal || 0) / (diasExhibicion.length || 1);
+
           dataToExport.push({
             'Cliente': orden.Campania?.Clientes?.nombreCliente || '',
             'Mes': orden.plan?.Meses?.Id || '',
@@ -555,7 +563,9 @@ const ReporteClienteDiario = () => {
             'Prog./Elem./Formato': primeraAlternativa?.Programas?.descripcion || primeraAlternativa?.Clasificacion?.NombreClasificacion || '',
             'Año': orden.plan?.Anios?.years || '',
             'Fecha Exhib./Pub.': fechaFormateada,
-            'Inversion Neta': inversionNetaDividida,
+            'Inversion Neta': esNeto ? inversionNetaDividida : '',
+            'Inversion Bruta': esNeto ? '' : inversionBrutaDividida,
+            'Tipo Ctto': orden.Contratos?.TipoGeneracionDeOrden?.NombreTipoOrden || (esNeto ? 'Neto' : 'Bruto'),
             'Agen.Creativa': orden.Campania?.Agencias?.NombreIdentificador || '',
             'Cod. Univ. Aviso': '', // Campo no disponible en la estructura actual
             'Cod. Univ. Prog': primeraAlternativa?.Programas?.codigo_programa || '',
@@ -577,7 +587,6 @@ const ReporteClienteDiario = () => {
 
       Swal.close();
     } catch (error) {
-      console.error('Error al exportar:', error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
