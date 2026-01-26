@@ -135,10 +135,11 @@ const ReporteInversionCliente = () => {
             Productos!id_Producto (id, NombreDelProducto),
             Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia, RazonSocial)
           ),
-          Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor, IdMedios,
+          Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor, IdMedios, id_GeneraracionOrdenTipo,
             FormaDePago (id, NombreFormadePago),
             Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial),
-            Medios (id, NombredelMedio)
+            Medios (id, NombredelMedio),
+            TipoGeneracionDeOrden!id_GeneraracionOrdenTipo (id, NombreTipoOrden)
           ),
           Soportes (id_soporte, nombreIdentficiador, id_proveedor,
             Proveedores!id_proveedor (nombreProveedor, rutProveedor, razonSocial)
@@ -292,33 +293,39 @@ const ReporteInversionCliente = () => {
       // Filtrar órdenes anuladas antes de exportar
       const ordenesNoAnuladas = ordenes.filter(orden => orden.estado !== 'anulada');
 
-      const dataToExport = ordenesNoAnuladas.map(orden => ({
-        'Razon Social': orden.Campania?.Clientes?.razonSocial || '',
-        'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
-        'AÑO': orden.plan?.Anios?.years || '',
-        'Mes': orden.plan?.Meses?.Nombre || '',
-        'N° de Ctto.': orden.Contratos?.NombreContrato || '',
-        'N° de Orden': orden.numero_correlativo || '',
-        'Version': orden.copia || '',
-        'Medio': orden.Contratos?.Medios?.NombredelMedio || '',
-        'Razon Soc.Proveedor': orden.Contratos?.Proveedores?.razonSocial || orden.Soportes?.Proveedores?.razonSocial || '',
-        'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || orden.Soportes?.Proveedores?.nombreProveedor || '',
-        'RUT Prov.': orden.Contratos?.Proveedores?.rutProveedor || orden.Soportes?.Proveedores?.rutProveedor || '',
-        'Soporte': orden.Soportes?.nombreIdentficiador || '',
-        'Campaña': orden.Campania?.NombreCampania || '',
-        'OC Cliente': orden.numero_correlativo || '',
-        'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
-        'Age.Crea': orden.Campania?.Agencia?.RazonSocial || orden.Campania?.Agencia?.NombreDeFantasia || 'ORIGEN COMUNICACIONES',
-        'Inv.Bruta': orden.tarifaBruta || 0,
-        'N° Fact.Prov.': '',
-        'Fecha Fact.Prov.': '',
-        'N° Fact.Age.': '',
-        'Fecha Fact.Age.': '',
-        'Inv. Neta': orden.totalNeto || 0,
-        'Tipo Ctto.': orden.Contratos?.NombreContrato || '',
-        'Usuario Grupo': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || '',
-        'Usuario': orden.usuario_registro?.nombre || ''
-      }));
+      const dataToExport = ordenesNoAnuladas.map(orden => {
+        // Determinar si el contrato es Neto (id=1) o Bruto (id=2)
+        const tipoOrden = orden.Contratos?.id_GeneraracionOrdenTipo || 1;
+        const esNeto = tipoOrden === 1;
+        
+        return {
+          'Razon Social': orden.Campania?.Clientes?.razonSocial || '',
+          'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
+          'AÑO': orden.plan?.Anios?.years || '',
+          'Mes': orden.plan?.Meses?.Nombre || '',
+          'N° de Ctto.': orden.Contratos?.NombreContrato || '',
+          'N° de Orden': orden.numero_correlativo || '',
+          'Version': orden.copia || '',
+          'Medio': orden.Contratos?.Medios?.NombredelMedio || '',
+          'Razon Soc.Proveedor': orden.Contratos?.Proveedores?.razonSocial || orden.Soportes?.Proveedores?.razonSocial || '',
+          'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || orden.Soportes?.Proveedores?.nombreProveedor || '',
+          'RUT Prov.': orden.Contratos?.Proveedores?.rutProveedor || orden.Soportes?.Proveedores?.rutProveedor || '',
+          'Soporte': orden.Soportes?.nombreIdentficiador || '',
+          'Campaña': orden.Campania?.NombreCampania || '',
+          'OC Cliente': orden.numero_correlativo || '',
+          'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
+          'Age.Crea': orden.Campania?.Agencia?.RazonSocial || orden.Campania?.Agencia?.NombreDeFantasia || 'ORIGEN COMUNICACIONES',
+          'Inv.Bruta': esNeto ? '' : (orden.tarifaBruta || 0),
+          'Inv.Neta': esNeto ? (orden.totalNeto || 0) : '',
+          'N° Fact.Prov.': '',
+          'Fecha Fact.Prov.': '',
+          'N° Fact.Age.': '',
+          'Fecha Fact.Age.': '',
+          'Tipo Ctto.': orden.Contratos?.TipoGeneracionDeOrden?.NombreTipoOrden || (esNeto ? 'Neto' : 'Bruto'),
+          'Usuario Grupo': orden.OrdenesUsuarios?.[0]?.Usuarios?.Grupos?.nombre_grupo || orden.usuario_registro?.grupo || '',
+          'Usuario': orden.usuario_registro?.nombre || ''
+        };
+      });
 
       const ws = XLSX.utils.json_to_sheet(dataToExport);
       const wb = XLSX.utils.book_new();
