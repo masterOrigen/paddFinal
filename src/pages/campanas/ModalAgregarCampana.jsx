@@ -115,10 +115,20 @@ const ModalAgregarCampana = ({ open, onClose, onCampanaAdded, clienteId, cliente
 
     const handleChange = (event) => {
         const { name, value } = event.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        
+        if (name === 'Presupuesto') {
+            // Remover puntos y permitir solo números
+            const cleanValue = value.replace(/\./g, '');
+            setFormData(prev => ({
+                ...prev,
+                [name]: cleanValue
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
 
         // Si se cambia el cliente, resetear el producto
         if (name === 'id_Cliente') {
@@ -127,6 +137,12 @@ const ModalAgregarCampana = ({ open, onClose, onCampanaAdded, clienteId, cliente
                 id_Producto: ''
             }));
         }
+    };
+
+    // Función para formatear el número con separación de miles
+    const formatearNumero = (numero) => {
+        if (!numero) return '';
+        return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     };
 
     const handleSubmit = async (event) => {
@@ -332,8 +348,8 @@ const ModalAgregarCampana = ({ open, onClose, onCampanaAdded, clienteId, cliente
                                 fullWidth
                                 label="Presupuesto"
                                 name="Presupuesto"
-                                type="number"
-                                value={formData.Presupuesto}
+                                type="text"
+                                value={formatearNumero(formData.Presupuesto)}
                                 onChange={handleChange}
                                 required
                                 margin="normal"
