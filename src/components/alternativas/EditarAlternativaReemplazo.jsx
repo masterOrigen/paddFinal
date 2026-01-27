@@ -1983,9 +1983,17 @@ const prepareAlternativasForSave = (newOrderId, numeroCorrelativo) => {
     };
   };
 
+  // Función para formatear el número con separación de miles
+  const formatearNumero = (numero) => {
+    if (!numero) return '';
+    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   const handleMontoChange = (campo, valor) => {
     setAlternativa(prev => {
-        const updated = { ...prev, [campo]: valor };
+        // Si es valor_unitario, limpiar los puntos antes de guardar
+        const valorLimpio = campo === 'valor_unitario' ? valor.toString().replace(/\./g, '') : valor;
+        const updated = { ...prev, [campo]: valorLimpio };
         return calculateTotals(updated);
     });
   };
@@ -2622,7 +2630,8 @@ const TIPO_ITEMS = [
             <TextField
                 fullWidth
                 label="Valor Unitario"
-                value={alternativa?.valor_unitario || ''}
+                type="text"
+                value={formatearNumero(alternativa?.valor_unitario) || ''}
                 onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
                 InputProps={{
                     startAdornment: (
@@ -2680,9 +2689,9 @@ const TIPO_ITEMS = [
             <TextField
                 fullWidth
                 label={alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 ? "Total Neto" : "Total Bruto"}
-                value={alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 
-                    ? (alternativa?.total_neto || 0).toLocaleString() 
-                    : (alternativa?.total_bruto || 0).toLocaleString()}
+                value={formatearNumero(alternativa?.Contratos?.id_GeneraracionOrdenTipo === 1 
+                    ? (alternativa?.total_neto || 0) 
+                    : (alternativa?.total_bruto || 0))}
                 InputProps={{
                     readOnly: true,
                     startAdornment: (
@@ -2698,7 +2707,7 @@ const TIPO_ITEMS = [
             <TextField
                 fullWidth
                 label="Total Orden"
-                value={(alternativa?.total_orden || 0).toLocaleString()}
+                value={formatearNumero(alternativa?.total_orden || 0)}
                 InputProps={{
                     readOnly: true,
                     startAdornment: (
