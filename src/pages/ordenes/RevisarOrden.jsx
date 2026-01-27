@@ -704,10 +704,16 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
             icon: 'success',
             title: 'Éxito',
             text: 'La orden ha sido anulada y reemplazada correctamente. Se ha generado el PDF de la nueva orden.'
+        }).then(() => {
+            // Al dar OK, volver al modal de selección de campaña
+            setSelectedCampana(null);
+            setSelectedOrder(null);
+            setAlternatives([]);
+            setOrders([]);
+            setOpenCampanaModal(true);
         });
         
-        // Actualizar la lista de órdenes
-        fetchOrders(selectedCampana.id_campania);
+        // Cerrar el modal de reemplazo
         setOpenReplaceModal(false);
         
     } catch (error) {
