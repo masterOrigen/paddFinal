@@ -62,6 +62,7 @@ const RevisarOrden = () => {
     const [selectedAlternative, setSelectedAlternative] = useState(null);
     const [ordersOrder, setOrdersOrder] = useState('desc');
     const [ordersOrderBy, setOrdersOrderBy] = useState('numero_correlativo');
+    const [orderNumberFilter, setOrderNumberFilter] = useState('');
 
     const handleRequestSortOrders = (property) => {
         const isAsc = ordersOrderBy === property && ordersOrder === 'asc';
@@ -69,14 +70,19 @@ const RevisarOrden = () => {
         setOrdersOrderBy(property);
     };
 
-    const sortedOrders = [...orders].sort((a, b) => {
-        if (ordersOrderBy === 'numero_correlativo') {
-            const valA = Number(a.numero_correlativo) || 0;
-            const valB = Number(b.numero_correlativo) || 0;
-            return ordersOrder === 'asc' ? valA - valB : valB - valA;
-        }
-        return 0;
-    });
+    const sortedOrders = [...orders]
+        .filter(order => {
+            if (!orderNumberFilter) return true;
+            return order.numero_correlativo?.toString().includes(orderNumberFilter);
+        })
+        .sort((a, b) => {
+            if (ordersOrderBy === 'numero_correlativo') {
+                const valA = Number(a.numero_correlativo) || 0;
+                const valB = Number(b.numero_correlativo) || 0;
+                return ordersOrder === 'asc' ? valA - valB : valB - valA;
+            }
+            return 0;
+        });
 
 	
     const handlePrint = async () => {
@@ -1194,9 +1200,25 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 					<Grid item xs={12}>
 						<Paper sx={{ p: 2 }}>
 							<Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-								<Typography variant="h6">
-									Órdenes Asociadas
-								</Typography>
+								<Box display="flex" alignItems="center" gap={2}>
+									<Typography variant="h6">
+										Órdenes Asociadas
+									</Typography>
+									<TextField
+										size="small"
+										placeholder="Filtrar por N° de Orden"
+										value={orderNumberFilter}
+										onChange={(e) => setOrderNumberFilter(e.target.value)}
+										InputProps={{
+											startAdornment: (
+												<InputAdornment position="start">
+													<SearchIcon />
+												</InputAdornment>
+											),
+										}}
+										sx={{ width: 220 }}
+									/>
+								</Box>
 								<ButtonGroup variant="contained">
 									<Tooltip title="Imprimir orden">
 										<Button
