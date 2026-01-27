@@ -390,6 +390,13 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                             TEMA: {alt.Temas?.NombreTema}{'\n'}
                         </Text>
                     {upper(alt.Programas?.descripcion)}
+                    {alt.detalle && (
+                        <Text>
+                            {'\n'}
+                            <Text style={styles.themeTitle}>DETALLE: </Text>
+                            {upper(alt.detalle)}
+                        </Text>
+                    )}
                 </Text>
                 <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
                     {`${upper(alt.Programas?.hora_inicio)} - ${upper(alt.Programas?.hora_fin)}`}
