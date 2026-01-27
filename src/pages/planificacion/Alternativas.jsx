@@ -1001,8 +1001,11 @@ const Alternativas = () => {
         ? annulledOrders.flatMap(o => o.alternativas_plan_orden || [])
         : [];
 
-      // Filtrar alternativas que estén en órdenes anuladas
-      const filteredData = (data || []).filter(alt => !annulledAlternativeIds.includes(alt.id));
+      // Filtrar alternativas que estén en órdenes anuladas y aquellas con campo anulada en true
+      const filteredData = (data || []).filter(alt => 
+        !annulledAlternativeIds.includes(alt.id) && 
+        alt.anulada !== true
+      );
 
       setAlternativas(filteredData);
       if (filteredData.length > 0) {
