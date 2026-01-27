@@ -2401,16 +2401,25 @@ const Alternativas = () => {
     };
   };
 
+  // Función para formatear el número con separación de miles
+  const formatearNumero = (numero) => {
+    if (!numero) return '';
+    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   const handleMontoChange = (campo, valor) => {
     setNuevaAlternativa(prev => {
       const tipoGeneracionOrden = contratoSeleccionado?.id_GeneraracionOrdenTipo || 1;
-      const valorNumerico = Number(valor) || 0;
+      // Si es valor_unitario, limpiar los puntos antes de convertir a número
+      const valorLimpio = campo === 'valor_unitario' ? valor.toString().replace(/\./g, '') : valor;
+      const valorNumerico = Number(valorLimpio) || 0;
       
       // Crear una copia del estado anterior
       const updated = { ...prev };
       
       // Actualizar el campo específico con el nuevo valor
-      updated[campo] = valorNumerico;
+      // Para valor_unitario, guardar el valor sin formato (sin puntos)
+      updated[campo] = campo === 'valor_unitario' ? valorLimpio : valorNumerico;
       
       // Obtener los valores actuales para los cálculos
       const valorUnitario = campo === 'valor_unitario' ? valorNumerico : Number(prev.valor_unitario) || 0;
@@ -3156,7 +3165,7 @@ const Alternativas = () => {
                     <TableCell>Medio</TableCell>
                     <TableCell>Total Bruto</TableCell>
                     <TableCell>Total Neto</TableCell>
-                    <TableCell>Acciones</TableCell>
+                    <TableCell sx={{ minWidth: 140 }}>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -3175,45 +3184,50 @@ const Alternativas = () => {
                       <TableCell>{alternativa.Temas?.NombreTema}</TableCell>
                       <TableCell>{alternativa.segundos}</TableCell>
                       <TableCell>{alternativa.Medios?.NombredelMedio}</TableCell>
-                      <TableCell>{alternativa.total_bruto}</TableCell>
-                      <TableCell>{alternativa.total_neto}</TableCell>
+                      <TableCell>{formatearNumero(alternativa.total_bruto)}</TableCell>
+                      <TableCell>{formatearNumero(alternativa.total_neto)}</TableCell>
                       <TableCell>
-                      <Tooltip title={alternativa.numerorden ? "No se puede editar con N° de Orden asignado" : "Editar"}>
-        <span>
-          <IconButton 
-            onClick={() => handleEditAlternativa(alternativa.id)} 
-            disabled={!!alternativa.numerorden}
-            style={{ 
-              color: alternativa.numerorden ? 'gray' : '#1976d2' // Azul para habilitado, gris para deshabilitado
-            }}
-          >
-            <EditIcon />
-          </IconButton>
-        </span>
-      </Tooltip>
-      
-      <Tooltip title={alternativa.numerorden ? "No se puede eliminar con N° de Orden asignado" : "Eliminar"}>
-        <span>
-          <IconButton 
-            onClick={() => handleDeleteAlternativa(alternativa.id)} 
-            disabled={!!alternativa.numerorden}
-            style={{ 
-              color: alternativa.numerorden ? 'gray' : '#d32f2f' // Rojo para habilitado, gris para deshabilitado
-            }}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </span>
-      </Tooltip>
-                        <Tooltip title="Duplicar">
-                          <IconButton
-                            onClick={() => handleDuplicateAlternativa(alternativa)}
-                            size="small"
-                            color="primary"
-                          >
-                            <FileCopyIcon />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'nowrap' }}>
+                          <Tooltip title={alternativa.numerorden ? "No se puede editar con N° de Orden asignado" : "Editar"}>
+                            <span>
+                              <IconButton 
+                                onClick={() => handleEditAlternativa(alternativa.id)} 
+                                disabled={!!alternativa.numerorden}
+                                size="small"
+                                style={{ 
+                                  color: alternativa.numerorden ? 'gray' : '#1976d2'
+                                }}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          
+                          <Tooltip title={alternativa.numerorden ? "No se puede eliminar con N° de Orden asignado" : "Eliminar"}>
+                            <span>
+                              <IconButton 
+                                onClick={() => handleDeleteAlternativa(alternativa.id)} 
+                                disabled={!!alternativa.numerorden}
+                                size="small"
+                                style={{ 
+                                  color: alternativa.numerorden ? 'gray' : '#d32f2f'
+                                }}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          
+                          <Tooltip title="Duplicar">
+                            <IconButton
+                              onClick={() => handleDuplicateAlternativa(alternativa)}
+                              size="small"
+                              color="primary"
+                            >
+                              <FileCopyIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -3756,9 +3770,9 @@ const Alternativas = () => {
     <Grid item xs={12}>
     <TextField
   label="Valor Unitario"
-  type="number"
+  type="text"
   fullWidth
-  value={nuevaAlternativa.valor_unitario}
+  value={formatearNumero(nuevaAlternativa.valor_unitario)}
   onChange={(e) => handleMontoChange('valor_unitario', e.target.value)}
   InputProps={{
     startAdornment: <InputAdornment position="start">$</InputAdornment>,
@@ -3799,10 +3813,10 @@ const Alternativas = () => {
         label={contratoSeleccionado?.id_GeneraracionOrdenTipo === 1 ? 'TOTAL NETO' : 'TOTAL BRUTO'}
         size="small"
         fullWidth
-        type="number"
-        value={contratoSeleccionado?.id_GeneraracionOrdenTipo === 1 ? 
+        type="text"
+        value={formatearNumero(contratoSeleccionado?.id_GeneraracionOrdenTipo === 1 ? 
           nuevaAlternativa.total_neto : 
-          nuevaAlternativa.total_bruto}
+          nuevaAlternativa.total_bruto)}
         disabled
         InputProps={{
           startAdornment: (
@@ -3818,8 +3832,8 @@ const Alternativas = () => {
         label="IVA 19%"
         size="small"
         fullWidth
-        type="number"
-        value={nuevaAlternativa.iva}
+        type="text"
+        value={formatearNumero(nuevaAlternativa.iva)}
         disabled
         InputProps={{
           startAdornment: (
@@ -3835,8 +3849,8 @@ const Alternativas = () => {
         label="TOTAL ORDEN"
         size="small"
         fullWidth
-        type="number"
-        value={nuevaAlternativa.total_orden}
+        type="text"
+        value={formatearNumero(nuevaAlternativa.total_orden)}
         disabled
         InputProps={{
           startAdornment: (
