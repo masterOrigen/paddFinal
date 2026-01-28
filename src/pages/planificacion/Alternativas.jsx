@@ -137,7 +137,9 @@ const Alternativas = () => {
     escala: '',
     formaDePago: '',
     nombreFormaPago: '',
-    soporte: ''
+    soporte: '',
+    horario_inicio: '00:00',
+    horario_fin: '22:00'
   });
 
   const [visibleFields, setVisibleFields] = useState({
@@ -562,7 +564,9 @@ const Alternativas = () => {
       escala: '',
       formaDePago: '',
       nombreFormaPago: '',
-      soporte: ''
+      soporte: '',
+      horario_inicio: '00:00',
+      horario_fin: '22:00'
     });
     // Reset selected items
     setContratoSeleccionado(null);
@@ -1312,7 +1316,9 @@ const Alternativas = () => {
         total_neto: calculatedTotalNeto || 0,
         iva: calculatedIva || 0,
         total_orden: calculatedTotalOrden || 0,
-        multiplicar_valor_unitario: Boolean(alternativa.multiplicar_valor)
+        multiplicar_valor_unitario: Boolean(alternativa.multiplicar_valor),
+        horario_inicio: alternativa.horario_inicio || '00:00',
+        horario_fin: alternativa.horario_fin || '22:00'
       }));
   
       // Set edit mode and open modal
@@ -1374,7 +1380,9 @@ const Alternativas = () => {
         medio: cleanNumericValue(nuevaAlternativa.id_medio),
         total_bruto: cleanNumericValue(nuevaAlternativa.total_bruto),
         multiplicar_valor: Boolean(nuevaAlternativa.multiplicar_valor_unitario),
-        calendar: calendarData
+        calendar: calendarData,
+        horario_inicio: nuevaAlternativa.horario_inicio || '00:00',
+        horario_fin: nuevaAlternativa.horario_fin || '22:00'
       };
   
       // Remove any undefined or null properties
@@ -1933,7 +1941,9 @@ const Alternativas = () => {
     setSelectedPrograma(programa);
     setNuevaAlternativa(prev => ({
       ...prev,
-      id_programa: programa.id
+      id_programa: programa.id,
+      horario_inicio: programa.hora_inicio || '00:00',
+      horario_fin: programa.hora_fin || '22:00'
     }));
     handleCloseProgramasModal();
   };
@@ -2954,7 +2964,9 @@ const Alternativas = () => {
         medio: cleanNumericValue(nuevaAlternativa.id_medio),
         total_bruto: cleanNumericValue(nuevaAlternativa.total_bruto),
         calendar: calendarData,
-        multiplicar_valor: Boolean(nuevaAlternativa.multiplicar_valor_unitario)
+        multiplicar_valor: Boolean(nuevaAlternativa.multiplicar_valor_unitario),
+        horario_inicio: nuevaAlternativa.horario_inicio || '00:00',
+        horario_fin: nuevaAlternativa.horario_fin || '22:00'
       };
 
       // Insertar en la tabla alternativa
@@ -3017,7 +3029,9 @@ const Alternativas = () => {
         escala: '',
         formaDePago: '',
         nombreFormaPago: '',
-        soporte: ''
+        soporte: '',
+        horario_inicio: '00:00',
+        horario_fin: '22:00'
       });
 
       setOpenModal(false);
@@ -3634,9 +3648,16 @@ const Alternativas = () => {
                       <Grid item xs={12} sm={3}>
                         <TextField
                           label="Horario Inicio"
-                          value={selectedPrograma ? selectedPrograma.hora_inicio : ''}
+                          type="time"
+                          value={nuevaAlternativa.horario_inicio || '00:00'}
+                          onChange={(e) => setNuevaAlternativa(prev => ({
+                            ...prev,
+                            horario_inicio: e.target.value
+                          }))}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
                           InputProps={{
-                            readOnly: true,
                             startAdornment: (
                               <InputAdornment position="start">
                                 <AccessTimeIcon sx={{ fontSize: '1.1rem' }} />
@@ -3649,9 +3670,16 @@ const Alternativas = () => {
                       <Grid item xs={12} sm={3}>
                         <TextField
                           label="Horario Fin"
-                          value={selectedPrograma ? selectedPrograma.hora_fin : ''}
+                          type="time"
+                          value={nuevaAlternativa.horario_fin || '22:00'}
+                          onChange={(e) => setNuevaAlternativa(prev => ({
+                            ...prev,
+                            horario_fin: e.target.value
+                          }))}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
                           InputProps={{
-                            readOnly: true,
                             startAdornment: (
                               <InputAdornment position="start">
                                 <AccessTimeIcon sx={{ fontSize: '1.1rem' }} />
