@@ -399,7 +399,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                     )}
                 </Text>
                 <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    {`${upper(alt.Programas?.hora_inicio)} - ${upper(alt.Programas?.hora_fin)}`}
+                    {`${upper(alt.horario_inicio || alt.Programas?.hora_inicio)} - ${upper(alt.horario_fin || alt.Programas?.hora_fin)}`}
                 </Text>
                 <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
                     {upper(alt.Temas?.CodigoMegatime || alt.Temas?.codigo_megatime)}
