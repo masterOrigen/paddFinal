@@ -54,6 +54,8 @@ const RevisarOrden = () => {
     const [campanas, setCampanas] = useState([]);
     const [order, setOrder] = useState('asc');
     const [orderBy, setOrderBy] = useState('anio');
+    const [campanaNameFilter, setCampanaNameFilter] = useState('');
+    const [campanaYearFilter, setCampanaYearFilter] = useState('');
     const [selectedCliente, setSelectedCliente] = useState(null);
     const [selectedCampana, setSelectedCampana] = useState(null);
     const [orders, setOrders] = useState([]);
@@ -848,6 +850,8 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     const handleClienteSelect = async (cliente) => {
     try {
     setSelectedCliente(cliente);
+    setCampanaNameFilter('');
+    setCampanaYearFilter('');
     await fetchCampanas(cliente.id_cliente);
     setOpenClienteModal(false);
     setOpenCampanaModal(true);
@@ -865,7 +869,20 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     const handleResetSelection = () => {
     setSelectedCliente(null);
     setSelectedCampana(null);
+    setCampanaNameFilter('');
+    setCampanaYearFilter('');
+    setOpenCampanaModal(false);
     setOpenClienteModal(true);
+    };
+
+    const handleChangeCampana = () => {
+    setSelectedCampana(null);
+    setSelectedOrder(null);
+    setAlternatives([]);
+    setOrders([]);
+    setCampanaNameFilter('');
+    setCampanaYearFilter('');
+    setOpenCampanaModal(true);
     };
 
     const fetchOrders = async (campaignId) => {
@@ -1021,6 +1038,14 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     cliente.razonSocial?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const filteredCampanas = campanas.filter(campana => {
+        const matchesName = !campanaNameFilter || 
+            campana.NombreCampania?.toLowerCase().includes(campanaNameFilter.toLowerCase());
+        const matchesYear = !campanaYearFilter || 
+            campana.Anios?.years?.toString().includes(campanaYearFilter);
+        return matchesName && matchesYear;
+    });
+
     return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
     {/* Modal de Selección de Cliente */}
@@ -1110,6 +1135,38 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     <Typography variant="subtitle1" sx={{ textAlign: 'left' }}color="textSecondary">
     Cliente: {selectedCliente?.nombreCliente}
     </Typography>
+    <Box display="flex" gap={2} mt={2}>
+    <TextField
+    size="small"
+    variant="outlined"
+    placeholder="Filtrar por nombre de campaña..."
+    value={campanaNameFilter}
+    onChange={(e) => setCampanaNameFilter(e.target.value)}
+    sx={{ flex: 1 }}
+    InputProps={{
+    startAdornment: (
+    <InputAdornment position="start">
+    <SearchIcon />
+    </InputAdornment>
+    )
+    }}
+    />
+    <TextField
+    size="small"
+    variant="outlined"
+    placeholder="Filtrar por año..."
+    value={campanaYearFilter}
+    onChange={(e) => setCampanaYearFilter(e.target.value)}
+    sx={{ width: 250 }}
+    InputProps={{
+    startAdornment: (
+    <InputAdornment position="start">
+    <SearchIcon />
+    </InputAdornment>
+    )
+    }}
+    />
+    </Box>
     </Box>
     <IconButton
     aria-label="close"
@@ -1129,9 +1186,9 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     <Box display="flex" justifyContent="center" m={3}>
     <CircularProgress />
     </Box>
-    ) : campanas.length === 0 ? (
+    ) : filteredCampanas.length === 0 ? (
     <Box display="flex" justifyContent="center" m={3}>
-    <Typography>No hay campañas asociadas</Typography>
+    <Typography>No hay campañas que coincidan con los filtros</Typography>
     </Box>
     ) : (
     <TableContainer component={Paper}>
@@ -1154,7 +1211,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     </TableRow>
     </TableHead>
     <TableBody>
-    {campanas.map((campana) => (
+    {filteredCampanas.map((campana) => (
     <TableRow key={campana.id_campania}>
     <TableCell>{campana.NombreCampania}</TableCell>
     <TableCell>{campana.Anios?.years || 'No especificado'}</TableCell>
@@ -1191,7 +1248,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     <Paper sx={{ p: 2 }}>
     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
     <Typography variant="h6">Información de la Campaña</Typography>
-    <Button variant="outlined" onClick={handleResetSelection}>
+    <Button variant="outlined" onClick={handleChangeCampana}>
     Cambiar Selección
     </Button>
     </Box>
