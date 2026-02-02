@@ -33,10 +33,12 @@ const ReporteClienteDiario = () => {
   const [ordenesAgrupadas, setOrdenesAgrupadas] = useState([]);
   const [filtros, setFiltros] = useState({
     cliente: { id_cliente: 'all', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' },
+    campana: '',
     anio: '',
     mes: ''
   });
   const [clientes, setClientes] = useState([]);
+  const [campanas, setCampanas] = useState([]);
   const [anios, setAnios] = useState([]);
   const [meses, setMeses] = useState([]);
   const [page, setPage] = useState(1);
@@ -47,6 +49,15 @@ const ReporteClienteDiario = () => {
     fetchAnios();
     fetchMeses();
   }, []);
+
+  useEffect(() => {
+    if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+      fetchCampanas(filtros.cliente.id_cliente);
+    } else {
+      setCampanas([]);
+      setFiltros(prev => ({ ...prev, campana: '' }));
+    }
+  }, [filtros.cliente]);
 
   const fetchClientes = async () => {
     try {
@@ -66,6 +77,31 @@ const ReporteClienteDiario = () => {
       setClientes(clientesConTodos);
     } catch (error) {
       // Error al cargar clientes
+    }
+  };
+
+  const fetchCampanas = async (idCliente) => {
+    try {
+      const { data, error } = await supabase
+        .from('Campania')
+        .select('id_campania, NombreCampania')
+        .eq('id_Cliente', idCliente)
+        .order('NombreCampania');
+
+      if (error) throw error;
+      
+      // Eliminar duplicados basándose en NombreCampania (nombre de la campaña)
+      const campanasUnicas = data?.reduce((acc, campana) => {
+        if (!acc.find(c => c.NombreCampania === campana.NombreCampania)) {
+          acc.push(campana);
+        }
+        return acc;
+      }, []) || [];
+      
+      setCampanas(campanasUnicas);
+    } catch (error) {
+      // Error al cargar campañas
+      setCampanas([]);
     }
   };
 
@@ -157,6 +193,12 @@ const ReporteClienteDiario = () => {
         query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
       }
 
+      // Filtrar por campaña si está seleccionada
+      // Buscar por nombre de campaña en lugar de ID para incluir todas las campañas con el mismo nombre
+      if (filtros.campana) {
+        query = query.eq('Campania.NombreCampania', filtros.campana);
+      }
+
       // Solo filtrar por año y mes si están seleccionados
       if (filtros.anio) {
         query = query.eq('plan.anio', filtros.anio);
@@ -197,6 +239,7 @@ const ReporteClienteDiario = () => {
               const { data: alternativas } = await supabase
                 .from('alternativa')
                 .select(`
+                  id,
                   calendar,
                   horario_inicio,
                   horario_fin,
@@ -213,6 +256,9 @@ const ReporteClienteDiario = () => {
                 .in('id', idsAlternativas);
 
               if (alternativas && alternativas.length > 0) {
+                // Guardar datos de alternativas para usar en la expansión
+                orden.datosAlternativas = alternativas;
+
                 // Calcular tarifa bruta total
                 tarifaBrutaTotal = alternativas.reduce((total, alt) => total + (alt.total_bruto || 0), 0);
 
@@ -410,6 +456,7 @@ const ReporteClienteDiario = () => {
   const limpiarFiltros = () => {
     setFiltros({
       cliente: { id_cliente: 'all', nombreCliente: 'Todos', razonSocial: 'Todos los clientes' },
+      campana: '',
       anio: '',
       mes: ''
     });
@@ -446,11 +493,9 @@ const ReporteClienteDiario = () => {
         }
       }
 
-      // Procesar cada orden para obtener sus días de exhibición
+      // Procesar cada orden para obtener sus días de exhibición por alternativa
       for (const orden of ordenesNoAnuladas) {
-        let diasExhibicion = [];
-
-        // Obtener los días individuales de exhibición para esta orden
+        // Obtener los IDs de alternativas para esta orden
         if (orden.alternativas_plan_orden) {
           let idsAlternativas = [];
 
@@ -470,6 +515,7 @@ const ReporteClienteDiario = () => {
             const { data: alternativas, error } = await supabase
               .from('alternativa')
               .select(`
+                id,
                 calendar,
                 segundos,
                 total_bruto,
@@ -484,97 +530,87 @@ const ReporteClienteDiario = () => {
               .in('id', idsAlternativas);
 
             if (!error && alternativas && alternativas.length > 0) {
-              const todosLosDias = new Set();
+              // Procesar cada alternativa por separado
+              for (const alternativa of alternativas) {
+                let diasExhibicion = [];
 
-              alternativas.forEach(alt => {
-                if (alt.calendar) {
+                // Extraer días del calendario de esta alternativa específica
+                if (alternativa.calendar) {
                   try {
-                    let calendarData = alt.calendar;
+                    let calendarData = alternativa.calendar;
                     if (typeof calendarData === 'string') {
                       calendarData = JSON.parse(calendarData);
                     }
 
                     if (Array.isArray(calendarData)) {
+                      const diasSet = new Set();
                       calendarData.forEach(item => {
                         if (item.dia) {
-                          todosLosDias.add(item.dia);
+                          diasSet.add(item.dia);
                         }
                       });
+                      diasExhibicion = Array.from(diasSet).sort((a, b) => a - b);
                     }
                   } catch (e) {
                     // Error procesando calendar
                   }
                 }
-              });
 
-              diasExhibicion = Array.from(todosLosDias).sort((a, b) => a - b);
+                // Si no hay días de exhibición específicos, usar la fecha de creación
+                if (diasExhibicion.length === 0) {
+                  diasExhibicion = [new Date(orden.fechaCreacion).getDate()];
+                }
 
-              // Calcular tarifa neta total para el Excel
-              orden.tarifaNetaTotal = alternativas.reduce((total, alt) => total + (alt.total_neto || 0), 0);
+                // Calcular inversión neta dividida por la cantidad de fechas de exhibición de esta alternativa
+                const inversionNetaDividida = (alternativa.total_neto || 0) / (diasExhibicion.length || 1);
+                const inversionBrutaDividida = (alternativa.total_bruto || 0) / (diasExhibicion.length || 1);
 
-              // Guardar datos adicionales de las alternativas para usarlos en el Excel
-              orden.datosAlternativas = alternativas;
+                // Crear una línea por cada día de exhibición de esta alternativa
+                const nombreMes = meses.find(m => m.Id === filtros.mes)?.Nombre || '';
+
+                diasExhibicion.forEach(diaNum => {
+                  // Formatear fecha como DD/MM/YYYY
+                  const anioReal = orden.plan?.Anios?.years || new Date().getFullYear();
+                  const mesReal = orden.plan?.mes || (new Date().getMonth() + 1);
+                  const fechaFormateada = format(new Date(anioReal, mesReal - 1, diaNum), 'dd/MM/yyyy');
+
+                  // Determinar si el contrato es Neto (id=1) o Bruto (id=2)
+                  const tipoOrden = orden.Contratos?.id_GeneraracionOrdenTipo || 1;
+                  const esNeto = tipoOrden === 1;
+
+                  dataToExport.push({
+                    'Cliente': orden.Campania?.Clientes?.nombreCliente || '',
+                    'Mes': orden.plan?.Meses?.Id || '',
+                    'N° de Ctto.': orden.Contratos?.NombreContrato || '',
+                    'N° de Orden': orden.numero_correlativo || '',
+                    'Version': orden.copia || '',
+                    'Medio': orden.Contratos?.Medios?.NombredelMedio || orden.Soportes?.Medios?.NombredelMedio || '',
+                    'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || '',
+                    'Soporte': orden.Soportes?.nombreIdentficiador || '',
+                    'Campaña': orden.Campania?.NombreCampania || '',
+                    'Plan de Medios': orden.plan?.nombre_plan || '',
+                    'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
+                    'Tema': alternativa?.Temas?.NombreTema || '',
+                    'Seg': alternativa?.segundos || '',
+                    'Prog./Elem./Formato': alternativa?.Programas?.descripcion || alternativa?.Clasificacion?.NombreClasificacion || '',
+                    'Año': orden.plan?.Anios?.years || '',
+                    'Fecha Exhib./Pub.': fechaFormateada,
+                    'Inversion Neta': esNeto ? inversionNetaDividida : '',
+                    'Inversion Bruta': esNeto ? '' : inversionBrutaDividida,
+                    'Tipo Ctto': orden.Contratos?.TipoGeneracionDeOrden?.NombreTipoOrden || (esNeto ? 'Neto' : 'Bruto'),
+                    'Agen.Creativa': orden.Campania?.Agencias?.NombreIdentificador || '',
+                    'Cod. Univ. Aviso': '',
+                    'Cod. Univ. Prog': alternativa?.Programas?.codigo_programa || '',
+                    'Calidad': alternativa?.Temas?.Calidad?.NombreCalidad || '',
+                    'Cod.Usu.': orden.usuario_registro?.id_usuario || '',
+                    'Nombre Usuario': orden.usuario_registro?.nombre || '',
+                    'Grupo Usuario': orden.usuario_registro?.grupo || ''
+                  });
+                });
+              }
             }
           }
         }
-
-        // Si no hay días de exhibición específicos, usar la fecha de creación
-        if (diasExhibicion.length === 0) {
-          diasExhibicion = [new Date(orden.fechaCreacion).getDate()];
-        }
-
-        // Calcular inversión neta dividida por la cantidad de fechas de exhibición
-        const inversionNetaDividida = (orden.tarifaNetaTotal || 0) / (diasExhibicion.length || 1);
-
-        // Crear una línea por cada día de exhibición
-        const nombreMes = meses.find(m => m.Id === filtros.mes)?.Nombre || '';
-
-        diasExhibicion.forEach(diaNum => {
-          // Formatear fecha como DD/MM/YYYY
-          // Obtener el año correcto desde el objeto de años
-          const anioReal = orden.plan?.Anios?.years || new Date().getFullYear();
-          const mesReal = orden.plan?.mes || (new Date().getMonth() + 1);
-          const fechaFormateada = format(new Date(anioReal, mesReal - 1, diaNum), 'dd/MM/yyyy');
-
-          // Obtener datos de la primera alternativa para los campos adicionales
-          const primeraAlternativa = orden.datosAlternativas && orden.datosAlternativas.length > 0 ? orden.datosAlternativas[0] : null;
-
-          // Determinar si el contrato es Neto (id=1) o Bruto (id=2)
-          const tipoOrden = orden.Contratos?.id_GeneraracionOrdenTipo || 1;
-          const esNeto = tipoOrden === 1;
-          
-          // Calcular inversión bruta dividida por la cantidad de fechas de exhibición
-          const inversionBrutaDividida = (orden.tarifaBrutaTotal || 0) / (diasExhibicion.length || 1);
-
-          dataToExport.push({
-            'Cliente': orden.Campania?.Clientes?.nombreCliente || '',
-            'Mes': orden.plan?.Meses?.Id || '',
-            'N° de Ctto.': orden.Contratos?.NombreContrato || '',
-            'N° de Orden': orden.numero_correlativo || '',
-            'Version': orden.copia || '',
-            'Medio': orden.Contratos?.Medios?.NombredelMedio || orden.Soportes?.Medios?.NombredelMedio || '',
-            'Proveedor': orden.Contratos?.Proveedores?.nombreProveedor || '',
-            'Soporte': orden.Soportes?.nombreIdentficiador || '',
-            'Campaña': orden.Campania?.NombreCampania || '',
-            'Plan de Medios': orden.plan?.nombre_plan || '',
-            'Producto': orden.Campania?.Productos?.NombreDelProducto || 'No asignado',
-            'Tema': primeraAlternativa?.Temas?.NombreTema || '',
-            'Seg': primeraAlternativa?.segundos || '',
-            'Prog./Elem./Formato': primeraAlternativa?.Programas?.descripcion || primeraAlternativa?.Clasificacion?.NombreClasificacion || '',
-            'Año': orden.plan?.Anios?.years || '',
-            'Fecha Exhib./Pub.': fechaFormateada,
-            'Inversion Neta': esNeto ? inversionNetaDividida : '',
-            'Inversion Bruta': esNeto ? '' : inversionBrutaDividida,
-            'Tipo Ctto': orden.Contratos?.TipoGeneracionDeOrden?.NombreTipoOrden || (esNeto ? 'Neto' : 'Bruto'),
-            'Agen.Creativa': orden.Campania?.Agencias?.NombreIdentificador || '',
-            'Cod. Univ. Aviso': '', // Campo no disponible en la estructura actual
-            'Cod. Univ. Prog': primeraAlternativa?.Programas?.codigo_programa || '',
-            'Calidad': primeraAlternativa?.Temas?.Calidad?.NombreCalidad || '',
-            'Cod.Usu.': orden.usuario_registro?.id_usuario || '',
-            'Nombre Usuario': orden.usuario_registro?.nombre || '',
-            'Grupo Usuario': orden.usuario_registro?.grupo || ''
-          });
-        });
       }
 
       const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -608,10 +644,62 @@ const ReporteClienteDiario = () => {
     setPage(newPage);
   };
 
-  // Obtener todas las órdenes de forma plana para paginación
-  const todasLasOrdenes = ordenesAgrupadas.flatMap((dia) => dia.ordenes);
+  // Función para expandir órdenes por alternativa
+  const expandirOrdenes = (ordenesAgrupadas) => {
+    let ordenesExpandidas = [];
 
-  const paginatedOrdenes = todasLasOrdenes.slice(
+    ordenesAgrupadas.forEach(dia => {
+      dia.ordenes.forEach(orden => {
+        // Extraer IDs de alternativas
+        let idsAlternativas = [];
+        try {
+          if (Array.isArray(orden.alternativas_plan_orden)) {
+            idsAlternativas = orden.alternativas_plan_orden;
+          } else if (typeof orden.alternativas_plan_orden === 'string') {
+            const parsed = JSON.parse(orden.alternativas_plan_orden);
+            idsAlternativas = Array.isArray(parsed) ? parsed : [];
+          }
+        } catch (e) {
+          // Error parseando alternativas
+        }
+
+        // Si no hay alternativas, mostrar la orden una vez
+        if (!idsAlternativas || idsAlternativas.length === 0) {
+          ordenesExpandidas.push({ 
+            ...orden, 
+            alternativaActual: null, 
+            fechaCreacion: dia.fecha,
+            tarifaBrutaIndividual: orden.tarifaBrutaTotal || 0,
+            tarifaNetaIndividual: orden.tarifaNetaTotal || 0
+          });
+          return;
+        }
+
+        // Si hay alternativas, crear una fila por cada alternativa
+        // Buscar los datos de cada alternativa en datosAlternativas
+        idsAlternativas.forEach(idAlternativa => {
+          // Buscar la alternativa específica en los datos que ya tenemos
+          const alternativaData = orden.datosAlternativas?.find(alt => alt.id === idAlternativa);
+          
+          ordenesExpandidas.push({
+            ...orden,
+            alternativaActual: idAlternativa,
+            fechaCreacion: dia.fecha,
+            tarifaBrutaIndividual: alternativaData?.total_bruto || 0,
+            tarifaNetaIndividual: alternativaData?.total_neto || 0,
+            alternativaInfo: alternativaData // Guardar toda la info de la alternativa
+          });
+        });
+      });
+    });
+
+    return ordenesExpandidas;
+  };
+
+  // Obtener todas las órdenes expandidas por alternativa
+  const ordenesExpandidas = expandirOrdenes(ordenesAgrupadas);
+
+  const paginatedOrdenes = ordenesExpandidas.slice(
     (page - 1) * rowsPerPage,
     page * rowsPerPage
   );
@@ -629,7 +717,7 @@ const ReporteClienteDiario = () => {
         </Typography>
 
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={2.5}>
             <Autocomplete
               size="small"
               options={clientes}
@@ -670,7 +758,30 @@ const ReporteClienteDiario = () => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={2}>
+          <Grid item xs={12} sm={2.5}>
+            <FormControl fullWidth size="small">
+              <InputLabel shrink>Campaña</InputLabel>
+              <Select
+                value={filtros.campana}
+                label="Campaña"
+                onChange={(e) => handleFiltroChange('campana', e.target.value)}
+                disabled={!filtros.cliente || filtros.cliente.id_cliente === 'all'}
+                displayEmpty
+                notched
+              >
+                <MenuItem value="">
+                  <em>Todas las campañas</em>
+                </MenuItem>
+                {campanas.map((campana) => (
+                  <MenuItem key={campana.id_campania} value={campana.NombreCampania}>
+                    {campana.NombreCampania}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={1.5}>
             <FormControl fullWidth size="small">
               <InputLabel>Año</InputLabel>
               <Select
@@ -687,7 +798,7 @@ const ReporteClienteDiario = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} sm={2}>
+          <Grid item xs={12} sm={1.5}>
             <FormControl fullWidth size="small">
               <InputLabel>Mes</InputLabel>
               <Select
@@ -769,15 +880,9 @@ const ReporteClienteDiario = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedOrdenes.map((orden) => {
-                    // Encontrar la fecha de creación para esta orden
-                    const diaOrden = ordenesAgrupadas.find(dia =>
-                      dia.ordenes.some(o => o.id_ordenes_de_comprar === orden.id_ordenes_de_comprar)
-                    );
-                    const fechaCreacion = diaOrden ? diaOrden.fecha : orden.fechaCreacion;
-
+                  {paginatedOrdenes.map((orden, index) => {
                     return (
-                      <TableRow key={orden.id_ordenes_de_comprar}>
+                      <TableRow key={`${orden.id_ordenes_de_comprar}-${orden.alternativaActual || 'default'}-${index}`}>
                         <TableCell>
                           {orden.Campania?.Clientes?.nombreCliente || 'N/A'}
                         </TableCell>
@@ -808,10 +913,10 @@ const ReporteClienteDiario = () => {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
-                          {formatCurrency(orden.tarifaBrutaTotal || 0)}
+                          {formatCurrency(orden.tarifaBrutaIndividual || 0)}
                         </TableCell>
                         <TableCell align="right">
-                          {formatCurrency(orden.tarifaNetaTotal || 0)}
+                          {formatCurrency(orden.tarifaNetaIndividual || 0)}
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -832,10 +937,10 @@ const ReporteClienteDiario = () => {
             </TableContainer>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
               <Typography variant="body2" color="#666">
-                Total de órdenes: {todasLasOrdenes.length}
+                Total resultados: {ordenesExpandidas.length}
               </Typography>
               <Pagination
-                count={Math.ceil(todasLasOrdenes.length / rowsPerPage)}
+                count={Math.ceil(ordenesExpandidas.length / rowsPerPage)}
                 page={page}
                 onChange={handleChangePage}
                 color="primary"
