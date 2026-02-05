@@ -510,8 +510,12 @@ const ReporteClienteDiario = () => {
             // Error parseando alternativas_plan_orden
           }
 
+          // Asegurar que los IDs sean números
+          idsAlternativas = idsAlternativas.map(id => parseInt(id)).filter(id => !isNaN(id));
+
           if (idsAlternativas.length > 0) {
             // Obtener alternativas para extraer los días del calendario y datos adicionales
+            // Usar LEFT JOIN para no perder alternativas si faltan relaciones
             const { data: alternativas, error } = await supabase
               .from('alternativa')
               .select(`
@@ -523,9 +527,9 @@ const ReporteClienteDiario = () => {
                 id_tema,
                 id_programa,
                 id_clasificacion,
-                Temas (id_tema, NombreTema, id_Calidad, Calidad (id, NombreCalidad)),
-                Programas (id, descripcion, codigo_programa),
-                Clasificacion (id, NombreClasificacion)
+                Temas!left (id_tema, NombreTema, id_Calidad, Calidad!left (id, NombreCalidad)),
+                Programas!left (id, descripcion, codigo_programa),
+                Clasificacion!left (id, NombreClasificacion)
               `)
               .in('id', idsAlternativas);
 
@@ -543,13 +547,22 @@ const ReporteClienteDiario = () => {
                     }
 
                     if (Array.isArray(calendarData)) {
-                      const diasSet = new Set();
+                      // Cada item del calendar puede tener múltiples avisos
+                      // Necesitamos crear una entrada por cada aviso individual
                       calendarData.forEach(item => {
                         if (item.dia) {
-                          diasSet.add(item.dia);
+                          const diaNum = parseInt(item.dia);
+                          if (!isNaN(diaNum)) {
+                            // Si hay un campo de cantidad/avisos, repetir ese día esa cantidad de veces
+                            const cantidad = parseInt(item.cantidad || item.avisos || item.spots || 1);
+                            for (let i = 0; i < cantidad; i++) {
+                              diasExhibicion.push(diaNum);
+                            }
+                          }
                         }
                       });
-                      diasExhibicion = Array.from(diasSet).sort((a, b) => a - b);
+                      // Ordenar los días (pueden estar repetidos)
+                      diasExhibicion.sort((a, b) => a - b);
                     }
                   } catch (e) {
                     // Error procesando calendar
