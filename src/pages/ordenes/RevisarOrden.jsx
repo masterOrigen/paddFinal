@@ -25,7 +25,11 @@ import {
     ButtonGroup,
     Tooltip,
     IconButton,
-    TableSortLabel
+    TableSortLabel,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem
 } from '@mui/material';
 import { 
     Search as SearchIcon,
@@ -65,6 +69,9 @@ const RevisarOrden = () => {
     const [ordersOrder, setOrdersOrder] = useState('desc');
     const [ordersOrderBy, setOrdersOrderBy] = useState('numero_correlativo');
     const [orderNumberFilter, setOrderNumberFilter] = useState('');
+    const [orderMonthFilter, setOrderMonthFilter] = useState('');
+    const [orderStatusFilter, setOrderStatusFilter] = useState('');
+    const [meses, setMeses] = useState([]);
 
     const handleRequestSortOrders = (property) => {
         const isAsc = ordersOrderBy === property && ordersOrder === 'asc';
@@ -74,8 +81,52 @@ const RevisarOrden = () => {
 
     const sortedOrders = [...orders]
         .filter(order => {
-            if (!orderNumberFilter) return true;
-            return order.numero_correlativo?.toString().includes(orderNumberFilter);
+            // Filtro por número de orden - búsqueda parcial
+            if (orderNumberFilter && !order.numero_correlativo?.toString().includes(orderNumberFilter)) {
+                return false;
+            }
+            
+            // Filtro por mes - extraer mes de la fecha created_at
+            if (orderMonthFilter) {
+                let mesOrden = null;
+                
+                // Intentar extraer el mes de created_at o fechaCreacion
+                const fecha = order.created_at || order.fechaCreacion;
+                
+                if (fecha) {
+                    // Si la fecha es un string en formato "DD/MM/YYYY"
+                    if (typeof fecha === 'string') {
+                        const partes = fecha.split('/');
+                        if (partes.length >= 3) {
+                            mesOrden = parseInt(partes[1]); // El mes es la segunda parte (índice 1)
+                        } else {
+                            // Si es formato ISO (YYYY-MM-DD)
+                            const fechaObj = new Date(fecha);
+                            if (!isNaN(fechaObj.getTime())) {
+                                mesOrden = fechaObj.getMonth() + 1; // getMonth() devuelve 0-11
+                            }
+                        }
+                    } else if (fecha instanceof Date) {
+                        mesOrden = fecha.getMonth() + 1;
+                    }
+                }
+                
+                // También intentar con plan.mes si existe
+                if (!mesOrden && order.plan?.mes) {
+                    mesOrden = order.plan.mes;
+                }
+                
+                if (mesOrden !== parseInt(orderMonthFilter)) {
+                    return false;
+                }
+            }
+            
+            // Filtro por estado
+            if (orderStatusFilter && order.estado !== orderStatusFilter) {
+                return false;
+            }
+            
+            return true;
         })
         .sort((a, b) => {
             if (ordersOrderBy === 'numero_correlativo') {
@@ -706,17 +757,18 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
             icon: 'success',
             title: 'Éxito',
             text: 'La orden ha sido anulada y reemplazada correctamente. Se ha generado el PDF de la nueva orden.'
-        }).then(() => {
-            // Al dar OK, volver al modal de selección de campaña
-            setSelectedCampana(null);
-            setSelectedOrder(null);
-            setAlternatives([]);
-            setOrders([]);
-            setOpenCampanaModal(true);
         });
         
         // Cerrar el modal de reemplazo
         setOpenReplaceModal(false);
+        
+        // Refrescar el listado de órdenes para mostrar la nueva orden
+        await fetchOrders(selectedCampana.id_campania);
+        
+        // Limpiar la selección de orden actual
+        setSelectedOrder(null);
+        setAlternatives([]);
+        setModifiedAlternatives([]);
         
     } catch (error) {
         Swal.fire({
@@ -766,7 +818,22 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
         };
 
         fetchClientes();
+        fetchMeses();
     }, []);
+
+    const fetchMeses = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('Meses')
+                .select('Id, Nombre')
+                .order('Id');
+
+            if (error) throw error;
+            setMeses(data || []);
+        } catch (error) {
+            // Silent error
+        }
+    };
 
     const fetchCampanas = async (clienteId) => {
     try {
@@ -1263,13 +1330,14 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 					<Grid item xs={12}>
 						<Paper sx={{ p: 2 }}>
 							<Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-								<Box display="flex" alignItems="center" gap={2}>
-									<Typography variant="h6">
+								<Box display="flex" alignItems="center" gap={1.5}>
+									<Typography variant="h6" sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}>
 										Órdenes Asociadas
 									</Typography>
 									<TextField
 										size="small"
-										placeholder="Filtrar por N° de Orden"
+										label="N° de Orden"
+										placeholder="Buscar..."
 										value={orderNumberFilter}
 										onChange={(e) => setOrderNumberFilter(e.target.value)}
 										InputProps={{
@@ -1279,8 +1347,40 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 												</InputAdornment>
 											),
 										}}
-										sx={{ width: 220 }}
+										sx={{ minWidth: 120 }}
 									/>
+									<FormControl size="small" sx={{ minWidth: 120 }}>
+										<InputLabel shrink>Mes</InputLabel>
+										<Select
+											value={orderMonthFilter}
+											label="Mes"
+											onChange={(e) => setOrderMonthFilter(e.target.value)}
+											displayEmpty
+											notched
+										>
+											<MenuItem value="">Todos</MenuItem>
+											{meses.map((mes) => (
+												<MenuItem key={mes.Id} value={mes.Id}>
+													{mes.Nombre}
+												</MenuItem>
+											))}
+										</Select>
+									</FormControl>
+									<FormControl size="small" sx={{ minWidth: 150 }}>
+										<InputLabel shrink>Estado</InputLabel>
+										<Select
+											value={orderStatusFilter}
+											label="Estado"
+											onChange={(e) => setOrderStatusFilter(e.target.value)}
+											displayEmpty
+											notched
+										>
+											<MenuItem value="">Todos</MenuItem>
+											<MenuItem value="activa">Activa</MenuItem>
+											<MenuItem value="anulada">Anulada</MenuItem>
+											<MenuItem value="anulada y remplazada">Anulada y Remplazada</MenuItem>
+										</Select>
+									</FormControl>
 								</Box>
 								<ButtonGroup variant="contained">
 									<Tooltip title="Imprimir orden">
@@ -1317,7 +1417,6 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 								<Table>
 									<TableHead>
 										<TableRow>
-											<TableCell>ID Orden</TableCell>
 											<TableCell>
                                                 <TableSortLabel
                                                     active={ordersOrderBy === 'numero_correlativo'}
@@ -1348,12 +1447,49 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 														: 'inherit'
 												}}
 											>
-												<TableCell>{order.id_ordenes_de_comprar}</TableCell>
 												<TableCell>{order.numero_correlativo || '-'}</TableCell>
 												<TableCell>{order.copia || '-'}</TableCell>
 												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
                                                 <TableCell>{formatDate(order.created_at)}</TableCell>
-												<TableCell>{order.estado}</TableCell>
+												<TableCell>
+													<Box
+														component="span"
+														sx={{
+															display: 'inline-block',
+															backgroundColor: 
+																order.estado === 'activa' ? '#4caf50' : 
+																order.estado === 'anulada' ? '#f44336' : 
+																order.estado === 'anulada y remplazada' ? '#795548' : 
+																'transparent',
+															color: 
+																order.estado === 'activa' || 
+																order.estado === 'anulada' || 
+																order.estado === 'anulada y remplazada' 
+																	? 'white' 
+																	: 'inherit',
+															fontWeight: 
+																order.estado === 'activa' || 
+																order.estado === 'anulada' || 
+																order.estado === 'anulada y remplazada' 
+																	? 'bold' 
+																	: 'normal',
+															padding: 
+																order.estado === 'activa' || 
+																order.estado === 'anulada' || 
+																order.estado === 'anulada y remplazada' 
+																	? '4px 12px' 
+																	: '0',
+															borderRadius: 
+																order.estado === 'activa' || 
+																order.estado === 'anulada' || 
+																order.estado === 'anulada y remplazada' 
+																	? '4px' 
+																	: '0'
+														}}
+													>
+														{order.estado}
+													</Box>
+												</TableCell>
 											</TableRow>
 										))}
 									</TableBody>
