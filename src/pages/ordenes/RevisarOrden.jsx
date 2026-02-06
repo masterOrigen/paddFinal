@@ -86,39 +86,9 @@ const RevisarOrden = () => {
                 return false;
             }
             
-            // Filtro por mes - extraer mes de la fecha created_at
-            if (orderMonthFilter) {
-                let mesOrden = null;
-                
-                // Intentar extraer el mes de created_at o fechaCreacion
-                const fecha = order.created_at || order.fechaCreacion;
-                
-                if (fecha) {
-                    // Si la fecha es un string en formato "DD/MM/YYYY"
-                    if (typeof fecha === 'string') {
-                        const partes = fecha.split('/');
-                        if (partes.length >= 3) {
-                            mesOrden = parseInt(partes[1]); // El mes es la segunda parte (índice 1)
-                        } else {
-                            // Si es formato ISO (YYYY-MM-DD)
-                            const fechaObj = new Date(fecha);
-                            if (!isNaN(fechaObj.getTime())) {
-                                mesOrden = fechaObj.getMonth() + 1; // getMonth() devuelve 0-11
-                            }
-                        }
-                    } else if (fecha instanceof Date) {
-                        mesOrden = fecha.getMonth() + 1;
-                    }
-                }
-                
-                // También intentar con plan.mes si existe
-                if (!mesOrden && order.plan?.mes) {
-                    mesOrden = order.plan.mes;
-                }
-                
-                if (mesOrden !== parseInt(orderMonthFilter)) {
-                    return false;
-                }
+            // Filtro por mes - filtrar por plan.mes
+            if (orderMonthFilter && order.plan?.mes !== parseInt(orderMonthFilter)) {
+                return false;
             }
             
             // Filtro por estado
@@ -961,7 +931,12 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     *,
     plan:plan (
     id,
-    nombre_plan
+    nombre_plan,
+    mes,
+    Meses (
+        Id,
+        Nombre
+    )
     ),
     usuario_registro,
 	copia,
@@ -1427,6 +1402,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
                                                 </TableSortLabel>
                                             </TableCell>
 											<TableCell>N° de copias</TableCell>
+											<TableCell>Mes Plan</TableCell>
 											<TableCell>Plan</TableCell>
 											<TableCell>Fecha</TableCell>
 											<TableCell>Estado</TableCell>
@@ -1449,6 +1425,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 											>
 												<TableCell>{order.numero_correlativo || '-'}</TableCell>
 												<TableCell>{order.copia || '-'}</TableCell>
+												<TableCell>{order.plan?.Meses?.Nombre || order.plan?.mes || '-'}</TableCell>
 												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
                                                 <TableCell>{formatDate(order.created_at)}</TableCell>
 												<TableCell>
