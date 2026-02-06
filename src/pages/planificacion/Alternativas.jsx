@@ -197,6 +197,7 @@ const Alternativas = () => {
   const [clasificacionesList, setClasificacionesList] = useState([]);
   const [selectedClasificacion, setSelectedClasificacion] = useState(null);
   const [editingClasificacion, setEditingClasificacion] = useState(null);
+  const [formasDePago, setFormasDePago] = useState([]);
   const [nuevaClasificacion, setNuevaClasificacion] = useState({
     NombreClasificacion: '',
     IdMedios: '' 
@@ -768,10 +769,10 @@ const Alternativas = () => {
         // Transformar los datos para tener la estructura correcta
         const temasFiltrados = data.map(item => ({
           id_tema: item.id_temas,
-          NombreTema: item.Temas.NombreTema,
-          segundos: item.Temas.Duracion,
-          nombreMedio: item.Temas.Medios?.NombredelMedio || '',
-          id_medio: item.Temas.Medios?.id || null
+          NombreTema: item.Temas?.NombreTema || 'Sin Nombre',
+          segundos: item.Temas?.Duracion || 0,
+          nombreMedio: item.Temas?.Medios?.NombredelMedio || '',
+          id_medio: item.Temas?.Medios?.id || null
         }));
 
         setTemas(temasFiltrados);
