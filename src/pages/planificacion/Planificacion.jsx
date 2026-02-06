@@ -48,7 +48,8 @@ import {
   ColorLens as ColorLensIcon,
   Code as CodeIcon,
   Category as CategoryIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 
 import './Planificacion.css';
@@ -66,6 +67,13 @@ const Planificacion = () => {
   const [openEditPlanModal, setOpenEditPlanModal] = useState(false);
   const [openNuevoTemaModal, setOpenNuevoTemaModal] = useState(false);
   const [openEditTemaModal, setOpenEditTemaModal] = useState(false);
+  const [openDuplicatePlanModal, setOpenDuplicatePlanModal] = useState(false);
+  const [planToDuplicate, setPlanToDuplicate] = useState(null);
+  const [duplicatePlanData, setDuplicatePlanData] = useState({
+    nombre_plan: '',
+    anio: '',
+    mes: ''
+  });
   const [loading, setLoading] = useState(false);
   const [clientes, setClientes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -421,6 +429,144 @@ const Planificacion = () => {
     }
   };
 
+  const handleDuplicatePlan = (plan) => {
+    setPlanToDuplicate(plan);
+    setDuplicatePlanData({
+      nombre_plan: `${plan.nombre_plan} (Copia)`,
+      anio: plan.anio,
+      mes: plan.mes
+    });
+    setOpenDuplicatePlanModal(true);
+  };
+
+  const handleConfirmDuplicate = async () => {
+    try {
+      if (!duplicatePlanData.nombre_plan || !duplicatePlanData.anio || !duplicatePlanData.mes) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Campos incompletos',
+          text: 'Por favor complete todos los campos'
+        });
+        return;
+      }
+
+      setLoading(true);
+      const plan = planToDuplicate;
+
+      // 1. Crear el nuevo plan con los datos del modal
+      const { data: newPlan, error: createPlanError } = await supabase
+        .from('plan')
+        .insert([{
+          nombre_plan: duplicatePlanData.nombre_plan,
+          anio: duplicatePlanData.anio,
+          mes: duplicatePlanData.mes,
+          estado: 'P', // Pendiente por defecto
+          estado2: null, // Sin estado de aprobación
+          id_campania: plan.id_campania
+        }])
+        .select()
+        .single();
+
+      if (createPlanError) throw createPlanError;
+
+      // Obtener el ID correcto
+      const newPlanId = newPlan.id || newPlan.id_plan;
+
+      if (!newPlanId) throw new Error('No se pudo obtener el ID del nuevo plan');
+
+      // 2. Asociar el nuevo plan a la campaña
+      const { error: relError } = await supabase
+        .from('campana_planes')
+        .insert([{
+          id_campania: plan.id_campania,
+          id_plan: newPlanId
+        }]);
+
+      if (relError) throw relError;
+
+      // 3. Obtener las alternativas del plan original
+      const { data: planAlternativas, error: fetchAltError } = await supabase
+        .from('plan_alternativas')
+        .select('id_alternativa')
+        .eq('id_plan', plan.id);
+
+      if (fetchAltError) throw fetchAltError;
+
+      if (planAlternativas && planAlternativas.length > 0) {
+        const originalAltIds = planAlternativas.map(pa => pa.id_alternativa);
+        
+        if (originalAltIds.length > 0) {
+          // Obtener los detalles completos de las alternativas
+          const { data: fullAlternativas, error: fullAltError } = await supabase
+            .from('alternativa')
+            .select('*')
+            .in('id', originalAltIds);
+
+          if (fullAltError) throw fullAltError;
+
+          if (fullAlternativas && fullAlternativas.length > 0) {
+            // Preparar las nuevas alternativas
+            // IMPORTANTE: Actualizar el año y mes en las alternativas también para que coincidan con el plan
+            const newAlternativasData = fullAlternativas.map(alt => {
+              const { id, created_at, numerorden, copia, ...rest } = alt;
+              return {
+                ...rest,
+                anio: duplicatePlanData.anio, // Actualizar con el año seleccionado
+                mes: duplicatePlanData.mes,   // Actualizar con el mes seleccionado
+                numerorden: null,
+                copia: null
+              };
+            });
+
+            // Insertar nuevas alternativas
+            const { data: createdAlternativas, error: insertAltError } = await supabase
+              .from('alternativa')
+              .insert(newAlternativasData)
+              .select('id');
+
+            if (insertAltError) throw insertAltError;
+
+            // 4. Asociar nuevas alternativas al nuevo plan
+            if (createdAlternativas && createdAlternativas.length > 0) {
+              const newPlanAlternativasRel = createdAlternativas.map(alt => ({
+                id_plan: newPlanId,
+                id_alternativa: alt.id
+              }));
+
+              const { error: linkError } = await supabase
+                .from('plan_alternativas')
+                .insert(newPlanAlternativasRel);
+
+              if (linkError) throw linkError;
+            }
+          }
+        }
+      }
+
+      await fetchPlanes();
+      setOpenDuplicatePlanModal(false);
+      setPlanToDuplicate(null);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Duplicado!',
+        text: 'El plan ha sido duplicado exitosamente.',
+        showConfirmButton: false,
+        timer: 1500
+      });
+
+    } catch (error) {
+      console.error('Error al duplicar plan:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo duplicar el plan: ' + error.message
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchAniosYMeses = async () => {
     try {
       const [aniosResult, mesesResult] = await Promise.all([
@@ -700,6 +846,13 @@ const Planificacion = () => {
     setEditingPlan(prev => ({
       ...prev,
       [field]: event.target.value
+    }));
+  };
+
+  const handleDuplicatePlanChange = (field, value) => {
+    setDuplicatePlanData(prev => ({
+      ...prev,
+      [field]: value
     }));
   };
 
@@ -1510,6 +1663,14 @@ const Planificacion = () => {
                                 <CancelIcon />
                               </IconButton>
                               <IconButton
+                                color="primary"
+                                onClick={() => handleDuplicatePlan(plan)}
+                                size="small"
+                                title="Duplicar plan"
+                              >
+                                <ContentCopyIcon />
+                              </IconButton>
+                              <IconButton
                                 color="error"
                                 onClick={() => handleDeletePlan(plan)}
                                 size="small"
@@ -1959,6 +2120,90 @@ const Planificacion = () => {
               disabled={loading || !nuevoTema.NombreTema || !nuevoTema.id_medio}
             >
               {loading ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Modal de Duplicar Plan */}
+        <Dialog 
+          open={openDuplicatePlanModal} 
+          onClose={() => setOpenDuplicatePlanModal(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            Duplicar Plan
+          </DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Nombre del Nuevo Plan"
+                  value={duplicatePlanData.nombre_plan}
+                  onChange={(e) => handleDuplicatePlanChange('nombre_plan', e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <TitleIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Año</InputLabel>
+                  <Select
+                    value={duplicatePlanData.anio}
+                    label="Año"
+                    onChange={(e) => handleDuplicatePlanChange('anio', e.target.value)}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <CalendarMonthIcon />
+                      </InputAdornment>
+                    }
+                  >
+                    {anios.map((anio) => (
+                      <MenuItem key={anio.id} value={anio.id}>
+                        {anio.years}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Mes</InputLabel>
+                  <Select
+                    value={duplicatePlanData.mes}
+                    label="Mes"
+                    onChange={(e) => handleDuplicatePlanChange('mes', e.target.value)}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <EventNoteIcon />
+                      </InputAdornment>
+                    }
+                  >
+                    {meses.map((mes) => (
+                      <MenuItem key={mes.Id} value={mes.Id}>
+                        {mes.Nombre}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDuplicatePlanModal(false)}>Cancelar</Button>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleConfirmDuplicate}
+              disabled={loading}
+            >
+              {loading ? 'Duplicando...' : 'Duplicar'}
             </Button>
           </DialogActions>
         </Dialog>
