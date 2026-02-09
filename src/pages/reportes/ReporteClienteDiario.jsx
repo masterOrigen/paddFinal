@@ -311,13 +311,19 @@ const ReporteClienteDiario = () => {
                     ? orden.plan?.mes
                     : filtros.mes;
                   const nombreMes = meses.find(m => m.Id === mesId)?.Nombre || '';
-                  const anio = anios.find(a => a.id === filtros.anio)?.years || '';
+                  const anioId = (filtros.cliente && filtros.cliente.id_cliente === 'all')
+                    ? orden.plan?.anio
+                    : filtros.anio;
+                  const anio = anios.find(a => a.id === anioId)?.years || new Date().getFullYear();
 
-                  // Obtener todos los días únicos ordenados
+                  // Calcular el número de días del mes
+                  const daysInMonth = new Date(anio, mesId, 0).getDate();
+
+                  // Obtener todos los días únicos ordenados y filtrar los que excedan el número de días del mes
                   const todosLosDias = [...new Set(rangos.flatMap(r =>
                     r.inicio === r.fin ? [r.inicio] :
                       Array.from({ length: r.fin - r.inicio + 1 }, (_, i) => r.inicio + i)
-                  ))].sort((a, b) => a - b);
+                  ))].filter(dia => dia <= daysInMonth).sort((a, b) => a - b);
 
                   // Agrupar días consecutivos
                   const rangosFinales = [];
@@ -547,12 +553,18 @@ const ReporteClienteDiario = () => {
                     }
 
                     if (Array.isArray(calendarData)) {
+                      // Calcular el número de días del mes para validar
+                      const anioReal = orden.plan?.Anios?.years || new Date().getFullYear();
+                      const mesReal = orden.plan?.mes || (new Date().getMonth() + 1);
+                      const daysInMonth = new Date(anioReal, mesReal, 0).getDate();
+
                       // Cada item del calendar puede tener múltiples avisos
                       // Necesitamos crear una entrada por cada aviso individual
                       calendarData.forEach(item => {
                         if (item.dia) {
                           const diaNum = parseInt(item.dia);
-                          if (!isNaN(diaNum)) {
+                          // Validar que el día no exceda el número de días del mes
+                          if (!isNaN(diaNum) && diaNum <= daysInMonth) {
                             // Si hay un campo de cantidad/avisos, repetir ese día esa cantidad de veces
                             const cantidad = parseInt(item.cantidad || item.avisos || item.spots || 1);
                             for (let i = 0; i < cantidad; i++) {
