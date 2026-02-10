@@ -222,6 +222,13 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
   const esBruto = tipoOrdenData?.NombreTipoOrden === 'Bruto' || tipoOrdenData?.id === 2 || idTipoOrden === 2;
   const isCanceled = order?.estado === 'anulada';
   const isReplaced = order?.estado === 'anulada y remplazada';
+  
+  // Verificar si la orden tiene días seleccionados
+  const hasSelectedDays = alternatives.some(alt => {
+    const calendarArray = Array.isArray(alt.calendar) ? alt.calendar : [];
+    return calendarArray.some(item => parseInt(item.cantidad) > 0);
+  });
+  
   const medioNombre =
     (alternatives.find(a => a?.Contratos?.medio?.NombredelMedio)?.Contratos?.medio?.NombredelMedio) ||
     (alternatives.find(a => a?.Contratos?.Medios?.NombredelMedio)?.Contratos?.Medios?.NombredelMedio) ||
@@ -383,6 +390,10 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         const totalDias = (Array.isArray(alt.calendar) ? alt.calendar : [])
             .filter(item => parseInt(item.dia) <= totalDays)
             .reduce((sum, item) => sum + (parseInt(item.cantidad) || 0), 0);
+        
+        // Si la orden está anulada o no tiene días seleccionados, mostrar valores en 0
+        const shouldShowZero = isCanceled || !hasSelectedDays || totalDias === 0;
+        
         return (
             <View key={index} style={styles.tableRow}>
                 <Text style={{ padding:4, width: 100, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
@@ -436,26 +447,93 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                     {totalDias}
                 </Text>
                 <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    ${((isCanceled ? 0 : alt.total_bruto) || 0).toLocaleString('es-CL')}
+                    ${(shouldShowZero ? 0 : (alt.total_bruto || 0)).toLocaleString('es-CL')}
                 </Text>
                 <Text style={{ padding:4, width: 30, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    {isCanceled ? 0 : (alt.descuento_pl || 0)}
+                    {shouldShowZero ? 0 : (alt.descuento_pl || 0)}
                 </Text>
                 <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    ${((isCanceled ? 0 : (alt.valor_unitario / (totalDias || 1))) || 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })}
+                    ${(shouldShowZero ? 0 : (alt.valor_unitario / (totalDias || 1))).toLocaleString('es-CL', { maximumFractionDigits: 0 })}
                 </Text>
                 <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    ${((isCanceled ? 0 : (esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0))) || 0).toLocaleString('es-CL')}
+                    ${(shouldShowZero ? 0 : (esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0))).toLocaleString('es-CL')}
                 </Text>
             </View>
         );
     })}
+
+    {/* Fila de TOTALES */}
+    <View style={[styles.tableRow, { backgroundColor: '#e8f4f8' }]}>
+        <Text style={{ padding:4, width: 100, fontSize:7, fontWeight: 'bold', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+            TOTALES
+        </Text>
+        <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </Text>
+        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </Text>
+        <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </Text>
+        {/* Totales por día */}
+        {(() => {
+            return (
+                <>
+                    {Array.from({ length: totalDays }, (_, i) => {
+                        const day = (i + 1).toString().padStart(2, '0');
+                        const totalForDay = alternatives.reduce((sum, alt) => {
+                            const calendarArray = Array.isArray(alt.calendar) ? alt.calendar : [];
+                            const calendarItem = calendarArray.find(c => c.dia === day);
+                            return sum + (parseInt(calendarItem?.cantidad) || 0);
+                        }, 0);
+                        return (
+                            <View key={i} style={[styles.tableCellContainer, { backgroundColor: '#e8f4f8' }]}>
+                                <Text style={[styles.cellText, { fontWeight: 'bold' }]}>
+                                    {totalForDay > 0 ? totalForDay : ''}
+                                </Text>
+                            </View>
+                        );
+                    })}
+                    {/* Celdas vacías para completar hasta 31 días si es necesario */}
+                    {totalDays < 31 && Array.from({ length: 31 - totalDays }, (_, i) => (
+                        <View key={`empty-total-${i}`} style={[styles.tableCellContainer, { backgroundColor: '#e8f4f8' }]}>
+                            <Text style={styles.cellText}>-</Text>
+                        </View>
+                    ))}
+                </>
+            );
+        })()}
+        <Text style={{ padding:4, width: 35, fontSize:7, fontWeight: 'bold', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+            {alternatives.reduce((sum, alt) => {
+                const totalDias = (Array.isArray(alt.calendar) ? alt.calendar : [])
+                    .filter(item => parseInt(item.dia) <= totalDays)
+                    .reduce((s, item) => s + (parseInt(item.cantidad) || 0), 0);
+                return sum + totalDias;
+            }, 0)}
+        </Text>
+        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </Text>
+        <Text style={{ padding:4, width: 30, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </Text>
+        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </Text>
+        <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </Text>
+    </View>
 </View>
 
 <View style={styles.totalsContainer}>
   {(() => {
     const isCanceled = order?.estado === 'anulada';
-    const sumBase = isCanceled ? 0 : Math.round(alternatives.reduce((sum, alt) => {
+    
+    // Verificar si hay días seleccionados en todas las alternativas
+    const hasSelectedDays = alternatives.some(alt => {
+      const calendarArray = Array.isArray(alt.calendar) ? alt.calendar : [];
+      return calendarArray.some(item => parseInt(item.cantidad) > 0);
+    });
+    
+    // Si está anulada o no tiene días seleccionados, mostrar 0
+    const shouldShowZero = isCanceled || !hasSelectedDays;
+    
+    const sumBase = shouldShowZero ? 0 : Math.round(alternatives.reduce((sum, alt) => {
         const val = esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0);
         return sum + val;
     }, 0));
