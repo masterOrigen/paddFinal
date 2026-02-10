@@ -91,9 +91,19 @@ const RevisarOrden = () => {
                 return false;
             }
             
-            // Filtro por estado
-            if (orderStatusFilter && order.estado !== orderStatusFilter) {
-                return false;
+            // Filtro por estado - si se filtra por "activa", incluir también las que tienen estado null
+            if (orderStatusFilter) {
+                if (orderStatusFilter === 'activa') {
+                    // Incluir órdenes con estado 'activa' o null/undefined
+                    if (order.estado !== 'activa' && order.estado !== null && order.estado !== undefined) {
+                        return false;
+                    }
+                } else {
+                    // Para otros estados, comparación exacta
+                    if (order.estado !== orderStatusFilter) {
+                        return false;
+                    }
+                }
             }
             
             return true;
@@ -1434,37 +1444,37 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 														sx={{
 															display: 'inline-block',
 															backgroundColor: 
-																order.estado === 'activa' ? '#4caf50' : 
+																(order.estado === 'activa' || !order.estado) ? '#4caf50' : 
 																order.estado === 'anulada' ? '#f44336' : 
 																order.estado === 'anulada y remplazada' ? '#795548' : 
 																'transparent',
 															color: 
-																order.estado === 'activa' || 
+																(order.estado === 'activa' || !order.estado) || 
 																order.estado === 'anulada' || 
 																order.estado === 'anulada y remplazada' 
 																	? 'white' 
 																	: 'inherit',
 															fontWeight: 
-																order.estado === 'activa' || 
+																(order.estado === 'activa' || !order.estado) || 
 																order.estado === 'anulada' || 
 																order.estado === 'anulada y remplazada' 
 																	? 'bold' 
 																	: 'normal',
 															padding: 
-																order.estado === 'activa' || 
+																(order.estado === 'activa' || !order.estado) || 
 																order.estado === 'anulada' || 
 																order.estado === 'anulada y remplazada' 
 																	? '4px 12px' 
 																	: '0',
 															borderRadius: 
-																order.estado === 'activa' || 
+																(order.estado === 'activa' || !order.estado) || 
 																order.estado === 'anulada' || 
 																order.estado === 'anulada y remplazada' 
 																	? '4px' 
 																	: '0'
 														}}
 													>
-														{order.estado}
+														{order.estado || 'activa'}
 													</Box>
 												</TableCell>
 											</TableRow>
