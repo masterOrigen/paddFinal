@@ -12,13 +12,16 @@ const styles = StyleSheet.create({
   },
 
 dayName: {
-	fontSize:6,
-	marginBottom: 4, // Espacio entre el nombre y el número
-	textAlign: 'center'
+	fontSize: 5,
+	marginBottom: 2,
+	textAlign: 'center',
+	width: '100%'
 },
 dayNumber: {
-	fontSize:6,
-	textAlign: 'center'
+	fontSize: 6,
+	textAlign: 'center',
+	width: '100%',
+	fontWeight: 'bold'
 },
 
 header: {
@@ -97,19 +100,29 @@ header: {
     fontWeight: 'bold'
   },
   tableCellContainer: {
-    width: 17,
-    padding: 2,
+    width: 20,
+    minWidth: 20,
+    maxWidth: 20,
+    minHeight: 24,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
     borderRightColor: '#333',
     borderBottomWidth: 1,
-    borderBottomColor: '#333'
+    borderBottomColor: '#333',
+    display: 'flex',
+    flexDirection: 'column'
   },
   cellText: {
     textAlign: 'center',
-    fontSize: 7,
-    color: '#333333'
+    fontSize: 6,
+    color: '#333333',
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   centerColumn: {
     alignItems: 'center',
@@ -379,8 +392,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                  <Text style={styles.dayName}>-</Text>
              </View>
         ))}
-        <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Total días</Text>
-        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Tarifa Bruta</Text>
+        <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Total AVI</Text>
+        <Text style={{ padding:4, width: 55, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Tarifa Bruta</Text>
         <Text style={{ padding:4, width: 30, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Dto</Text>
         <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Tarifa Nego.</Text>
         <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>{esBruto ? 'Total Gral' : 'Total Neto'}</Text>
@@ -396,28 +409,36 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         
         return (
             <View key={index} style={styles.tableRow}>
-                <Text style={{ padding:4, width: 100, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                <View style={{ padding: 4, width: 100, justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7 }}>
                         <Text style={styles.themeTitle}>
                             TEMA: {alt.Temas?.NombreTema}{'\n'}
                         </Text>
-                    {upper(alt.Programas?.descripcion)}
-                    {alt.detalle && (
-                        <Text>
-                            {'\n'}
-                            <Text style={styles.themeTitle}>DETALLE: </Text>
-                            {upper(alt.detalle)}
-                        </Text>
-                    )}
-                </Text>
-                <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    {`${upper(alt.horario_inicio || alt.Programas?.hora_inicio)} - ${upper(alt.horario_fin || alt.Programas?.hora_fin)}`}
-                </Text>
-                <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    {upper(alt.Temas?.CodigoMegatime || alt.Temas?.codigo_megatime)}
-                </Text>
-                <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    {upper(alt.Temas?.Duracion)}
-                </Text>
+                        {upper(alt.Programas?.descripcion)}
+                        {alt.detalle && (
+                            <Text>
+                                {'\n'}
+                                <Text style={styles.themeTitle}>DETALLE: </Text>
+                                {upper(alt.detalle)}
+                            </Text>
+                        )}
+                    </Text>
+                </View>
+                <View style={{ padding: 4, width: 50, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>
+                        {`${upper(alt.horario_inicio || alt.Programas?.hora_inicio)} - ${upper(alt.horario_fin || alt.Programas?.hora_fin)}`}
+                    </Text>
+                </View>
+                <View style={{ padding: 4, width: 45, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>
+                        {upper(alt.Temas?.CodigoMegatime || alt.Temas?.codigo_megatime)}
+                    </Text>
+                </View>
+                <View style={{ padding: 4, width: 35, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>
+                        {upper(alt.Temas?.Duracion)}
+                    </Text>
+                </View>
                 {/* Calendar cells */}
                 {(() => {
                     return (
@@ -443,36 +464,36 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                         </>
                     );
                 })()}
-                <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    {totalDias}
-                </Text>
-                <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    ${(shouldShowZero ? 0 : (alt.total_bruto || 0)).toLocaleString('es-CL')}
-                </Text>
-                <Text style={{ padding:4, width: 30, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    {shouldShowZero ? 0 : (alt.descuento_pl || 0)}
-                </Text>
-                <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    ${(shouldShowZero ? 0 : (alt.valor_unitario / (totalDias || 1))).toLocaleString('es-CL', { maximumFractionDigits: 0 })}
-                </Text>
-                <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    ${(shouldShowZero ? 0 : (esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0))).toLocaleString('es-CL')}
-                </Text>
+                <View style={{ width: 35, padding: 4, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>{totalDias}</Text>
+                </View>
+                <View style={{ width: 55, padding: 4, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>${(shouldShowZero ? 0 : (alt.total_bruto || 0)).toLocaleString('es-CL')}</Text>
+                </View>
+                <View style={{ width: 30, padding: 4, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>{shouldShowZero ? 0 : (alt.descuento_pl || 0)}</Text>
+                </View>
+                <View style={{ width: 45, padding: 4, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>${(shouldShowZero ? 0 : (alt.valor_unitario / (totalDias || 1))).toLocaleString('es-CL', { maximumFractionDigits: 0 })}</Text>
+                </View>
+                <View style={{ width: 50, padding: 4, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>${(shouldShowZero ? 0 : (esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0))).toLocaleString('es-CL')}</Text>
+                </View>
             </View>
         );
     })}
 
     {/* Fila de TOTALES */}
     <View style={[styles.tableRow, { backgroundColor: '#e8f4f8' }]}>
-        <Text style={{ padding:4, width: 100, fontSize:7, fontWeight: 'bold', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-            TOTALES
-        </Text>
-        <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-        </Text>
-        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-        </Text>
-        <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-        </Text>
+        <View style={{ padding: 4, width: 100, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+            <Text style={{ fontSize: 7, fontWeight: 'bold', textAlign: 'center' }}>TOTALES</Text>
+        </View>
+        <View style={{ padding: 4, width: 50, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </View>
+        <View style={{ padding: 4, width: 45, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </View>
+        <View style={{ padding: 4, width: 35, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </View>
         {/* Totales por día */}
         {(() => {
             return (
@@ -501,22 +522,24 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                 </>
             );
         })()}
-        <Text style={{ padding:4, width: 35, fontSize:7, fontWeight: 'bold', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-            {alternatives.reduce((sum, alt) => {
-                const totalDias = (Array.isArray(alt.calendar) ? alt.calendar : [])
-                    .filter(item => parseInt(item.dia) <= totalDays)
-                    .reduce((s, item) => s + (parseInt(item.cantidad) || 0), 0);
-                return sum + totalDias;
-            }, 0)}
-        </Text>
-        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-        </Text>
-        <Text style={{ padding:4, width: 30, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-        </Text>
-        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-        </Text>
-        <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-        </Text>
+        <View style={{ padding: 4, width: 35, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+            <Text style={{ fontSize: 7, fontWeight: 'bold', textAlign: 'center' }}>
+                {alternatives.reduce((sum, alt) => {
+                    const totalDias = (Array.isArray(alt.calendar) ? alt.calendar : [])
+                        .filter(item => parseInt(item.dia) <= totalDays)
+                        .reduce((s, item) => s + (parseInt(item.cantidad) || 0), 0);
+                    return sum + totalDias;
+                }, 0)}
+            </Text>
+        </View>
+        <View style={{ padding: 4, width: 55, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </View>
+        <View style={{ padding: 4, width: 30, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </View>
+        <View style={{ padding: 4, width: 45, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </View>
+        <View style={{ padding: 4, width: 50, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        </View>
     </View>
 </View>
 
