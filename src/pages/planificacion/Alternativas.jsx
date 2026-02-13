@@ -4099,7 +4099,6 @@ Cancelar
                 onClick={handleOpenAddTemaModal}
                 startIcon={<AddIcon />}
                 size="small"
-                disabled={user?.Perfiles?.NombrePerfil === 'Área Planificación'}
               >
                 Agregar
               </Button>
