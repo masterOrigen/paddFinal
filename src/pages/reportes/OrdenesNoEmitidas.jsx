@@ -41,6 +41,7 @@ const OrdenesNoEmitidas = () => {
   const [meses, setMeses] = useState([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(25);
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
     fetchClientes();
@@ -166,25 +167,107 @@ const OrdenesNoEmitidas = () => {
         query = query.eq('plan.mes', filtros.mes);
       }
 
-      // Filtrar órdenes no emitidas (anuladas o reemplazadas)
-      query = query.or('estado.eq.anulada,orden_remplaza.not.is.null');
+      // Filtrar órdenes no emitidas (anuladas o que fueron reemplazadas por otra orden)
+      // Una orden está reemplazada si existe otra orden que la reemplaza
+      query = query.eq('estado', 'anulada');
 
       const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: false });
 
       if (error) throw error;
 
+      // Ahora buscar órdenes que fueron reemplazadas
+      // Una orden fue reemplazada si existe otra orden con orden_remplaza apuntando a ella
+      const { data: todasLasOrdenes } = await supabase
+        .from('OrdenesDePublicidad')
+        .select('id_ordenes_de_comprar, orden_remplaza')
+        .not('orden_remplaza', 'is', null);
+
+      // Crear un Set de IDs de órdenes que fueron reemplazadas
+      const ordenesReemplazadasIds = new Set(
+        todasLasOrdenes?.map(o => o.orden_remplaza).filter(Boolean) || []
+      );
+
+      // Buscar las órdenes reemplazadas con sus datos completos
+      let ordenesReemplazadas = [];
+      if (ordenesReemplazadasIds.size > 0) {
+        let queryReemplazadas = supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            created_at,
+            numero_correlativo,
+            estado,
+            copia,
+            usuario_registro,
+            orden_remplaza,
+            alternativas_plan_orden,
+            Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto,
+              Clientes (id_cliente, nombreCliente, RUT, razonSocial),
+              Productos!id_Producto (id, NombreDelProducto)
+            ),
+            Contratos (id, NombreContrato, num_contrato, IdProveedor,
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial)
+            ),
+            Soportes (id_soporte, nombreIdentficiador, id_medios,
+              Medios!left (id, NombredelMedio)
+            ),
+            plan!inner (id, nombre_plan, anio, mes,
+              Anios!anio (id, years),
+              Meses (Id, Nombre)
+            )
+          `)
+          .in('id_ordenes_de_comprar', Array.from(ordenesReemplazadasIds));
+
+        // Aplicar los mismos filtros
+        if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+          queryReemplazadas = queryReemplazadas.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
+        }
+        if (filtros.anio) {
+          queryReemplazadas = queryReemplazadas.eq('plan.anio', filtros.anio);
+        }
+        if (filtros.mes) {
+          queryReemplazadas = queryReemplazadas.eq('plan.mes', filtros.mes);
+        }
+
+        const { data: dataReemplazadas } = await queryReemplazadas;
+        ordenesReemplazadas = dataReemplazadas || [];
+      }
+
+      // Combinar órdenes anuladas y reemplazadas
+      const todasLasOrdenesNoEmitidas = [...(ordenesData || []), ...ordenesReemplazadas];
+
       // Procesar las órdenes para determinar su estado y motivo
       const ordenesProcesadas = await Promise.all(
-        ordenesData?.map(async (orden) => {
+        todasLasOrdenesNoEmitidas?.map(async (orden) => {
           let motivoNoEmision = '';
           let tarifaBrutaTotal = 0;
+          let fueReemplazada = ordenesReemplazadasIds.has(orden.id_ordenes_de_comprar);
 
           // Determinar el motivo por el que no fue emitida
           if (orden.estado === 'anulada') {
             motivoNoEmision = 'Anulada';
-          } else if (orden.orden_remplaza) {
-            motivoNoEmision = 'Reemplazada por orden #' + orden.numero_correlativo;
-            // Actualizar el estado para que muestre "Reemplazada"
+          } else if (fueReemplazada) {
+            // Buscar qué orden la reemplazó
+            const ordenQueReemplaza = todasLasOrdenes?.find(
+              o => o.orden_remplaza === orden.id_ordenes_de_comprar
+            );
+            if (ordenQueReemplaza) {
+              // Obtener el número correlativo y versión de la orden que reemplaza
+              const { data: ordenReemplazante } = await supabase
+                .from('OrdenesDePublicidad')
+                .select('numero_correlativo, copia')
+                .eq('id_ordenes_de_comprar', ordenQueReemplaza.id_ordenes_de_comprar)
+                .single();
+              
+              if (ordenReemplazante) {
+                motivoNoEmision = `Reemplazada por orden #${ordenReemplazante.numero_correlativo} - ${ordenReemplazante.copia}`;
+              } else {
+                motivoNoEmision = 'Reemplazada';
+              }
+            } else {
+              motivoNoEmision = 'Reemplazada';
+            }
             orden.estado = 'reemplazada';
           }
 
@@ -237,6 +320,7 @@ const OrdenesNoEmitidas = () => {
       anio: '',
       mes: ''
     });
+    setInputValue('');
     setOrdenesNoEmitidas([]);
   };
 
@@ -334,6 +418,7 @@ const OrdenesNoEmitidas = () => {
               size="small"
               options={clientes}
               getOptionLabel={(option) => {
+                if (!option) return '';
                 if (option.id_cliente === 'all') {
                   return 'Todas las Órdenes';
                 }
@@ -347,9 +432,21 @@ const OrdenesNoEmitidas = () => {
                   InputLabelProps={{ shrink: true }}
                 />
               )}
-              value={filtros.cliente}
+              value={filtros.cliente || null}
+              inputValue={inputValue}
+              onInputChange={(event, newInputValue, reason) => {
+                if (reason !== 'reset') {
+                  setInputValue(newInputValue);
+                }
+              }}
               onChange={(event, newValue) => {
-                handleFiltroChange('cliente', newValue);
+                if (newValue) {
+                  handleFiltroChange('cliente', newValue);
+                  setInputValue(newValue.id_cliente === 'all' ? 'Todas las Órdenes' : `${newValue.nombreCliente} - ${newValue.razonSocial}`);
+                } else {
+                  handleFiltroChange('cliente', { id_cliente: 'all', nombreCliente: 'Todas las Órdenes', razonSocial: 'Todas las órdenes no emitidas' });
+                  setInputValue('');
+                }
               }}
               isOptionEqualToValue={(option, value) => option?.id_cliente === value?.id_cliente}
               clearText="Limpiar"
@@ -362,8 +459,8 @@ const OrdenesNoEmitidas = () => {
                   if (option.id_cliente === 'all') {
                     return 'todas las órdenes'.includes(inputLower);
                   }
-                  return option.nombreCliente.toLowerCase().includes(inputLower) ||
-                    option.razonSocial.toLowerCase().includes(inputLower);
+                  return option.nombreCliente?.toLowerCase().includes(inputLower) ||
+                    option.razonSocial?.toLowerCase().includes(inputLower);
                 });
               }}
             />
@@ -501,8 +598,8 @@ const OrdenesNoEmitidas = () => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={orden.orden_remplaza ? 'Reemplazada' : (orden.estado === 'anulada' ? 'Anulada' : 'ACTIVA')}
-                          color={orden.orden_remplaza ? 'warning' : (orden.estado === 'anulada' ? 'error' : 'default')}
+                          label={orden.estado === 'reemplazada' ? 'Reemplazada' : (orden.estado === 'anulada' ? 'Anulada' : 'ACTIVA')}
+                          color={orden.estado === 'reemplazada' ? 'warning' : (orden.estado === 'anulada' ? 'error' : 'default')}
                           size="small"
                           sx={{ fontSize: '0.7rem', height: '24px' }}
                         />
