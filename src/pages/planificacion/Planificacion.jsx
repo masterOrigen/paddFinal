@@ -514,7 +514,6 @@ const Planificacion = () => {
                 anio: duplicatePlanData.anio, // Actualizar con el año seleccionado
                 mes: duplicatePlanData.mes,   // Actualizar con el mes seleccionado
                 numerorden: null,
-                id_orden: null,
                 ordencreada: null,
                 copia: null
               };
