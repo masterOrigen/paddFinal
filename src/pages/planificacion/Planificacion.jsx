@@ -500,7 +500,8 @@ const Planificacion = () => {
           const { data: fullAlternativas, error: fullAltError } = await supabase
             .from('alternativa')
             .select('*')
-            .in('id', originalAltIds);
+            .in('id', originalAltIds)
+            .or('anulada.is.null,anulada.eq.false');
 
           if (fullAltError) throw fullAltError;
 
