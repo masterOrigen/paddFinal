@@ -93,7 +93,7 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
                 if (tiposOrdenResponse.error) throw new Error('Error al cargar tipos de orden: ' + tiposOrdenResponse.error.message);
 
                 setProveedores(proveedoresResponse.data || []);
-                setMedios(mediosResponse.data || []);
+                setMedios((mediosResponse.data || []).sort((a, b) => a.NombredelMedio.localeCompare(b.NombredelMedio)));
                 setFormasPago(formasPagoResponse.data || []);
                 setTiposOrden(tiposOrdenResponse.data || []);
 
@@ -185,7 +185,8 @@ const ModalAgregarContrato = ({ open, onClose, onContratoAdded, clienteId, clien
                 }))
                 .filter((proveedor, index, self) => // Eliminamos duplicados
                     index === self.findIndex((p) => p.id_proveedor === proveedor.id_proveedor)
-                );
+                )
+                .sort((a, b) => a.nombreProveedor.localeCompare(b.nombreProveedor)); // Ordenar alfabéticamente
 
             setProveedoresFiltrados(proveedoresProcesados);
             
