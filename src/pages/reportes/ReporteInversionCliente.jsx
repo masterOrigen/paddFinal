@@ -101,78 +101,125 @@ const ReporteInversionCliente = () => {
     try {
       setLoading(true);
 
-      // Validación: si no es "Todos", entonces año es requerido, mes es opcional
-      if (filtros.cliente && filtros.cliente.id_cliente !== '') {
-        if (!filtros.anio) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Faltan datos',
-            text: 'Por favor seleccione año para un cliente específico',
-            confirmButtonColor: '#1976d2'
-          });
-          return;
+      // Validación: año es requerido siempre
+      if (!filtros.anio) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Faltan datos',
+          text: 'Por favor seleccione un año',
+          confirmButtonColor: '#1976d2'
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Primero, obtener los IDs de planes que coinciden con el año (y mes si aplica)
+      let planQuery = supabase
+        .from('plan')
+        .select('id')
+        .eq('anio', filtros.anio);
+
+      if (filtros.mes && filtros.mes !== 'todos') {
+        planQuery = planQuery.eq('mes', filtros.mes);
+      }
+
+      const { data: planesData, error: planesError } = await planQuery;
+
+      if (planesError) throw planesError;
+
+      if (!planesData || planesData.length === 0) {
+        setOrdenes([]);
+        setLoading(false);
+        return;
+      }
+
+      const planIds = planesData.map(p => p.id);
+
+      // Construir la consulta de órdenes - obtener TODAS sin límite
+      let allOrdenesData = [];
+      const batchSize = 1000;
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batchData, error: batchError } = await supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            created_at,
+            numero_correlativo,
+            estado,
+            copia,
+            usuario_registro,
+            alternativas_plan_orden,
+            id_plan,
+            id_campania,
+            OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
+              Usuarios (id_usuario, Nombre, Email, id_grupo,
+                Grupos (id_grupo, nombre_grupo)
+              )
+            ),
+            Campania (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
+              Clientes (id_cliente, nombreCliente, RUT, razonSocial),
+              Productos!id_Producto (id, NombreDelProducto),
+              Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia, RazonSocial)
+            ),
+            Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor, IdMedios, id_GeneraracionOrdenTipo,
+              FormaDePago (id, NombreFormadePago),
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial),
+              Medios (id, NombredelMedio),
+              TipoGeneracionDeOrden!id_GeneraracionOrdenTipo (id, NombreTipoOrden)
+            ),
+            Soportes (id_soporte, nombreIdentficiador, id_proveedor,
+              Proveedores!id_proveedor (nombreProveedor, rutProveedor, razonSocial)
+            ),
+            plan (id, nombre_plan, anio, mes,
+              Anios!anio (id, years),
+              Meses (Id, Nombre)
+            )
+          `)
+          .in('id_plan', planIds)
+          .order('fechaCreacion', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (batchError) {
+          throw batchError;
+        }
+
+        if (batchData && batchData.length > 0) {
+          allOrdenesData = [...allOrdenesData, ...batchData];
+          from += batchSize;
+          
+          // Si obtuvimos menos registros que el tamaño del batch, ya no hay más
+          if (batchData.length < batchSize) {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
         }
       }
 
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          created_at,
-          numero_correlativo,
-          estado,
-          copia,
-          usuario_registro,
-          alternativas_plan_orden,
-          OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
-            Usuarios (id_usuario, Nombre, Email, id_grupo,
-              Grupos (id_grupo, nombre_grupo)
-            )
-          ),
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
-            Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto),
-            Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia, RazonSocial)
-          ),
-          Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor, IdMedios, id_GeneraracionOrdenTipo,
-            FormaDePago (id, NombreFormadePago),
-            Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial),
-            Medios (id, NombredelMedio),
-            TipoGeneracionDeOrden!id_GeneraracionOrdenTipo (id, NombreTipoOrden)
-          ),
-          Soportes (id_soporte, nombreIdentficiador, id_proveedor,
-            Proveedores!id_proveedor (nombreProveedor, rutProveedor, razonSocial)
-          ),
-          plan!inner (id, nombre_plan, anio, mes,
-            Anios!anio (id, years),
-            Meses (Id, Nombre)
-          )
-        `);
+      // Filtrar órdenes que tienen plan y campaña
+      const ordenesFiltradas = allOrdenesData?.filter(orden => {
+        if (!orden.plan || !orden.Campania) {
+          return false;
+        }
 
-      // Aplicar filtros condicionalmente
-      // Solo filtrar por cliente si no es "Todos"
-      if (filtros.cliente && filtros.cliente.id_cliente !== '') {
-        query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
-      }
+        // Si hay filtro de cliente, verificar que coincida
+        if (filtros.cliente && filtros.cliente.id_cliente !== '') {
+          if (orden.Campania.id_Cliente !== filtros.cliente.id_cliente) {
+            return false;
+          }
+        }
 
-      // Solo filtrar por año y mes si están seleccionados
-      if (filtros.anio) {
-        query = query.eq('plan.anio', filtros.anio);
-      }
-
-      if (filtros.mes && filtros.mes !== 'todos') {
-        query = query.eq('plan.mes', filtros.mes);
-      }
-
-      const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: false });
-
-      if (error) throw error;
+        return true;
+      }) || [];
 
       // Identificar y marcar órdenes por versión (similar a ReporteClienteDiario)
       // Agrupar órdenes por número correlativo
       const ordenesPorNumero = {};
-      ordenesData?.forEach(orden => {
+      ordenesFiltradas?.forEach(orden => {
         const numOrden = orden.numero_correlativo;
         if (!ordenesPorNumero[numOrden]) {
           ordenesPorNumero[numOrden] = [];
@@ -216,7 +263,7 @@ const ReporteInversionCliente = () => {
 
       // Para cada orden, obtener sus alternativas para calcular el total neto y la tarifa bruta
       const ordenesConTotales = await Promise.all(
-        ordenesData?.map(async (orden) => {
+        ordenesFiltradas?.map(async (orden) => {
           let totalNeto = 0;
           let tarifaBruta = 0;
 
