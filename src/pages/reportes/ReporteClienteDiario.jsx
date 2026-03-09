@@ -153,68 +153,93 @@ const ReporteClienteDiario = () => {
             text: 'Por favor seleccione año y mes para un cliente específico',
             confirmButtonColor: '#1976d2'
           });
+          setLoading(false);
           return;
         }
       }
 
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          created_at,
-          numero_correlativo,
-          estado,
-          copia,
-          usuario_registro,
-          alternativas_plan_orden,
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto,
-            Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto),
-            Agencias!Id_Agencia (id, NombreIdentificador)
-          ),
-          Contratos (id, NombreContrato, num_contrato, IdProveedor, IdMedios, id_GeneraracionOrdenTipo,
-            Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial),
-            Medios (id, NombredelMedio),
-            TipoGeneracionDeOrden!id_GeneraracionOrdenTipo (id, NombreTipoOrden)
-          ),
-          Soportes!left (id_soporte, nombreIdentficiador, id_medios,
-            Medios!left (id, NombredelMedio)
-          ),
-          plan!inner (id, nombre_plan, anio, mes,
-            Anios!anio (id, years),
-            Meses (Id, Nombre)
-          )
-        `);
+      // Obtener TODAS las órdenes sin límite usando paginación
+      let allOrdenesData = [];
+      const batchSize = 1000;
+      let from = 0;
+      let hasMore = true;
 
-      // Aplicar filtros
-      // Solo filtrar por cliente si no está seleccionado "Todos"
-      if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
-        query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
+      while (hasMore) {
+        let query = supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            created_at,
+            numero_correlativo,
+            estado,
+            copia,
+            usuario_registro,
+            alternativas_plan_orden,
+            Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto,
+              Clientes (id_cliente, nombreCliente, RUT, razonSocial),
+              Productos!id_Producto (id, NombreDelProducto),
+              Agencias!Id_Agencia (id, NombreIdentificador)
+            ),
+            Contratos (id, NombreContrato, num_contrato, IdProveedor, IdMedios, id_GeneraracionOrdenTipo,
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial),
+              Medios (id, NombredelMedio),
+              TipoGeneracionDeOrden!id_GeneraracionOrdenTipo (id, NombreTipoOrden)
+            ),
+            Soportes!left (id_soporte, nombreIdentficiador, id_medios,
+              Medios!left (id, NombredelMedio)
+            ),
+            plan!inner (id, nombre_plan, anio, mes,
+              Anios!anio (id, years),
+              Meses (Id, Nombre)
+            )
+          `);
+
+        // Aplicar filtros
+        // Solo filtrar por cliente si no está seleccionado "Todos"
+        if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+          query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
+        }
+
+        // Filtrar por campaña si está seleccionada
+        // Buscar por nombre de campaña en lugar de ID para incluir todas las campañas con el mismo nombre
+        if (filtros.campana) {
+          query = query.eq('Campania.NombreCampania', filtros.campana);
+        }
+
+        // Solo filtrar por año y mes si están seleccionados
+        if (filtros.anio) {
+          query = query.eq('plan.anio', filtros.anio);
+        }
+
+        if (filtros.mes) {
+          query = query.eq('plan.mes', filtros.mes);
+        }
+
+        const { data: batchData, error: batchError } = await query
+          .order('fechaCreacion', { ascending: true })
+          .range(from, from + batchSize - 1);
+
+        if (batchError) {
+          throw batchError;
+        }
+
+        if (batchData && batchData.length > 0) {
+          allOrdenesData = [...allOrdenesData, ...batchData];
+          from += batchSize;
+          
+          // Si obtuvimos menos registros que el tamaño del batch, ya no hay más
+          if (batchData.length < batchSize) {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
       }
-
-      // Filtrar por campaña si está seleccionada
-      // Buscar por nombre de campaña en lugar de ID para incluir todas las campañas con el mismo nombre
-      if (filtros.campana) {
-        query = query.eq('Campania.NombreCampania', filtros.campana);
-      }
-
-      // Solo filtrar por año y mes si están seleccionados
-      if (filtros.anio) {
-        query = query.eq('plan.anio', filtros.anio);
-      }
-
-      if (filtros.mes) {
-        query = query.eq('plan.mes', filtros.mes);
-      }
-
-      const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: true });
-
-      if (error) throw error;
 
       // Para cada orden, obtener sus alternativas para calcular las fechas de exhibición
       const ordenesConFechasExhibicion = await Promise.all(
-        ordenesData?.map(async (orden) => {
+        allOrdenesData?.map(async (orden) => {
           let fechasExhibicion = '';
           let tarifaBrutaTotal = 0;
           let tarifaNetaTotal = 0;
