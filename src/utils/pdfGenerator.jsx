@@ -373,7 +373,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         <Text style={{ padding:4, width: 100, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Programas</Text>
         <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Hora</Text>
         <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Cod. Megatime</Text>
-        <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Seg/Clas</Text>
+        <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Seg/{'\n'}Clas</Text>
         
         {Array.from({ length: totalDays }, (_, i) => {
             const day = i + 1;
