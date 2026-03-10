@@ -372,7 +372,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     <View style={[styles.tableRow, styles.tableHeader]}>
         <Text style={{ padding:4, width: 100, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Programas</Text>
         <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Hora</Text>
-        <Text style={{ padding:4, width: 45, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Cod.{'\n'}Megatime</Text>
+        <Text style={{ padding:4, width: 50, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Cod. Megatime</Text>
         <Text style={{ padding:4, width: 35, fontSize:7, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>Seg/Clas</Text>
         
         {Array.from({ length: totalDays }, (_, i) => {
@@ -429,9 +429,18 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                         {`${upper(alt.horario_inicio || alt.Programas?.hora_inicio)} - ${upper(alt.horario_fin || alt.Programas?.hora_fin)}`}
                     </Text>
                 </View>
-                <View style={{ padding: 4, width: 45, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+                <View style={{ padding: 4, width: 50, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
                     <Text style={{ fontSize: 7, textAlign: 'center' }}>
-                        {upper(alt.Temas?.CodigoMegatime || alt.Temas?.codigo_megatime)}
+                        {(() => {
+                            const codigo = alt.Temas?.CodigoMegatime || alt.Temas?.codigo_megatime || '';
+                            if (!codigo) return '';
+                            // Si ya tiene COD: al inicio, solo agregar salto de línea después de los dos puntos
+                            if (codigo.toUpperCase().startsWith('COD:')) {
+                                return codigo.replace(/^COD:/i, `COD:${'\n'}`);
+                            }
+                            // Si no tiene COD:, agregarlo con salto de línea
+                            return `COD:${'\n'}${codigo}`;
+                        })()}
                     </Text>
                 </View>
                 <View style={{ padding: 4, width: 35, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
@@ -490,7 +499,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         </View>
         <View style={{ padding: 4, width: 50, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
         </View>
-        <View style={{ padding: 4, width: 45, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
+        <View style={{ padding: 4, width: 50, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
         </View>
         <View style={{ padding: 4, width: 35, borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
         </View>
