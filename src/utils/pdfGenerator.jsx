@@ -254,9 +254,12 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     const month = alternatives[0]?.Meses?.Id || new Date().getMonth() + 1;
     const totalDays = daysInMonth(year, month);
   
+  // Calcular si necesitamos una segunda página basado en el número de filas
+  const needsSecondPage = alternatives.length > 11;
+  
   return (
 	<Document>
-		<Page size={{ width: 800, height:1000  }} orientation="landscape" style={styles.page}>
+		<Page size={{ width: 800, height:1000  }} orientation="landscape" style={styles.page} wrap={false}>
 			<View style={styles.header}>
 				<Text style={styles.headerText}></Text>
         <View style={styles.titleContainer}>
@@ -552,7 +555,76 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     </View>
 </View>
 
-<View style={styles.totalsContainer}>
+{!needsSecondPage && (
+  <>
+    <View style={styles.totalsContainer}>
+      {(() => {
+        const isCanceled = order?.estado === 'anulada';
+        
+        // Verificar si hay días seleccionados en todas las alternativas
+        const hasSelectedDays = alternatives.some(alt => {
+          const calendarArray = Array.isArray(alt.calendar) ? alt.calendar : [];
+          return calendarArray.some(item => parseInt(item.cantidad) > 0);
+        });
+        
+        // Mostrar 0 solo si la orden está anulada/reemplazada Y no tiene días
+        const shouldShowZero = (isCanceled || isReplaced) && !hasSelectedDays;
+        
+        const sumBase = shouldShowZero ? 0 : Math.round(alternatives.reduce((sum, alt) => {
+            const val = esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0);
+            return sum + val;
+        }, 0));
+        const iva = Math.round(sumBase * 0.19);
+        const totalOrden = sumBase + iva;
+        return (
+          <>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{esBruto ? 'TOTAL GRAL:' : 'TOTAL NETO:'}</Text>
+              <Text style={styles.totalValue}>
+                ${sumBase.toLocaleString('es-CL').split(',')[0]}
+              </Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>IVA 19%:</Text>
+              <Text style={styles.totalValue}>
+                ${iva.toLocaleString('es-CL').split(',')[0]}
+              </Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>TOTAL ORDEN($):</Text>
+              <Text style={styles.totalValue}>
+                ${totalOrden.toLocaleString('es-CL').split(',')[0]}
+              </Text>
+            </View>
+          </>
+        );
+      })()}
+    </View>
+    <View style={styles.totalsContainer2}>
+      <View style={{ marginTop: 20, alignItems: 'center' }}>
+        <Text style={{ fontSize: 10, marginBottom: 4, fontWeight: 'bold', color: '#0000fc', textTransform: 'uppercase' }}>
+            {(order?.usuario_registro?.nombre || order?.usuario?.nombre || 'No registrado').toUpperCase()}
+        </Text>
+        <Text style={{ fontSize: 8, color: '#666' }}>
+            {order?.usuario_registro?.email || order?.usuario?.email || 'Sin email'}
+        </Text>
+        <Text style={{ fontSize: 8, color: '#666', marginTop: 5, alignItems: 'center', textAlign: 'center' }}>
+            {(() => {
+                const dateObj = order?.fecha_creacion2 ? new Date(order.fecha_creacion2) : (order?.created_at ? new Date(order.created_at) : new Date());
+                const dateStr = dateObj.toLocaleDateString('es-CL');
+                const timeStr = dateObj.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                return `FECHA DE EMISIÓN: ${dateStr}\nHORA: ${timeStr}`;
+            })()}
+        </Text>
+      </View>
+    </View>
+  </>
+)}
+        </Page>
+
+        {needsSecondPage && (
+          <Page size={{ width: 800, height:1000 }} orientation="landscape" style={styles.page}>
+            <View style={styles.totalsContainer}>
   {(() => {
     const isCanceled = order?.estado === 'anulada';
     
@@ -613,7 +685,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     </Text>
 </View>
 </View>
-        </Page>
+          </Page>
+        )}
     </Document>
 );
 };
