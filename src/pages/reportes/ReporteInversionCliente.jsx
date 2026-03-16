@@ -113,36 +113,15 @@ const ReporteInversionCliente = () => {
         return;
       }
 
-      // Primero, obtener los IDs de planes que coinciden con el año (y mes si aplica)
-      let planQuery = supabase
-        .from('plan')
-        .select('id')
-        .eq('anio', filtros.anio);
-
-      if (filtros.mes && filtros.mes !== 'todos') {
-        planQuery = planQuery.eq('mes', filtros.mes);
-      }
-
-      const { data: planesData, error: planesError } = await planQuery;
-
-      if (planesError) throw planesError;
-
-      if (!planesData || planesData.length === 0) {
-        setOrdenes([]);
-        setLoading(false);
-        return;
-      }
-
-      const planIds = planesData.map(p => p.id);
-
-      // Construir la consulta de órdenes - obtener TODAS sin límite
+      // Construir la consulta de órdenes directamente con filtros de plan
       let allOrdenesData = [];
       const batchSize = 1000;
       let from = 0;
       let hasMore = true;
 
       while (hasMore) {
-        const { data: batchData, error: batchError } = await supabase
+        // Construir query base
+        let query = supabase
           .from('OrdenesDePublicidad')
           .select(`
             id_ordenes_de_comprar,
@@ -174,12 +153,26 @@ const ReporteInversionCliente = () => {
             Soportes (id_soporte, nombreIdentficiador, id_proveedor,
               Proveedores!id_proveedor (nombreProveedor, rutProveedor, razonSocial)
             ),
-            plan (id, nombre_plan, anio, mes,
+            plan!inner (id, nombre_plan, anio, mes,
               Anios!anio (id, years),
               Meses (Id, Nombre)
             )
-          `)
-          .in('id_plan', planIds)
+          `);
+
+        // Aplicar filtro de año usando la relación del plan
+        query = query.eq('plan.anio', filtros.anio);
+
+        // Aplicar filtro de mes si no es "todos"
+        if (filtros.mes && filtros.mes !== 'todos') {
+          query = query.eq('plan.mes', filtros.mes);
+        }
+
+        // Aplicar filtro de cliente si está seleccionado
+        if (filtros.cliente && filtros.cliente.id_cliente !== '') {
+          query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
+        }
+
+        const { data: batchData, error: batchError } = await query
           .order('fechaCreacion', { ascending: false })
           .range(from, from + batchSize - 1);
 
@@ -200,23 +193,21 @@ const ReporteInversionCliente = () => {
         }
       }
 
-      // Filtrar órdenes que tienen plan y campaña
+      // Filtrar órdenes que tienen plan y campaña, y están activas
       const ordenesFiltradas = allOrdenesData?.filter(orden => {
         if (!orden.plan || !orden.Campania) {
           return false;
         }
 
-        // Si hay filtro de cliente, verificar que coincida
-        if (filtros.cliente && filtros.cliente.id_cliente !== '') {
-          if (orden.Campania.id_Cliente !== filtros.cliente.id_cliente) {
-            return false;
-          }
+        // FILTRO PRINCIPAL: Solo mostrar órdenes activas (estado = 'activa' o null)
+        if (orden.estado !== 'activa' && orden.estado !== null && orden.estado !== undefined) {
+          return false;
         }
 
         return true;
       }) || [];
 
-      // Identificar y marcar órdenes por versión (similar a ReporteClienteDiario)
+      // Identificar y filtrar solo la versión más reciente de cada orden
       // Agrupar órdenes por número correlativo
       const ordenesPorNumero = {};
       ordenesFiltradas?.forEach(orden => {
@@ -227,7 +218,8 @@ const ReporteInversionCliente = () => {
         ordenesPorNumero[numOrden].push(orden);
       });
 
-      // Para cada grupo de órdenes con el mismo número, encontrar la versión mayor
+      // Para cada grupo de órdenes con el mismo número, mantener solo la versión mayor
+      const ordenesFinales = [];
       Object.keys(ordenesPorNumero).forEach(numOrden => {
         const ordenesMismoNumero = ordenesPorNumero[numOrden];
 
@@ -244,26 +236,21 @@ const ReporteInversionCliente = () => {
             }
           });
 
-          // Marcar la de versión mayor como activa y las demás como anuladas
-          ordenesMismoNumero.forEach(orden => {
-            if (orden === ordenActiva) {
-              // Si la orden ya viene anulada de BD, respetamos ese estado
-              if (orden.estado !== 'anulada') {
-                orden.estado = 'activa';
-              }
-            } else {
-              orden.estado = 'anulada';
-            }
-          });
+          // Solo agregar la orden con la versión mayor
+          if (ordenActiva) {
+            ordenActiva.estado = ordenActiva.estado || 'activa';
+            ordenesFinales.push(ordenActiva);
+          }
         } else {
-          // Si solo hay una orden, marcarla como activa por defecto
+          // Si solo hay una orden, agregarla
           ordenesMismoNumero[0].estado = ordenesMismoNumero[0].estado || 'activa';
+          ordenesFinales.push(ordenesMismoNumero[0]);
         }
       });
 
       // Para cada orden, obtener sus alternativas para calcular el total neto y la tarifa bruta
       const ordenesConTotales = await Promise.all(
-        ordenesFiltradas?.map(async (orden) => {
+        ordenesFinales?.map(async (orden) => {
           let totalNeto = 0;
           let tarifaBruta = 0;
 
@@ -337,10 +324,8 @@ const ReporteInversionCliente = () => {
       // Dar tiempo para renderizar
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Filtrar órdenes anuladas antes de exportar
-      const ordenesNoAnuladas = ordenes.filter(orden => orden.estado !== 'anulada');
-
-      const dataToExport = ordenesNoAnuladas.map(orden => {
+      // Ya no es necesario filtrar órdenes anuladas porque solo tenemos activas
+      const dataToExport = ordenes.map(orden => {
         // Determinar si el contrato es Neto (id=1) o Bruto (id=2)
         const tipoOrden = orden.Contratos?.id_GeneraracionOrdenTipo || 1;
         const esNeto = tipoOrden === 1;
