@@ -407,8 +407,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
             .filter(item => parseInt(item.dia) <= totalDays)
             .reduce((sum, item) => sum + (parseInt(item.cantidad) || 0), 0);
         
-        // Mostrar valores en 0 si la orden está anulada/reemplazada Y no tiene días
-        const shouldShowZero = (isCanceled || isReplaced) && totalDias === 0;
+        // Mostrar valores en 0 si la orden está anulada/reemplazada (sin importar si tiene días)
+        const shouldShowZero = (isCanceled || isReplaced);
         
         return (
             <View key={index} style={styles.tableRow}>
@@ -459,10 +459,12 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                                 const day = (i + 1).toString().padStart(2, '0');
                                 const calendarArray = Array.isArray(alt.calendar) ? alt.calendar : [];
                                 const calendarItem = calendarArray.find(c => c.dia === day);
+                                // No mostrar cantidades si la orden está anulada
+                                const displayValue = shouldShowZero ? '' : (calendarItem?.cantidad || '');
                                 return (
                                     <View key={i} style={styles.tableCellContainer}>
                                         <Text style={styles.cellText}>
-                                            {calendarItem?.cantidad || ''}
+                                            {displayValue}
                                         </Text>
                                     </View>
                                 );
@@ -477,7 +479,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                     );
                 })()}
                 <View style={{ width: 35, padding: 4, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
-                    <Text style={{ fontSize: 7, textAlign: 'center' }}>{totalDias > 0 ? totalDias : 1}</Text>
+                    <Text style={{ fontSize: 7, textAlign: 'center' }}>{shouldShowZero ? '' : (totalDias > 0 ? totalDias : 1)}</Text>
                 </View>
                 <View style={{ width: 55, padding: 4, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
                     <Text style={{ fontSize: 7, textAlign: 'center' }}>${(shouldShowZero ? 0 : (alt.total_bruto || 0)).toLocaleString('es-CL')}</Text>
@@ -517,10 +519,12 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
                             const calendarItem = calendarArray.find(c => c.dia === day);
                             return sum + (parseInt(calendarItem?.cantidad) || 0);
                         }, 0);
+                        // No mostrar totales si la orden está anulada
+                        const displayTotal = (isCanceled || isReplaced) ? '' : (totalForDay > 0 ? totalForDay : '');
                         return (
                             <View key={i} style={[styles.tableCellContainer, { backgroundColor: '#e8f4f8' }]}>
                                 <Text style={[styles.cellText, { fontWeight: 'bold' }]}>
-                                    {totalForDay > 0 ? totalForDay : ''}
+                                    {displayTotal}
                                 </Text>
                             </View>
                         );
@@ -536,7 +540,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
         })()}
         <View style={{ padding: 4, width: 35, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#333', borderBottomWidth: 1, borderBottomColor: '#333' }}>
             <Text style={{ fontSize: 7, fontWeight: 'bold', textAlign: 'center' }}>
-                {alternatives.reduce((sum, alt) => {
+                {(isCanceled || isReplaced) ? '' : alternatives.reduce((sum, alt) => {
                     const totalDias = (Array.isArray(alt.calendar) ? alt.calendar : [])
                         .filter(item => parseInt(item.dia) <= totalDays)
                         .reduce((s, item) => s + (parseInt(item.cantidad) || 0), 0);
@@ -561,14 +565,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
       {(() => {
         const isCanceled = order?.estado === 'anulada';
         
-        // Verificar si hay días seleccionados en todas las alternativas
-        const hasSelectedDays = alternatives.some(alt => {
-          const calendarArray = Array.isArray(alt.calendar) ? alt.calendar : [];
-          return calendarArray.some(item => parseInt(item.cantidad) > 0);
-        });
-        
-        // Mostrar 0 solo si la orden está anulada/reemplazada Y no tiene días
-        const shouldShowZero = (isCanceled || isReplaced) && !hasSelectedDays;
+        // Mostrar 0 si la orden está anulada/reemplazada (sin importar si tiene días)
+        const shouldShowZero = (isCanceled || isReplaced);
         
         const sumBase = shouldShowZero ? 0 : Math.round(alternatives.reduce((sum, alt) => {
             const val = esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0);
@@ -628,14 +626,8 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
   {(() => {
     const isCanceled = order?.estado === 'anulada';
     
-    // Verificar si hay días seleccionados en todas las alternativas
-    const hasSelectedDays = alternatives.some(alt => {
-      const calendarArray = Array.isArray(alt.calendar) ? alt.calendar : [];
-      return calendarArray.some(item => parseInt(item.cantidad) > 0);
-    });
-    
-    // Mostrar 0 solo si la orden está anulada/reemplazada Y no tiene días
-    const shouldShowZero = (isCanceled || isReplaced) && !hasSelectedDays;
+    // Mostrar 0 si la orden está anulada/reemplazada (sin importar si tiene días)
+    const shouldShowZero = (isCanceled || isReplaced);
     
     const sumBase = shouldShowZero ? 0 : Math.round(alternatives.reduce((sum, alt) => {
         const val = esBruto ? ((alt.total_bruto || 0) - (alt.descuento_pl || 0)) : (alt.total_neto || 0);
