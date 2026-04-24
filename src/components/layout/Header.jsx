@@ -38,12 +38,15 @@ const Header = ({ setIsAuthenticated }) => {
   const [userDataOpen, setUserDataOpen] = useState(false);
   const [mensajeDialogOpen, setMensajeDialogOpen] = useState(false);
   const [cerrarMesDialogOpen, setCerrarMesDialogOpen] = useState(false);
+  const [mesesBloqueadosDialogOpen, setMesesBloqueadosDialogOpen] = useState(false);
   const [cierreLoading, setCierreLoading] = useState(false);
+  const [mesesBloqueadosLoading, setMesesBloqueadosLoading] = useState(false);
   const [cierreMeses, setCierreMeses] = useState([]);
   const [cierreAnioId, setCierreAnioId] = useState(null);
   const [cierreAnioYears, setCierreAnioYears] = useState(null);
   const [cierreMesesSeleccionados, setCierreMesesSeleccionados] = useState([]);
   const [cierreMesesCerradosOriginal, setCierreMesesCerradosOriginal] = useState([]);
+  const [mesesBloqueadosRows, setMesesBloqueadosRows] = useState([]);
   const [formData, setFormData] = useState({
     titulo: '',
     mensaje: '',
@@ -135,6 +138,54 @@ const Header = ({ setIsAuthenticated }) => {
       setCerrarMesDialogOpen(false);
     } finally {
       setCierreLoading(false);
+    }
+  };
+
+  const abrirMesesBloqueadosDialog = async () => {
+    try {
+      setMesesBloqueadosLoading(true);
+      setMesesBloqueadosDialogOpen(true);
+
+      const [cerradosResult, aniosResult, mesesResult] = await Promise.all([
+        supabase.from('meses_cerrados').select('anio, mes'),
+        supabase.from('Anios').select('id, years'),
+        supabase.from('Meses').select('Id, Nombre')
+      ]);
+
+      if (cerradosResult.error) throw cerradosResult.error;
+      if (aniosResult.error) throw aniosResult.error;
+      if (mesesResult.error) throw mesesResult.error;
+
+      const aniosMap = new Map((aniosResult.data || []).map(a => [a.id, a.years]));
+      const mesesMap = new Map((mesesResult.data || []).map(m => [m.Id, m.Nombre]));
+
+      const rows = (cerradosResult.data || [])
+        .map(r => ({
+          anioId: r.anio,
+          anioYears: aniosMap.get(r.anio) ?? r.anio,
+          mesId: r.mes,
+          mesNombre: mesesMap.get(r.mes) ?? r.mes
+        }))
+        .sort((a, b) => {
+          const ay = Number(a.anioYears);
+          const by = Number(b.anioYears);
+          if (!Number.isNaN(ay) && !Number.isNaN(by) && ay !== by) return ay - by;
+          if (a.anioYears !== b.anioYears) return String(a.anioYears).localeCompare(String(b.anioYears));
+          return Number(a.mesId) - Number(b.mesId);
+        });
+
+      setMesesBloqueadosRows(rows);
+    } catch (error) {
+      console.error('Error al cargar meses bloqueados:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar los meses bloqueados'
+      });
+      setMesesBloqueadosDialogOpen(false);
+      setMesesBloqueadosRows([]);
+    } finally {
+      setMesesBloqueadosLoading(false);
     }
   };
 
@@ -313,9 +364,19 @@ const Header = ({ setIsAuthenticated }) => {
             variant="outlined"
             size="small"
             onClick={abrirCerrarMesDialog}
-            sx={{ mr: 2, textTransform: 'none' }}
+            sx={{ mr: 1, textTransform: 'none' }}
           >
             Cerrar Mes
+          </Button>
+        )}
+        {user && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={abrirMesesBloqueadosDialog}
+            sx={{ mr: 2, textTransform: 'none' }}
+          >
+            Meses bloqueados
           </Button>
         )}
         <span>Bienvenid@ - {user ? `${user.Nombre} ${user.Apellido}` : 'Usuario'}</span>
@@ -421,8 +482,8 @@ const Header = ({ setIsAuthenticated }) => {
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>
                   Registro de meses cerrados
                 </Typography>
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
+                <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', overflowX: 'hidden' }}>
+                  <Table size="small" sx={{ width: '100%', tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Año</TableCell>
@@ -460,6 +521,52 @@ const Header = ({ setIsAuthenticated }) => {
           <Button variant="contained" onClick={guardarCierreMeses} disabled={cierreLoading || !cierreAnioId}>
             {cierreLoading ? <Typography variant="body2">Guardando...</Typography> : 'Guardar'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={mesesBloqueadosDialogOpen}
+        onClose={() => setMesesBloqueadosDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Meses bloqueados</DialogTitle>
+        <DialogContent>
+          <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', overflowX: 'hidden' }}>
+            <Table size="small" sx={{ width: '100%', tableLayout: 'fixed' }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Año</TableCell>
+                  <TableCell>Mes</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {mesesBloqueadosLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={2} sx={{ color: 'text.secondary' }}>
+                      Cargando...
+                    </TableCell>
+                  </TableRow>
+                ) : mesesBloqueadosRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} sx={{ color: 'text.secondary' }}>
+                      No hay meses bloqueados
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  mesesBloqueadosRows.map((row) => (
+                    <TableRow key={`${row.anioId}-${row.mesId}`}>
+                      <TableCell>{row.anioYears}</TableCell>
+                      <TableCell>{row.mesNombre}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMesesBloqueadosDialogOpen(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 
