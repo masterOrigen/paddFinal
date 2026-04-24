@@ -58,10 +58,13 @@ import Swal from 'sweetalert2';
 const Planificacion = () => {
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem('user'));
-  const isAdmin = Boolean(
-    currentUser?.Perfiles?.Codigo?.toString().toLowerCase().includes('admin') ||
-      currentUser?.Perfiles?.NombrePerfil?.toString().toLowerCase().includes('administr')
-  );
+  const perfilNombre = Array.isArray(currentUser?.Perfiles)
+    ? currentUser?.Perfiles?.[0]?.NombrePerfil
+    : currentUser?.Perfiles?.NombrePerfil;
+  const perfilCodigo = Array.isArray(currentUser?.Perfiles)
+    ? currentUser?.Perfiles?.[0]?.Codigo
+    : currentUser?.Perfiles?.Codigo;
+  const isAdmin = /admin/i.test(String(perfilCodigo ?? '')) || /admin/i.test(String(perfilNombre ?? ''));
   
   const handleClose = () => {
     navigate('/');

@@ -83,10 +83,13 @@ const TIPO_ITEMS = [
 
 const Alternativas = () => {
   const user = JSON.parse(localStorage.getItem('user'));
-  const isAdmin = Boolean(
-    user?.Perfiles?.Codigo?.toString().toLowerCase().includes('admin') ||
-      user?.Perfiles?.NombrePerfil?.toString().toLowerCase().includes('administr')
-  );
+  const perfilNombre = Array.isArray(user?.Perfiles)
+    ? user?.Perfiles?.[0]?.NombrePerfil
+    : user?.Perfiles?.NombrePerfil;
+  const perfilCodigo = Array.isArray(user?.Perfiles)
+    ? user?.Perfiles?.[0]?.Codigo
+    : user?.Perfiles?.Codigo;
+  const isAdmin = /admin/i.test(String(perfilCodigo ?? '')) || /admin/i.test(String(perfilNombre ?? ''));
   const { id } = useParams();
   const navigate = useNavigate();
   const [autoFillCantidades, setAutoFillCantidades] = useState(false);

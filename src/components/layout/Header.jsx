@@ -31,9 +31,9 @@ const Header = ({ setIsAuthenticated }) => {
   const [mensajeDialogOpen, setMensajeDialogOpen] = useState(false);
   const [cerrarMesDialogOpen, setCerrarMesDialogOpen] = useState(false);
   const [cierreLoading, setCierreLoading] = useState(false);
-  const [cierreAnios, setCierreAnios] = useState([]);
   const [cierreMeses, setCierreMeses] = useState([]);
-  const [cierreAnioSeleccionado, setCierreAnioSeleccionado] = useState('');
+  const [cierreAnioId, setCierreAnioId] = useState(null);
+  const [cierreAnioYears, setCierreAnioYears] = useState(null);
   const [cierreMesesSeleccionados, setCierreMesesSeleccionados] = useState([]);
   const [cierreMesesCerradosOriginal, setCierreMesesCerradosOriginal] = useState([]);
   const [formData, setFormData] = useState({
@@ -43,10 +43,13 @@ const Header = ({ setIsAuthenticated }) => {
   const menuRef = useRef();
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
-  const isAdmin = Boolean(
-    user?.Perfiles?.Codigo?.toString().toLowerCase().includes('admin') ||
-      user?.Perfiles?.NombrePerfil?.toString().toLowerCase().includes('administr')
-  );
+  const perfilNombre = Array.isArray(user?.Perfiles)
+    ? user?.Perfiles?.[0]?.NombrePerfil
+    : user?.Perfiles?.NombrePerfil;
+  const perfilCodigo = Array.isArray(user?.Perfiles)
+    ? user?.Perfiles?.[0]?.Codigo
+    : user?.Perfiles?.Codigo;
+  const isAdmin = /admin/i.test(String(perfilCodigo ?? '')) || /admin/i.test(String(perfilNombre ?? ''));
 
   const modules = {
     toolbar: [
@@ -97,20 +100,23 @@ const Header = ({ setIsAuthenticated }) => {
 
       const anios = aniosResult.data || [];
       const meses = mesesResult.data || [];
-      setCierreAnios(anios);
       setCierreMeses(meses);
 
       const currentYear = new Date().getFullYear();
       const yearMatch = anios.find(a => Number(a.years) === Number(currentYear));
-      const defaultYear = yearMatch?.id || anios[anios.length - 1]?.id || '';
-
-      setCierreAnioSeleccionado(defaultYear);
-      if (defaultYear) {
-        await cargarMesesCerradosPorAnio(defaultYear);
-      } else {
-        setCierreMesesCerradosOriginal([]);
-        setCierreMesesSeleccionados([]);
+      if (!yearMatch?.id) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Año no configurado',
+          text: `No existe el año ${currentYear} en la tabla Anios`
+        });
+        setCerrarMesDialogOpen(false);
+        return;
       }
+
+      setCierreAnioId(yearMatch.id);
+      setCierreAnioYears(yearMatch.years);
+      await cargarMesesCerradosPorAnio(yearMatch.id);
     } catch (error) {
       console.error('Error al cargar cierre de mes:', error);
       Swal.fire({
@@ -124,26 +130,13 @@ const Header = ({ setIsAuthenticated }) => {
     }
   };
 
-  useEffect(() => {
-    if (!cerrarMesDialogOpen) return;
-    if (!cierreAnioSeleccionado) return;
-    cargarMesesCerradosPorAnio(cierreAnioSeleccionado).catch((error) => {
-      console.error('Error al cargar meses cerrados:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudieron cargar los meses cerrados'
-      });
-    });
-  }, [cerrarMesDialogOpen, cierreAnioSeleccionado]);
-
   const guardarCierreMeses = async () => {
     try {
-      if (!cierreAnioSeleccionado) {
+      if (!cierreAnioId) {
         Swal.fire({
           icon: 'warning',
           title: 'Año requerido',
-          text: 'Seleccione un año'
+          text: 'No se pudo determinar el año actual'
         });
         return;
       }
@@ -158,7 +151,7 @@ const Header = ({ setIsAuthenticated }) => {
 
       if (toClose.length > 0) {
         const payload = toClose.map(mesId => ({
-          anio: cierreAnioSeleccionado,
+          anio: cierreAnioId,
           mes: mesId
         }));
 
@@ -173,7 +166,7 @@ const Header = ({ setIsAuthenticated }) => {
         const { error } = await supabase
           .from('meses_cerrados')
           .delete()
-          .eq('anio', cierreAnioSeleccionado)
+          .eq('anio', cierreAnioId)
           .in('mes', toOpen);
 
         if (error) throw error;
@@ -364,21 +357,9 @@ const Header = ({ setIsAuthenticated }) => {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Año</InputLabel>
-                <Select
-                  value={cierreAnioSeleccionado}
-                  label="Año"
-                  onChange={(e) => setCierreAnioSeleccionado(e.target.value)}
-                  disabled={cierreLoading}
-                >
-                  {cierreAnios.map((anio) => (
-                    <MenuItem key={anio.id} value={anio.id}>
-                      {anio.years}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Typography variant="body2" color="text.secondary">
+                Año: {cierreAnioYears ?? new Date().getFullYear()}
+              </Typography>
             </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth>
@@ -400,7 +381,7 @@ const Header = ({ setIsAuthenticated }) => {
                       .map(m => m.Nombre)
                       .join(', ');
                   }}
-                  disabled={cierreLoading || !cierreAnioSeleccionado}
+                  disabled={cierreLoading || !cierreAnioId}
                 >
                   {cierreMeses.map((mes) => (
                     <MenuItem key={mes.Id} value={mes.Id}>
@@ -420,7 +401,7 @@ const Header = ({ setIsAuthenticated }) => {
           <Button onClick={() => setCerrarMesDialogOpen(false)} disabled={cierreLoading}>
             Cancelar
           </Button>
-          <Button variant="contained" onClick={guardarCierreMeses} disabled={cierreLoading || !cierreAnioSeleccionado}>
+          <Button variant="contained" onClick={guardarCierreMeses} disabled={cierreLoading || !cierreAnioId}>
             {cierreLoading ? <Typography variant="body2">Guardando...</Typography> : 'Guardar'}
           </Button>
         </DialogActions>
