@@ -617,7 +617,7 @@ const Alternativas = () => {
 
   const handleOpenNuevaAlternativa = () => {
     const planMesCerrado = Boolean(planData && esMesCerrado(planData.anio, planData.mes));
-    const soloLectura = planMesCerrado && !isAdmin;
+    const soloLectura = planMesCerrado;
     if (soloLectura) {
       Swal.fire({
         icon: 'warning',
@@ -1097,12 +1097,12 @@ const Alternativas = () => {
 
     try {
       const planMesCerrado = Boolean(planData && esMesCerrado(planData.anio, planData.mes));
-      const soloLectura = planMesCerrado && !isAdmin;
+      const soloLectura = planMesCerrado;
       if (soloLectura) {
         Swal.fire({
           icon: 'warning',
           title: 'Mes cerrado',
-          text: 'Este mes está cerrado. Solo Administración puede modificar alternativas.'
+          text: 'Este mes está cerrado. No se pueden modificar alternativas.'
         });
         return;
       }
@@ -1170,12 +1170,12 @@ const Alternativas = () => {
   const handleDeleteAlternativa = async (alternativaId) => {
     try {
       const planMesCerrado = Boolean(planData && esMesCerrado(planData.anio, planData.mes));
-      const soloLectura = planMesCerrado && !isAdmin;
+      const soloLectura = planMesCerrado;
       if (soloLectura) {
         Swal.fire({
           icon: 'warning',
           title: 'Mes cerrado',
-          text: 'Este mes está cerrado. Solo Administración puede modificar alternativas.'
+          text: 'Este mes está cerrado. No se pueden modificar alternativas.'
         });
         return;
       }
@@ -1251,12 +1251,12 @@ const Alternativas = () => {
   const handleEditAlternativa = async (alternativaId) => {
     try {
       const planMesCerrado = Boolean(planData && esMesCerrado(planData.anio, planData.mes));
-      const soloLectura = planMesCerrado && !isAdmin;
+      const soloLectura = planMesCerrado;
       if (soloLectura) {
         Swal.fire({
           icon: 'warning',
           title: 'Mes cerrado',
-          text: 'Este mes está cerrado. Solo Administración puede modificar alternativas.'
+          text: 'Este mes está cerrado. No se pueden modificar alternativas.'
         });
         return;
       }
@@ -3174,7 +3174,7 @@ const Alternativas = () => {
   };
 
   const planMesCerrado = Boolean(planData && esMesCerrado(planData.anio, planData.mes));
-  const soloLectura = planMesCerrado && !isAdmin;
+  const soloLectura = planMesCerrado;
 
   return (
     <Container maxWidth="xl">

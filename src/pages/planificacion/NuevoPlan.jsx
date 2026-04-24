@@ -296,7 +296,7 @@ const NuevoPlan = () => {
     try {
       setLoading(true);
 
-      if (!isAdmin && esMesCerrado(planData.anio, planData.mes)) {
+      if (esMesCerrado(planData.anio, planData.mes)) {
         alert('Este mes está cerrado. No se pueden crear planes para meses cerrados.');
         return;
       }

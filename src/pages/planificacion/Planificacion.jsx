@@ -409,6 +409,14 @@ const Planificacion = () => {
   };
 
   const handleDeletePlan = async (plan) => {
+    if (esMesCerrado(plan.anio, plan.mes)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Mes cerrado',
+        text: 'Este plan pertenece a un mes cerrado. No se puede eliminar.'
+      });
+      return;
+    }
     // Verificar si el plan tiene alternativas
     if (plan.plan_alternativas && plan.plan_alternativas.length > 0) {
       Swal.fire({
@@ -471,6 +479,14 @@ const Planificacion = () => {
   };
 
   const handleDuplicatePlan = (plan) => {
+    if (esMesCerrado(plan.anio, plan.mes)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Mes cerrado',
+        text: 'Este plan pertenece a un mes cerrado. No se puede duplicar.'
+      });
+      return;
+    }
     setPlanToDuplicate(plan);
     setDuplicatePlanData({
       nombre_plan: `${plan.nombre_plan} (Copia)`,
@@ -491,7 +507,7 @@ const Planificacion = () => {
         return;
       }
 
-      if (!isAdmin && esMesCerrado(duplicatePlanData.anio, duplicatePlanData.mes)) {
+      if (esMesCerrado(duplicatePlanData.anio, duplicatePlanData.mes)) {
         Swal.fire({
           icon: 'warning',
           title: 'Mes cerrado',
@@ -760,7 +776,7 @@ const Planificacion = () => {
         throw new Error('No hay una campaña seleccionada');
       }
 
-      if (!isAdmin && esMesCerrado(nuevoPlan.anio, nuevoPlan.mes)) {
+      if (esMesCerrado(nuevoPlan.anio, nuevoPlan.mes)) {
         Swal.fire({
           icon: 'warning',
           title: 'Mes cerrado',
@@ -830,6 +846,15 @@ const Planificacion = () => {
 
   const handleUpdatePlanStatus = async (planId, newStatus) => {
     try {
+      const plan = planes.find(p => p.id === planId);
+      if (plan && esMesCerrado(plan.anio, plan.mes)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Mes cerrado',
+          text: 'Este plan pertenece a un mes cerrado. No se pueden cambiar sus acciones.'
+        });
+        return;
+      }
       const { error } = await supabase
         .from('plan')
         .update({ estado2: newStatus })
@@ -855,6 +880,14 @@ const Planificacion = () => {
   };
 
   const handleEditPlan = (plan) => {
+    if (esMesCerrado(plan.anio, plan.mes)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Mes cerrado',
+        text: 'Este plan pertenece a un mes cerrado. No se puede editar.'
+      });
+      return;
+    }
     setEditingPlan({
       id: plan.id,
       nombre_plan: plan.nombre_plan,
@@ -872,20 +905,20 @@ const Planificacion = () => {
     try {
       setLoading(true);
 
-      if (!isAdmin && esMesCerrado(editingPlan.original_anio, editingPlan.original_mes)) {
+      if (esMesCerrado(editingPlan.original_anio, editingPlan.original_mes)) {
         Swal.fire({
           icon: 'warning',
           title: 'Mes cerrado',
-          text: 'Este plan pertenece a un mes cerrado. Solo Administración puede editarlo.'
+          text: 'Este plan pertenece a un mes cerrado. No se puede editar.'
         });
         return;
       }
 
-      if (!isAdmin && esMesCerrado(editingPlan.anio, editingPlan.mes)) {
+      if (esMesCerrado(editingPlan.anio, editingPlan.mes)) {
         Swal.fire({
           icon: 'warning',
           title: 'Mes cerrado',
-          text: 'No se puede mover/editar el plan hacia un mes cerrado. Solo Administración puede editarlo.'
+          text: 'No se puede mover/editar el plan hacia un mes cerrado.'
         });
         return;
       }
@@ -1692,7 +1725,7 @@ const Planificacion = () => {
                         <TableRow key={plan.id}>
                           {(() => {
                             const planMesCerrado = esMesCerrado(plan.anio, plan.mes);
-                            const bloquearAcciones = planMesCerrado && !isAdmin;
+                            const bloquearAcciones = planMesCerrado;
                             return (
                               <>
                           <TableCell>{plan.nombre_plan}</TableCell>
