@@ -11,13 +11,21 @@ import {
   DialogActions,
   TextField,
   Button,
+  Box,
   Grid,
   InputLabel,
   ListItemText,
   MenuItem,
   OutlinedInput,
+  Paper,
   Select,
   FormControl,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography
 } from '@mui/material';
 import ReactQuill from 'react-quill';
@@ -362,10 +370,18 @@ const Header = ({ setIsAuthenticated }) => {
               </Typography>
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Meses a cerrar</InputLabel>
+              <FormControl fullWidth size="small">
+                <InputLabel
+                  id="cierre-meses-label"
+                  shrink
+                  sx={{ backgroundColor: '#fff', px: 0.5 }}
+                >
+                  Meses a cerrar
+                </InputLabel>
                 <Select
                   multiple
+                  labelId="cierre-meses-label"
+                  label="Meses a cerrar"
                   value={cierreMesesSeleccionados}
                   onChange={(e) => {
                     const { value } = e.target;
@@ -382,6 +398,11 @@ const Header = ({ setIsAuthenticated }) => {
                       .join(', ');
                   }}
                   disabled={cierreLoading || !cierreAnioId}
+                  sx={{
+                    '& .MuiSelect-select': {
+                      py: 1.2
+                    }
+                  }}
                 >
                   {cierreMeses.map((mes) => (
                     <MenuItem key={mes.Id} value={mes.Id}>
@@ -394,6 +415,41 @@ const Header = ({ setIsAuthenticated }) => {
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Los meses seleccionados quedarán bloqueados para Planificación (solo lectura). Solo Administración podrá editar.
               </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Registro de meses cerrados
+                </Typography>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Año</TableCell>
+                        <TableCell>Mes</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {cierreMesesCerradosOriginal.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={2} sx={{ color: 'text.secondary' }}>
+                            Sin meses cerrados para este año
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        cierreMeses
+                          .filter(m => cierreMesesCerradosOriginal.includes(m.Id))
+                          .map((mes) => (
+                            <TableRow key={mes.Id}>
+                              <TableCell>{cierreAnioYears ?? new Date().getFullYear()}</TableCell>
+                              <TableCell>{mes.Nombre}</TableCell>
+                            </TableRow>
+                          ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
