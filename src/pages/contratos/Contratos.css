@@ -1,0 +1,61 @@
+.container {
+    padding-left: 240px;
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding-left: 0;
+    }
+}
+
+.MuiContainer-root {
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+    width: calc(100% - 240px) !important;
+    max-width: none !important;
+}
+
+.MuiDataGrid-root {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+}
+
+.action-buttons .MuiIconButton-root {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background-color: transparent !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.action-buttons .view-button {
+    color: #1976d2 !important;
+}
+
+.action-buttons .view-button:hover {
+    background-color: #e3f2fd !important;
+}
+
+.action-buttons .edit-button {
+    color: #388e3c !important;
+}
+
+.action-buttons .edit-button:hover {
+    background-color: #e8f5e9 !important;
+}
+
+.action-buttons .delete-button {
+    color: #d32f2f !important;
+}
+
+.action-buttons .delete-button:hover {
+    background-color: #ffebee !important;
+}
