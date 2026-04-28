@@ -585,18 +585,18 @@ const Header = ({ setIsAuthenticated }) => {
       <Dialog
         open={mesesBloqueadosDialogOpen}
         onClose={() => setMesesBloqueadosDialogOpen(false)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>Meses bloqueados</DialogTitle>
         <DialogContent>
-          <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', overflowX: 'hidden' }}>
-            <Table size="small" sx={{ width: '100%', tableLayout: 'fixed' }}>
+          <TableContainer component={Paper} variant="outlined" sx={{ width: '100%', overflowX: 'auto' }}>
+            <Table size="small" sx={{ width: '100%', tableLayout: 'auto' }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Año</TableCell>
                   <TableCell>Mes</TableCell>
-                  {isAdmin && <TableCell align="right" sx={{ width: 140 }}>Acción</TableCell>}
+                  {isAdmin && <TableCell align="right" sx={{ width: 170, minWidth: 170, whiteSpace: 'nowrap' }}>Acción</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -618,14 +618,14 @@ const Header = ({ setIsAuthenticated }) => {
                       <TableCell>{row.anioYears}</TableCell>
                       <TableCell>{row.mesNombre}</TableCell>
                       {isAdmin && (
-                        <TableCell align="right">
+                        <TableCell align="right" sx={{ width: 170, minWidth: 170, whiteSpace: 'nowrap' }}>
                           <Button
                             variant="outlined"
                             size="small"
                             color="error"
                             onClick={() => handleDesbloquearMes(row)}
                             disabled={desbloqueandoKey === `${row.anioId}-${row.mesId}`}
-                            sx={{ textTransform: 'none' }}
+                            sx={{ textTransform: 'none', whiteSpace: 'nowrap', minWidth: 120 }}
                           >
                             Desbloquear
                           </Button>
