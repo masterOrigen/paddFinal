@@ -596,7 +596,7 @@ const Header = ({ setIsAuthenticated }) => {
                 <TableRow>
                   <TableCell>Año</TableCell>
                   <TableCell>Mes</TableCell>
-                  {isAdmin && <TableCell align="right" sx={{ width: 170, minWidth: 170, whiteSpace: 'nowrap' }}>Acción</TableCell>}
+                  {isAdmin && <TableCell align="center" sx={{ width: 170, minWidth: 170, whiteSpace: 'nowrap' }}>Acción</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -618,7 +618,7 @@ const Header = ({ setIsAuthenticated }) => {
                       <TableCell>{row.anioYears}</TableCell>
                       <TableCell>{row.mesNombre}</TableCell>
                       {isAdmin && (
-                        <TableCell align="right" sx={{ width: 170, minWidth: 170, whiteSpace: 'nowrap' }}>
+                        <TableCell align="center" sx={{ width: 170, minWidth: 170, whiteSpace: 'nowrap' }}>
                           <Button
                             variant="outlined"
                             size="small"
