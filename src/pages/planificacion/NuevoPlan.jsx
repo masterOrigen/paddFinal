@@ -103,6 +103,12 @@ const NuevoPlan = () => {
   };
 
   useEffect(() => {
+    const handler = () => fetchMesesCerrados();
+    window.addEventListener('meses-cerrados-changed', handler);
+    return () => window.removeEventListener('meses-cerrados-changed', handler);
+  }, []);
+
+  useEffect(() => {
     if (selectedCliente) {
       fetchCampanas(selectedCliente.id_cliente);
     }

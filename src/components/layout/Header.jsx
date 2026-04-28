@@ -41,6 +41,7 @@ const Header = ({ setIsAuthenticated }) => {
   const [mesesBloqueadosDialogOpen, setMesesBloqueadosDialogOpen] = useState(false);
   const [cierreLoading, setCierreLoading] = useState(false);
   const [mesesBloqueadosLoading, setMesesBloqueadosLoading] = useState(false);
+  const [desbloqueandoKey, setDesbloqueandoKey] = useState(null);
   const [cierreMeses, setCierreMeses] = useState([]);
   const [cierreAnioId, setCierreAnioId] = useState(null);
   const [cierreAnioYears, setCierreAnioYears] = useState(null);
@@ -186,6 +187,63 @@ const Header = ({ setIsAuthenticated }) => {
       setMesesBloqueadosRows([]);
     } finally {
       setMesesBloqueadosLoading(false);
+    }
+  };
+
+  const handleDesbloquearMes = async (row) => {
+    if (!isAdmin) return;
+
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Desbloquear mes?',
+      text: `Se desbloqueará ${row.mesNombre} ${row.anioYears}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, desbloquear',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6'
+    });
+
+    if (!isConfirmed) return;
+
+    const key = `${row.anioId}-${row.mesId}`;
+    try {
+      setDesbloqueandoKey(key);
+
+      const { error } = await supabase
+        .from('meses_cerrados')
+        .delete()
+        .eq('anio', row.anioId)
+        .eq('mes', row.mesId);
+
+      if (error) throw error;
+
+      setMesesBloqueadosRows(prev =>
+        prev.filter(r => !(r.anioId === row.anioId && r.mesId === row.mesId))
+      );
+
+      if (cerrarMesDialogOpen && cierreAnioId && Number(cierreAnioId) === Number(row.anioId)) {
+        await cargarMesesCerradosPorAnio(cierreAnioId);
+      }
+
+      window.dispatchEvent(new Event('meses-cerrados-changed'));
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Desbloqueado',
+        text: 'El mes fue desbloqueado correctamente',
+        timer: 1200,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      console.error('Error al desbloquear mes:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo desbloquear el mes'
+      });
+    } finally {
+      setDesbloqueandoKey(null);
     }
   };
 
@@ -538,18 +596,19 @@ const Header = ({ setIsAuthenticated }) => {
                 <TableRow>
                   <TableCell>Año</TableCell>
                   <TableCell>Mes</TableCell>
+                  {isAdmin && <TableCell align="right" sx={{ width: 140 }}>Acción</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {mesesBloqueadosLoading ? (
                   <TableRow>
-                    <TableCell colSpan={2} sx={{ color: 'text.secondary' }}>
+                    <TableCell colSpan={isAdmin ? 3 : 2} sx={{ color: 'text.secondary' }}>
                       Cargando...
                     </TableCell>
                   </TableRow>
                 ) : mesesBloqueadosRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} sx={{ color: 'text.secondary' }}>
+                    <TableCell colSpan={isAdmin ? 3 : 2} sx={{ color: 'text.secondary' }}>
                       No hay meses bloqueados
                     </TableCell>
                   </TableRow>
@@ -558,6 +617,20 @@ const Header = ({ setIsAuthenticated }) => {
                     <TableRow key={`${row.anioId}-${row.mesId}`}>
                       <TableCell>{row.anioYears}</TableCell>
                       <TableCell>{row.mesNombre}</TableCell>
+                      {isAdmin && (
+                        <TableCell align="right">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="error"
+                            onClick={() => handleDesbloquearMes(row)}
+                            disabled={desbloqueandoKey === `${row.anioId}-${row.mesId}`}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Desbloquear
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
