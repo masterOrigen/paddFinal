@@ -269,7 +269,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
     </Text>
     {order?.orden_remplaza && (
         <Text style={styles.replacementText2}>
-            ANULA Y REMPLAZA ORDEN N° {order?.numero_correlativo}
+            ANULA Y REEMPLAZA ORDEN N° {order?.numero_correlativo}
             {(Number(order?.copia) - 1) > 0 ? ` / ${Number(order?.copia) - 1}` : ''}
         </Text>
     )}
