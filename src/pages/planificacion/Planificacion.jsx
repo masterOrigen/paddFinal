@@ -136,6 +136,24 @@ const Planificacion = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('anio');
+  const [ocultarAnteriores, setOcultarAnteriores] = useState(false);
+  const anioActual = new Date().getFullYear();
+
+  // Leer el setting de planes desde Supabase
+  useEffect(() => {
+    const fetchSetting = async () => {
+      const { data, error } = await supabase
+        .from('configuracion_settings')
+        .select('valor')
+        .eq('clave', 'planes_ocultar_anteriores')
+        .single();
+
+      if (!error && data) {
+        setOcultarAnteriores(data.valor === 'true');
+      }
+    };
+    fetchSetting();
+  }, []);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -1325,7 +1343,13 @@ const Planificacion = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {campanas.map((campana) => (
+                          {campanas
+                            .filter(campana => {
+                              if (!ocultarAnteriores) return true;
+                              const anioCampana = campana.Anios?.years ? parseInt(campana.Anios.years, 10) : null;
+                              return anioCampana === anioActual;
+                            })
+                            .map((campana) => (
                             <TableRow
                               key={campana.id_campania}
                               onClick={() => handleCampanaClick(campana)}
@@ -1721,7 +1745,13 @@ const Planificacion = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {planes.map((plan) => (
+                      {planes
+                        .filter(plan => {
+                          if (!ocultarAnteriores) return true;
+                          const anioPlan = plan.Anios?.years ? parseInt(plan.Anios.years, 10) : null;
+                          return anioPlan === anioActual;
+                        })
+                        .map((plan) => (
                         <TableRow key={plan.id}>
                           {(() => {
                             const planMesCerrado = esMesCerrado(plan.anio, plan.mes);
