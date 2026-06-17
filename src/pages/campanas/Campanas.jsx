@@ -54,6 +54,25 @@ const Campanas = () => {
     const [selectedCliente, setSelectedCliente] = useState(null);
     const [orderBy, setOrderBy] = useState('years');
     const [orderDirection, setOrderDirection] = useState('asc');
+    const [ocultarAnteriores, setOcultarAnteriores] = useState(false);
+
+    const anioActual = new Date().getFullYear();
+
+    // Leer el setting desde Supabase al montar el componente
+    useEffect(() => {
+        const fetchSetting = async () => {
+            const { data, error } = await supabase
+                .from('configuracion_settings')
+                .select('valor')
+                .eq('clave', 'campanas_ocultar_anteriores')
+                .single();
+
+            if (!error && data) {
+                setOcultarAnteriores(data.valor === 'true');
+            }
+        };
+        fetchSetting();
+    }, []);
 
     useEffect(() => {
         const shouldPersist = localStorage.getItem('campanas_persist_on_return') === '1';
@@ -308,7 +327,11 @@ const Campanas = () => {
         const matchesDateFrom = !dateFrom || fechaCreacion >= new Date(dateFrom);
         const matchesDateTo = !dateTo || fechaCreacion <= new Date(dateTo);
 
-        return matchesSearch && matchesDateFrom && matchesDateTo;
+        // Filtrar por año actual si está activado
+        const anioCampana = campana.Anios?.years ? parseInt(campana.Anios.years, 10) : null;
+        const matchesAnio = !ocultarAnteriores || anioCampana === anioActual;
+
+        return matchesSearch && matchesDateFrom && matchesDateTo && matchesAnio;
     }).sort((a, b) => {
         if (orderBy === 'years') {
             const yearA = parseInt(a.Anios?.years || 0);
