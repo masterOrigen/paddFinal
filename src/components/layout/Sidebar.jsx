@@ -8,10 +8,12 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import UserDataPopup from '../UserDataPopup';
+import ConfiguracionPopup from '../ConfiguracionPopup';
 
 const Sidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [userDataOpen, setUserDataOpen] = useState(false);
+  const [configuracionOpen, setConfiguracionOpen] = useState(false);
   const [user, setUser] = useState(() => {
     const userStr = localStorage.getItem('user');
     try {
@@ -89,6 +91,15 @@ const Sidebar = () => {
       ]
     },
     {
+      id: 'configuracion',
+      icon: 'fas fa-cog',
+      text: 'Configuración',
+      adminOnly: true,
+      submenu: [
+        { text: 'Ajustes del sistema', onClick: () => setConfiguracionOpen(true) }
+      ]
+    },
+    {
       id: 'reportes',
       icon: 'fas fa-chart-bar',
       text: 'Reportes',
@@ -110,6 +121,11 @@ const Sidebar = () => {
         return false;
       }
     }
+
+    if (item.adminOnly && perfil !== 'Administrador') {
+      return false;
+    }
+
     return true;
   });
 
@@ -247,6 +263,7 @@ const Sidebar = () => {
         })}
       </nav>
       <UserDataPopup open={userDataOpen} onClose={() => setUserDataOpen(false)} />
+      <ConfiguracionPopup open={configuracionOpen} onClose={() => setConfiguracionOpen(false)} />
     </div>
   );
 };
