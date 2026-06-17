@@ -50,9 +50,25 @@ const Contratos = () => {
     const [clientes, setClientes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCliente, setSelectedCliente] = useState(null);
+    const [ocultarAnteriores, setOcultarAnteriores] = useState(false);
 
+    const anioActual = new Date().getFullYear();
 
-    
+    // Leer el setting desde Supabase al montar el componente
+    useEffect(() => {
+        const fetchSetting = async () => {
+            const { data, error } = await supabase
+                .from('configuracion_settings')
+                .select('valor')
+                .eq('clave', 'contratos_ocultar_anteriores')
+                .single();
+
+            if (!error && data) {
+                setOcultarAnteriores(data.valor === 'true');
+            }
+        };
+        fetchSetting();
+    }, []);
 
     useEffect(() => {
         const shouldPersist = localStorage.getItem('contratos_persist_on_return') === '1';
@@ -256,7 +272,14 @@ const Contratos = () => {
         const matchesDateFrom = !dateFrom || fechaInicio >= new Date(dateFrom);
         const matchesDateTo = !dateTo || fechaInicio <= new Date(dateTo);
 
-        return matchesSearch && matchesDateFrom && matchesDateTo;
+        // Si el admin activó "ocultar anteriores", filtrar contratos cuyo año de inicio sea anterior al actual
+        // Se extrae el año directo del string para evitar problemas de timezone
+        const anioContrato = contrato.FechaInicio
+            ? parseInt(contrato.FechaInicio.toString().substring(0, 4), 10)
+            : null;
+        const matchesAnio = !ocultarAnteriores || anioContrato === anioActual;
+
+        return matchesSearch && matchesDateFrom && matchesDateTo && matchesAnio;
     });
 
     const exportToExcel = () => {
