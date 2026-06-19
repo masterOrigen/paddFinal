@@ -24,7 +24,11 @@ import {
     DialogActions,
     Box,
     CircularProgress,
-    TableSortLabel
+    TableSortLabel,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -56,6 +60,7 @@ const Campanas = () => {
     const [orderDirection, setOrderDirection] = useState('asc');
     const [ocultarAnteriores, setOcultarAnteriores] = useState(false);
     const [adminVerTodos, setAdminVerTodos] = useState(false);
+    const [selectedAnioFilter, setSelectedAnioFilter] = useState('');
 
     const anioActual = new Date().getFullYear();
 
@@ -348,7 +353,10 @@ const Campanas = () => {
         const anioCampana = campana.Anios?.years ? parseInt(campana.Anios.years, 10) : null;
         const matchesAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioCampana === anioActual;
 
-        return matchesSearch && matchesDateFrom && matchesDateTo && matchesAnio;
+        // Filtro manual de año seleccionado en el toolbar
+        const matchesAnioFilter = !selectedAnioFilter || String(campana.Anios?.years) === String(selectedAnioFilter);
+
+        return matchesSearch && matchesDateFrom && matchesDateTo && matchesAnio && matchesAnioFilter;
     }).sort((a, b) => {
         if (orderBy === 'years') {
             const yearA = parseInt(a.Anios?.years || 0);
@@ -480,8 +488,8 @@ const Campanas = () => {
                     </Breadcrumbs>
                 </div>
 
-            <Grid container spacing={3} style={{ marginBottom: '20px' }}>
-                <Grid item xs={12} sm={4}>
+            <Grid container spacing={1} alignItems="center" style={{ marginBottom: '20px' }}>
+                <Grid item xs={12} sm={2}>
                     <TextField
                         fullWidth
                         variant="outlined"
@@ -496,6 +504,24 @@ const Campanas = () => {
                             )
                         }}
                     />
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                    <FormControl fullWidth variant="outlined" sx={{ backgroundColor: '#fff', borderRadius: 1 }}>
+                        <Select
+                            value={selectedAnioFilter}
+                            onChange={(e) => setSelectedAnioFilter(e.target.value)}
+                            displayEmpty
+                            sx={{ backgroundColor: '#fff', '& .MuiSelect-select': { paddingLeft: '14px !important', paddingRight: '32px !important' } }}
+                        >
+                            <MenuItem value=""><em style={{ fontStyle: 'normal', color: '#999' }}>Año</em></MenuItem>
+                            {[...new Set(campanas.map(c => c.Anios?.years).filter(Boolean))]
+                                .sort((a, b) => b - a)
+                                .map(year => (
+                                    <MenuItem key={year} value={String(year)}>{year}</MenuItem>
+                                ))
+                            }
+                        </Select>
+                    </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={2}>
                     <TextField
@@ -525,7 +551,7 @@ const Campanas = () => {
             }}
                     />
                 </Grid>
-                <Grid item xs={12} sm={4} container justifyContent="flex-end" spacing={1}>
+                <Grid item xs={12} sm={4} container justifyContent="flex-end" alignItems="center" spacing={1} sx={{ flexWrap: 'nowrap' }}>
                     <Grid item>
                         <Button
                             variant="contained"
