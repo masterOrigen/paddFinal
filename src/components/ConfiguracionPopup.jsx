@@ -34,6 +34,14 @@ const SETTINGS = [
     }
 ];
 
+const ADMIN_SETTINGS = [
+    {
+        clave: 'admin_ver_todos_anios',
+        label: 'Administradores ven todos los años',
+        descripcion: 'Cuando está activo, los administradores siempre pueden ver registros de todos los años, ignorando las restricciones de ocultamiento'
+    }
+];
+
 const ConfiguracionPopup = ({ open, onClose }) => {
     const [valores, setValores] = useState({});
     const [loading, setLoading] = useState(true);
@@ -46,7 +54,7 @@ const ConfiguracionPopup = ({ open, onClose }) => {
     const fetchSettings = async () => {
         setLoading(true);
         try {
-            const claves = SETTINGS.map(s => s.clave);
+            const claves = [...SETTINGS, ...ADMIN_SETTINGS].map(s => s.clave);
             const { data, error } = await supabase
                 .from('configuracion_settings')
                 .select('clave, valor')
@@ -74,8 +82,10 @@ const ConfiguracionPopup = ({ open, onClose }) => {
         try {
             const { error } = await supabase
                 .from('configuracion_settings')
-                .update({ valor: nuevoValor.toString(), updated_at: new Date().toISOString() })
-                .eq('clave', clave);
+                .upsert(
+                    { clave, valor: nuevoValor.toString(), updated_at: new Date().toISOString() },
+                    { onConflict: 'clave' }
+                );
 
             if (error) throw error;
         } catch {
@@ -142,6 +152,41 @@ const ConfiguracionPopup = ({ open, onClose }) => {
                                     </Box>
                                 </Box>
                                 {index < SETTINGS.length - 1 && <Divider />}
+                            </Box>
+                        ))}
+
+                        <Divider sx={{ my: 2 }} />
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            Opciones para Administradores
+                        </Typography>
+                        {ADMIN_SETTINGS.map((setting) => (
+                            <Box key={setting.clave}>
+                                <Box
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="space-between"
+                                    py={1.5}
+                                >
+                                    <Box>
+                                        <Typography variant="subtitle1" fontWeight={500}>
+                                            {setting.label}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {setting.descripcion}
+                                        </Typography>
+                                    </Box>
+                                    <Box display="flex" alignItems="center" gap={1}>
+                                        {saving === setting.clave && (
+                                            <CircularProgress size={16} />
+                                        )}
+                                        <Switch
+                                            checked={!!valores[setting.clave]}
+                                            onChange={() => handleToggle(setting.clave)}
+                                            disabled={saving === setting.clave}
+                                            color="primary"
+                                        />
+                                    </Box>
+                                </Box>
                             </Box>
                         ))}
                     </Box>

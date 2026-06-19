@@ -137,6 +137,7 @@ const Planificacion = () => {
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('anio');
   const [ocultarAnteriores, setOcultarAnteriores] = useState(false);
+  const [adminVerTodos, setAdminVerTodos] = useState(false);
   const anioActual = new Date().getFullYear();
 
   // Leer el setting de planes desde Supabase
@@ -144,12 +145,18 @@ const Planificacion = () => {
     const fetchSetting = async () => {
       const { data, error } = await supabase
         .from('configuracion_settings')
-        .select('valor')
-        .eq('clave', 'planes_ocultar_anteriores')
-        .single();
+        .select('clave, valor')
+        .in('clave', ['planes_ocultar_anteriores', 'admin_ver_todos_anios']);
 
       if (!error && data) {
-        setOcultarAnteriores(data.valor === 'true');
+        data.forEach(row => {
+          if (row.clave === 'planes_ocultar_anteriores') {
+            setOcultarAnteriores(row.valor === 'true');
+          }
+          if (row.clave === 'admin_ver_todos_anios') {
+            setAdminVerTodos(row.valor === 'true');
+          }
+        });
       }
     };
     fetchSetting();
@@ -1345,7 +1352,7 @@ const Planificacion = () => {
                         <TableBody>
                           {campanas
                             .filter(campana => {
-                              if (!ocultarAnteriores) return true;
+                              if (!ocultarAnteriores || (isAdmin && adminVerTodos)) return true;
                               const anioCampana = campana.Anios?.years ? parseInt(campana.Anios.years, 10) : null;
                               return anioCampana === anioActual;
                             })
@@ -1747,7 +1754,7 @@ const Planificacion = () => {
                     <TableBody>
                       {planes
                         .filter(plan => {
-                          if (!ocultarAnteriores) return true;
+                          if (!ocultarAnteriores || (isAdmin && adminVerTodos)) return true;
                           const anioPlan = plan.Anios?.years ? parseInt(plan.Anios.years, 10) : null;
                           return anioPlan === anioActual;
                         })

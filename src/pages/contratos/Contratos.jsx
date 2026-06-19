@@ -51,20 +51,37 @@ const Contratos = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCliente, setSelectedCliente] = useState(null);
     const [ocultarAnteriores, setOcultarAnteriores] = useState(false);
+    const [adminVerTodos, setAdminVerTodos] = useState(false);
 
     const anioActual = new Date().getFullYear();
+
+    // Detectar si el usuario actual es administrador
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    const perfilNombre = Array.isArray(currentUser?.Perfiles)
+        ? currentUser?.Perfiles?.[0]?.NombrePerfil
+        : currentUser?.Perfiles?.NombrePerfil;
+    const perfilCodigo = Array.isArray(currentUser?.Perfiles)
+        ? currentUser?.Perfiles?.[0]?.Codigo
+        : currentUser?.Perfiles?.Codigo;
+    const isAdmin = /admin/i.test(String(perfilCodigo ?? '')) || /admin/i.test(String(perfilNombre ?? ''));
 
     // Leer el setting desde Supabase al montar el componente
     useEffect(() => {
         const fetchSetting = async () => {
             const { data, error } = await supabase
                 .from('configuracion_settings')
-                .select('valor')
-                .eq('clave', 'contratos_ocultar_anteriores')
-                .single();
+                .select('clave, valor')
+                .in('clave', ['contratos_ocultar_anteriores', 'admin_ver_todos_anios']);
 
             if (!error && data) {
-                setOcultarAnteriores(data.valor === 'true');
+                data.forEach(row => {
+                    if (row.clave === 'contratos_ocultar_anteriores') {
+                        setOcultarAnteriores(row.valor === 'true');
+                    }
+                    if (row.clave === 'admin_ver_todos_anios') {
+                        setAdminVerTodos(row.valor === 'true');
+                    }
+                });
             }
         };
         fetchSetting();
@@ -277,7 +294,7 @@ const Contratos = () => {
         const anioContrato = contrato.FechaInicio
             ? parseInt(contrato.FechaInicio.toString().substring(0, 4), 10)
             : null;
-        const matchesAnio = !ocultarAnteriores || anioContrato === anioActual;
+        const matchesAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioContrato === anioActual;
 
         return matchesSearch && matchesDateFrom && matchesDateTo && matchesAnio;
     });
