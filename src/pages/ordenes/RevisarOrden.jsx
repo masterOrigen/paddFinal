@@ -73,6 +73,36 @@ const RevisarOrden = () => {
     const [orderStatusFilter, setOrderStatusFilter] = useState('');
     const [meses, setMeses] = useState([]);
 
+    // --- Setting: ocultar campañas de años anteriores ---
+    const anioActual = new Date().getFullYear();
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const perfilCodigo = Array.isArray(currentUser?.Perfiles)
+        ? currentUser?.Perfiles?.[0]?.Codigo
+        : currentUser?.Perfiles?.Codigo;
+    const perfilNombre = Array.isArray(currentUser?.Perfiles)
+        ? currentUser?.Perfiles?.[0]?.NombrePerfil
+        : currentUser?.Perfiles?.NombrePerfil;
+    const isAdmin = /admin/i.test(String(perfilCodigo ?? '')) || /admin/i.test(String(perfilNombre ?? ''));
+    const [ocultarAnteriores, setOcultarAnteriores] = useState(false);
+    const [adminVerTodos, setAdminVerTodos] = useState(false);
+
+    useEffect(() => {
+        const fetchSetting = async () => {
+            const { data, error } = await supabase
+                .from('configuracion_settings')
+                .select('clave, valor')
+                .in('clave', ['campanas_ocultar_anteriores', 'admin_ver_todos_anios']);
+            if (!error && data) {
+                data.forEach(row => {
+                    if (row.clave === 'campanas_ocultar_anteriores') setOcultarAnteriores(row.valor === 'true');
+                    if (row.clave === 'admin_ver_todos_anios') setAdminVerTodos(row.valor === 'true');
+                });
+            }
+        };
+        fetchSetting();
+    }, []);
+    // --- Fin setting ---
+
     const handleRequestSortOrders = (property) => {
         const isAsc = ordersOrderBy === property && ordersOrder === 'asc';
         setOrdersOrder(isAsc ? 'desc' : 'asc');
@@ -1095,7 +1125,10 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
             campana.NombreCampania?.toLowerCase().includes(campanaNameFilter.toLowerCase());
         const matchesYear = !campanaYearFilter || 
             campana.Anios?.years?.toString().includes(campanaYearFilter);
-        return matchesName && matchesYear;
+        // Filtro por año: ocultar anteriores si está activo (salvo admin con permiso de ver todos)
+        const anioCampana = Number(campana.Anios?.years);
+        const mostrarPorAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioCampana === anioActual;
+        return matchesName && matchesYear && mostrarPorAnio;
     });
 
     return (
