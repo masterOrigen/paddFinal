@@ -28,6 +28,42 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Pagination } from '@mui/material';
 
+// Helper robusto para extraer IDs numéricos desde alternativas_plan_orden (JSONB)
+const extraerIdsAlternativas = (alternativasPlanOrden) => {
+  let ids = [];
+
+  if (!alternativasPlanOrden) {
+    return ids;
+  }
+
+  try {
+    if (Array.isArray(alternativasPlanOrden)) {
+      ids = alternativasPlanOrden
+        .filter(id => typeof id === 'number' || (typeof id === 'string' && !isNaN(Number(id))))
+        .map(id => typeof id === 'number' ? id : Number(id));
+    } else if (typeof alternativasPlanOrden === 'string') {
+      const parsed = JSON.parse(alternativasPlanOrden);
+      if (Array.isArray(parsed)) {
+        ids = parsed
+          .filter(id => typeof id === 'number' || (typeof id === 'string' && !isNaN(Number(id))))
+          .map(id => typeof id === 'number' ? id : Number(id));
+      } else if (parsed && typeof parsed === 'object') {
+        ids = Object.values(parsed)
+          .filter(val => typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val))))
+          .map(val => typeof val === 'number' ? val : Number(val));
+      }
+    } else if (typeof alternativasPlanOrden === 'object') {
+      ids = Object.values(alternativasPlanOrden)
+        .filter(val => typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val))))
+        .map(val => typeof val === 'number' ? val : Number(val));
+    }
+  } catch (e) {
+    console.error('Error al extraer IDs de alternativas_plan_orden:', e);
+  }
+
+  return ids;
+};
+
 const ReporteInversionCliente = () => {
   const [loading, setLoading] = useState(false);
   const [ordenes, setOrdenes] = useState([]);
@@ -255,32 +291,31 @@ const ReporteInversionCliente = () => {
           let tarifaBruta = 0;
 
           // Obtener alternativas de esta orden
-          if (orden.alternativas_plan_orden) {
-            let idsAlternativas = [];
+          const idsAlternativas = extraerIdsAlternativas(orden.alternativas_plan_orden);
 
-            // Extraer IDs de alternativas_plan_orden
-            try {
-              if (Array.isArray(orden.alternativas_plan_orden)) {
-                idsAlternativas = orden.alternativas_plan_orden;
-              } else if (typeof orden.alternativas_plan_orden === 'string') {
-                const parsed = JSON.parse(orden.alternativas_plan_orden);
-                idsAlternativas = Array.isArray(parsed) ? parsed : [];
-              }
-            } catch (e) {
-              console.error('Error parseando alternativas_plan_orden:', e);
+          if (idsAlternativas.length > 0) {
+            const { data: alternativas } = await supabase
+              .from('alternativa')
+              .select('total_neto, total_bruto')
+              .in('id', idsAlternativas);
+
+            if (alternativas && alternativas.length > 0) {
+              // Sumar todos los totales netos y brutos de las alternativas
+              totalNeto = alternativas.reduce((sum, alt) => sum + (alt.total_neto || 0), 0);
+              tarifaBruta = alternativas.reduce((sum, alt) => sum + (alt.total_bruto || 0), 0);
             }
+          }
 
-            if (idsAlternativas.length > 0) {
-              const { data: alternativas } = await supabase
-                .from('alternativa')
-                .select('total_neto, total_bruto')
-                .in('id', idsAlternativas);
+          // Fallback: si no se encontraron alternativas por IDs, buscar por número de orden
+          if ((totalNeto === 0 && tarifaBruta === 0) && orden.numero_correlativo) {
+            const { data: alternativasPorNumero } = await supabase
+              .from('alternativa')
+              .select('total_neto, total_bruto')
+              .eq('numerorden', orden.numero_correlativo);
 
-              if (alternativas && alternativas.length > 0) {
-                // Sumar todos los totales netos y brutos de las alternativas
-                totalNeto = alternativas.reduce((sum, alt) => sum + (alt.total_neto || 0), 0);
-                tarifaBruta = alternativas.reduce((sum, alt) => sum + (alt.total_bruto || 0), 0);
-              }
+            if (alternativasPorNumero && alternativasPorNumero.length > 0) {
+              totalNeto = alternativasPorNumero.reduce((sum, alt) => sum + (alt.total_neto || 0), 0);
+              tarifaBruta = alternativasPorNumero.reduce((sum, alt) => sum + (alt.total_bruto || 0), 0);
             }
           }
 
@@ -326,10 +361,10 @@ const ReporteInversionCliente = () => {
 
       // Ya no es necesario filtrar órdenes anuladas porque solo tenemos activas
       const dataToExport = ordenes.map(orden => {
-        // Determinar si el contrato es Neto (id=1) o Bruto (id=2)
+        // Determinar si el contrato es Neto (id=1) o Bruto (id=2) para el tipo
         const tipoOrden = orden.Contratos?.id_GeneraracionOrdenTipo || 1;
         const esNeto = tipoOrden === 1;
-        
+
         return {
           'Razon Social': orden.Campania?.Clientes?.razonSocial || '',
           'CLIENTE': orden.Campania?.Clientes?.nombreCliente || '',
