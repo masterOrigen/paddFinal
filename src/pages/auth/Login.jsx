@@ -76,7 +76,7 @@ const Login = () => {
       {loading && <Loading />}
       <div className="login-box">
         <img 
-          src="https://www.origenmedios.cl/wp-content/uploads/2023/10/logo-origen-2023-sm2.png" 
+          src="https://ybpicqrdglslvifzbioc.supabase.co/storage/v1/object/public/site-images/1786996304789-Logo_origen.pdf-3.png" 
           alt="Origen Medios" 
           className="login-logo"
         />
