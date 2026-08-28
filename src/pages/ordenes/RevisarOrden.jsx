@@ -36,10 +36,34 @@ import {
     Print as PrintIcon,
     Cancel as CancelIcon,
     SwapHoriz as SwapHorizIcon,
-    Close as CloseIcon
+    Close as CloseIcon,
+    ConfirmationNumber as ConfirmationNumberIcon,
+    Business as BusinessIcon,
+    Article as ArticleIcon,
+    CalendarToday as CalendarTodayIcon,
+    CalendarMonth as CalendarMonthIcon,
+    Category as CategoryIcon,
+    Label as LabelIcon,
+    Palette as PaletteIcon,
+    Timer as TimerIcon,
+    LiveTv as LiveTvIcon,
+    AttachMoney as AttachMoneyIcon,
+    Percent as PercentIcon,
+    AccountBalanceWallet as AccountBalanceWalletIcon,
+    Notes as NotesIcon,
+    Description as DescriptionIcon,
+    EventNote as EventNoteIcon
 } from '@mui/icons-material';
 import { supabase } from '../../config/supabase';
 import Swal from 'sweetalert2';
+
+// Helper para mostrar etiquetas con icono en la previsualización
+const FieldLabel = ({ icon: Icon, label }) => (
+    <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
+        <Icon fontSize="small" color="action" />
+        <Typography variant="subtitle2" color="textSecondary">{label}</Typography>
+    </Box>
+);
 
 const RevisarOrden = () => {
     const navigate = useNavigate();
@@ -51,6 +75,7 @@ const RevisarOrden = () => {
     };
 	const [openReplaceModal, setOpenReplaceModal] = useState(false);
     const [selectedAlternativeToReplace, setSelectedAlternativeToReplace] = useState(null);
+    const [previewAlternative, setPreviewAlternative] = useState(null);
     const [openCampanaModal, setOpenCampanaModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -284,6 +309,9 @@ const RevisarOrden = () => {
     if (modifiedAlternatives.length === 0) {
         setModifiedAlternatives([...alternatives]);
     }
+    setSelectedAlternativeToReplace(null);
+    setPreviewAlternative(null);
+    setIsCreatingNewAlternative(false);
     setOpenReplaceModal(true);
 };
 
@@ -291,6 +319,74 @@ const RevisarOrden = () => {
 useEffect(() => {
     setModifiedAlternatives([]);
 }, [selectedOrder]);
+
+    // Limpiar estados del modal de reemplazo cuando se cierra
+useEffect(() => {
+    if (!openReplaceModal) {
+        setSelectedAlternativeToReplace(null);
+        setPreviewAlternative(null);
+        setIsCreatingNewAlternative(false);
+    }
+}, [openReplaceModal]);
+
+// Helper para formatear el calendario de una alternativa
+const formatearCalendario = (calendar) => {
+    if (!calendar) return 'Sin calendario';
+
+    let data = calendar;
+    if (typeof data === 'string') {
+        try {
+            data = JSON.parse(data);
+        } catch (e) {
+            return data;
+        }
+    }
+
+    // Array vacío
+    if (Array.isArray(data) && data.length === 0) return 'Sin calendario';
+
+    // Objeto vacío
+    if (typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length === 0) {
+        return 'Sin calendario';
+    }
+
+    // Formato { days: [...] }
+    if (data.days && Array.isArray(data.days)) {
+        if (data.days.length === 0) return 'Sin calendario';
+        return data.days.map(dia => `Día ${dia}`).join(', ');
+    }
+
+    // Array de objetos { dia, cantidad }
+    if (Array.isArray(data) && data.length > 0 && data[0] && typeof data[0] === 'object' && 'dia' in data[0]) {
+        return data
+            .filter(item => item.dia != null)
+            .map(item => `Día ${item.dia}${item.cantidad ? ` (${item.cantidad})` : ''}`)
+            .join(', ');
+    }
+
+    // Array de números o strings (días simples)
+    if (Array.isArray(data)) {
+        return data.map(dia => `Día ${dia}`).join(', ');
+    }
+
+    return JSON.stringify(data);
+};
+
+const tieneCalendario = (calendar) => {
+    if (!calendar) return false;
+    let data = calendar;
+    if (typeof data === 'string') {
+        try {
+            data = JSON.parse(data);
+        } catch (e) {
+            return true;
+        }
+    }
+    if (Array.isArray(data) && data.length === 0) return false;
+    if (typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length === 0) return false;
+    if (data.days && Array.isArray(data.days) && data.days.length === 0) return false;
+    return true;
+};
    // Agregar función para manejar la creación de una nueva alternativa
    const handleCreateNewAlternative = async () => {
     try {
@@ -334,6 +430,7 @@ useEffect(() => {
             throw planError;
         }
         
+        setPreviewAlternative(null);
         setIsCreatingNewAlternative(true);
         setSelectedAlternativeToReplace({
             numerorden: selectedOrder?.id_ordenes_de_comprar, // Usar numerorden en lugar de id_orden
@@ -1564,7 +1661,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
                 </Box>
             </Grid>
 
-            <Grid item xs={4}>
+            <Grid item xs={5}>
                 <Paper sx={{ p: 2, height: '100%' }}>
                     <Typography variant="h6" gutterBottom>
                         Alternativas de la Orden
@@ -1618,11 +1715,32 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
         freshCopy._lastUpdated = new Date().getTime();
         
         setSelectedAlternativeToReplace(freshCopy);
+        setPreviewAlternative(null);
         setIsCreatingNewAlternative(false);
     }}
 >
     Editar
 </Button>
+    <Button sx={{ fontSize: '10px', marginRight:'10px' }} 
+        variant="contained"
+        color="success"
+        onClick={() => {
+            const alternativaCompleta = modifiedAlternatives.find(alt => String(alt.id) === String(alternative.id));
+            if (!alternativaCompleta) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se encontró la alternativa seleccionada'
+                });
+                return;
+            }
+            setPreviewAlternative(JSON.parse(JSON.stringify(alternativaCompleta)));
+            setSelectedAlternativeToReplace(null);
+            setIsCreatingNewAlternative(false);
+        }}
+    >
+        Previsualizar
+    </Button>
     <Button sx={{ fontSize: '10px' }} 
         variant="contained"
         color="error"
@@ -1637,18 +1755,149 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
                             </TableBody>
                         </Table>
                     </TableContainer>
+
+                    {modifiedAlternatives.length > 0 && (
+                        <Box mt={2} pt={2} sx={{ borderTop: '1px solid #e0e0e0' }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                                Montos Totales
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={4}>
+                                    <FieldLabel icon={AccountBalanceWalletIcon} label="Total Bruto" />
+                                    <Typography variant="body1" fontWeight="bold">
+                                        {modifiedAlternatives.reduce((sum, alt) => sum + (alt.total_bruto || 0), 0)
+                                            .toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <FieldLabel icon={AccountBalanceWalletIcon} label="Total General" />
+                                    <Typography variant="body1" fontWeight="bold">
+                                        {modifiedAlternatives.reduce((sum, alt) => sum + (alt.total_general || 0), 0)
+                                            .toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <FieldLabel icon={AccountBalanceWalletIcon} label="Total Neto" />
+                                    <Typography variant="body1" fontWeight="bold">
+                                        {modifiedAlternatives.reduce((sum, alt) => sum + (alt.total_neto || 0), 0)
+                                            .toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    )}
                 </Paper>
             </Grid>
 
-            <Grid item xs={8}>
+            <Grid item xs={7}>
                 <Paper sx={{ p: 2, height: '100%', overflowY: 'auto' }}>
-                    {(selectedAlternativeToReplace || isCreatingNewAlternative) ? (
+                    {(selectedAlternativeToReplace || isCreatingNewAlternative || previewAlternative) ? (
                         <>
                             <Typography variant="h6" gutterBottom>
-                                {isCreatingNewAlternative ? 'Crear Nueva Alternativa' : 'Editar Alternativa'}
+                                {isCreatingNewAlternative
+                                    ? 'Crear Nueva Alternativa'
+                                    : selectedAlternativeToReplace
+                                        ? 'Editar Alternativa'
+                                        : 'Previsualizar Alternativa'}
                             </Typography>
 
-                            <EditarAlternativaReemplazo 
+                            {previewAlternative && !isCreatingNewAlternative && !selectedAlternativeToReplace ? (
+                                <Box>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={ConfirmationNumberIcon} label="N° Orden" />
+                                            <Typography variant="body1">{previewAlternative.numerorden || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={BusinessIcon} label="Soporte" />
+                                            <Typography variant="body1">{previewAlternative.Soportes?.nombreIdentficiador || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={ArticleIcon} label="Contrato" />
+                                            <Typography variant="body1">{previewAlternative.Contratos?.NombreContrato || previewAlternative.num_contrato || 'N/A'}</Typography>
+                                        </Grid>
+
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={CalendarTodayIcon} label="Año" />
+                                            <Typography variant="body1">{previewAlternative.Anios?.years || previewAlternative.anio || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={CalendarMonthIcon} label="Mes" />
+                                            <Typography variant="body1">{previewAlternative.Meses?.Nombre || previewAlternative.mes || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={CategoryIcon} label="Tipo Item" />
+                                            <Typography variant="body1">{previewAlternative.tipo_item || 'N/A'}</Typography>
+                                        </Grid>
+
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={LabelIcon} label="Clasificación" />
+                                            <Typography variant="body1">{previewAlternative.Clasificacion?.NombreClasificacion || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={PaletteIcon} label="Tema" />
+                                            <Typography variant="body1">{previewAlternative.Temas?.NombreTema || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={TimerIcon} label="Duración" />
+                                            <Typography variant="body1">{previewAlternative.Temas?.Duracion || previewAlternative.segundos || 'N/A'}</Typography>
+                                        </Grid>
+
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={LiveTvIcon} label="Programa" />
+                                            <Typography variant="body1">{previewAlternative.Programas?.descripcion || previewAlternative.Programas?.codigo_programa || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={AttachMoneyIcon} label="Valor Unitario" />
+                                            <Typography variant="body1">
+                                                {(previewAlternative.valor_unitario || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={PercentIcon} label="Descuento PL" />
+                                            <Typography variant="body1">{previewAlternative.descuento_pl || '0%'}</Typography>
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <FieldLabel icon={NotesIcon} label="Detalle" />
+                                            <Typography variant="body1">{previewAlternative.detalle || 'N/A'}</Typography>
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <FieldLabel icon={DescriptionIcon} label="Descripción" />
+                                            <Typography variant="body1">{previewAlternative.descripcion || 'N/A'}</Typography>
+                                        </Grid>
+
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={AccountBalanceWalletIcon} label="Total Bruto" />
+                                            <Typography variant="body1" fontWeight="bold">
+                                                {(previewAlternative.total_bruto || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={AccountBalanceWalletIcon} label="Total General" />
+                                            <Typography variant="body1" fontWeight="bold">
+                                                {(previewAlternative.total_general || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={4}>
+                                            <FieldLabel icon={AccountBalanceWalletIcon} label="Total Neto" />
+                                            <Typography variant="body1" fontWeight="bold">
+                                                {(previewAlternative.total_neto || 0).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                            </Typography>
+                                        </Grid>
+
+                                    </Grid>
+                                    <Box mt={2} display="flex" justifyContent="flex-end">
+                                        <Button
+                                            variant="contained"
+                                            onClick={() => setPreviewAlternative(null)}
+                                        >
+                                            Cerrar Previsualización
+                                        </Button>
+                                    </Box>
+                                </Box>
+                            ) : (
+                                <EditarAlternativaReemplazo 
     alternativaId={selectedAlternativeToReplace?.id}
     isCreatingNew={isCreatingNewAlternative}
     initialData={selectedAlternativeToReplace}
@@ -1663,11 +1912,12 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
     // Usar un key único que incluya un timestamp para forzar re-render
     key={`alt-${selectedAlternativeToReplace?.id || 'new'}-${selectedAlternativeToReplace?._lastUpdated || new Date().getTime()}`}
 />
+                            )}
                         </>
                     ) : (
                         <Box display="flex" justifyContent="center" alignItems="center" height="100%">
                             <Typography color="textSecondary">
-                                Seleccione una alternativa para editar o cree una nueva
+                                Seleccione una alternativa para editar, previsualizar o cree una nueva
                             </Typography>
                         </Box>
                     )}
