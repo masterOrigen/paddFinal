@@ -2,7 +2,7 @@
     padding: 20px;
     background-color: #F3F4F6;
     min-height: 100vh;
-    margin-left: 0;
+    margin-left: 250px; /* Mismo ancho que el sidebar */
   }
   
   .stats-grid {
