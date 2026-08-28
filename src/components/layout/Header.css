@@ -8,6 +8,8 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  margin-left: 250px;
+  width: calc(100% - 250px);
 }
 
 .header-left {
@@ -26,6 +28,8 @@
   font-size: 20px;
   margin: 0;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .header-right {
