@@ -409,11 +409,6 @@ const Header = ({ setIsAuthenticated }) => {
   return (
     <header className="main-header">
       <div className="header-left">
-        <img 
-          src="https://www.origenmedios.cl/wp-content/uploads/2023/10/logo-origen-2023-sm2.png" 
-          alt="Origen" 
-          className="header-logo"
-        />
         <h1>ADMINISTRACIÓN</h1>
       </div>
       <div className="header-right">
