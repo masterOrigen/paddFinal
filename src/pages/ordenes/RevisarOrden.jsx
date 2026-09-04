@@ -1075,6 +1075,15 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
         Nombre
     )
     ),
+    Contratos (
+        id,
+        NombreContrato,
+        IdProveedor,
+        Proveedores (
+            id_proveedor,
+            nombreProveedor
+        )
+    ),
     usuario_registro,
 	copia,
 	orden_remplaza
@@ -1544,6 +1553,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 											<TableCell>N° de copias</TableCell>
 											<TableCell>Mes Plan</TableCell>
 											<TableCell>Plan</TableCell>
+											<TableCell>Proveedor</TableCell>
 											<TableCell>Fecha</TableCell>
 											<TableCell>Estado</TableCell>
 										</TableRow>
@@ -1567,6 +1577,7 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
 												<TableCell>{order.copia || '-'}</TableCell>
 												<TableCell>{order.plan?.Meses?.Nombre || order.plan?.mes || '-'}</TableCell>
 												<TableCell>{order.plan?.nombre_plan || 'Sin plan'}</TableCell>
+												<TableCell>{order.Contratos?.Proveedores?.nombreProveedor || 'Sin proveedor'}</TableCell>
                                                 <TableCell>{formatDate(order.created_at)}</TableCell>
 												<TableCell>
 													<Box
