@@ -235,6 +235,10 @@ const CrearOrden = () => {
   const fetchCampanas = async (clienteId) => {
     try {
       setLoading(true);
+
+      // Año calendario actual
+      const anioActual = new Date().getFullYear();
+
       const { data, error } = await supabase
         .from('Campania')
         .select(`
@@ -256,21 +260,17 @@ const CrearOrden = () => {
             NombreIdentificador
           )
         `)
-        .eq('id_Cliente', clienteId)
-        .order('NombreCampania');
+        .eq('id_Cliente', clienteId);
 
       if (error) throw error;
 
-      // Ordenar por año (menor a mayor) y luego por nombre
-      const sortedData = (data || []).sort((a, b) => {
-        const yearA = Number(a.Anios?.years) || 0;
-        const yearB = Number(b.Anios?.years) || 0;
-        
-        if (yearA !== yearB) {
-          return yearA - yearB;
-        }
-        return a.NombreCampania.localeCompare(b.NombreCampania);
-      });
+      // Filtrar solo las campañas del año actual (comparando el año real, no el id de Anios)
+      const filteredByAnio = (data || []).filter(c => Number(c.Anios?.years) === anioActual);
+
+      // Ordenar por nombre
+      const sortedData = filteredByAnio.sort((a, b) =>
+        (a.NombreCampania || '').localeCompare(b.NombreCampania || '')
+      );
 
       setCampanas(sortedData);
       setOrder('asc');
