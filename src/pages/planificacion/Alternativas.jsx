@@ -1683,7 +1683,12 @@ const Alternativas = () => {
   const handleSearchContrato = async () => {
     setLoadingContratos(true);
     try {
-      const { data, error } = await supabase
+      // Determinar el año en curso y su rango de fechas
+      const anioActual = new Date().getFullYear();
+      const inicioAnio = `${anioActual}-01-01`;
+      const finAnio = `${anioActual}-12-31`;
+
+      let query = supabase
         .from('Contratos')
         .select(`
           *,
@@ -1695,8 +1700,16 @@ const Alternativas = () => {
             NombreFormadePago
           )
         `)
-        .eq('IdCliente', clienteId)
-        .ilike('NombreContrato', `%${searchContrato}%`);
+        .eq('IdCliente', clienteId);
+
+      // Filtrar por el año en curso según FechaInicio (solo contratos vigentes de ese año)
+      query = query
+        .gte('FechaInicio', inicioAnio)
+        .lte('FechaInicio', finAnio);
+
+      query = query.ilike('NombreContrato', `%${searchContrato}%`);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setContratosFiltrados(data || []);
