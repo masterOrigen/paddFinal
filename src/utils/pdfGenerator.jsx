@@ -308,7 +308,7 @@ const OrderDocument = ({ order, alternatives, cliente, campana, plan }) => {
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>AÑO:</Text>
-								<Text style={styles.infoValue}>{new Date().getFullYear()}</Text>
+								<Text style={styles.infoValue}>{year}</Text>
 							</View>
 							<View style={styles.rowex}>
 								<Text style={styles.infoLabel}>MES:</Text>

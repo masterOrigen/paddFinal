@@ -349,9 +349,10 @@ const Campanas = () => {
         const matchesDateFrom = !dateFrom || fechaCreacion >= new Date(dateFrom);
         const matchesDateTo = !dateTo || fechaCreacion <= new Date(dateTo);
 
-        // Filtrar por año actual si está activado (los admins pueden ver todos si la opción está activa)
+        // Ocultar solo años anteriores al actual (los años futuros siempre se muestran).
+        // Los admins pueden ver todo si la opción está activa
         const anioCampana = campana.Anios?.years ? parseInt(campana.Anios.years, 10) : null;
-        const matchesAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioCampana === anioActual;
+        const matchesAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioCampana >= anioActual;
 
         // Filtro manual de año seleccionado en el toolbar
         const matchesAnioFilter = !selectedAnioFilter || String(campana.Anios?.years) === String(selectedAnioFilter);

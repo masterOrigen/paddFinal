@@ -1231,9 +1231,9 @@ const handleSaveModifiedAlternative = (modifiedAlternative) => {
             campana.NombreCampania?.toLowerCase().includes(campanaNameFilter.toLowerCase());
         const matchesYear = !campanaYearFilter || 
             campana.Anios?.years?.toString().includes(campanaYearFilter);
-        // Filtro por año: ocultar anteriores si está activo (salvo admin con permiso de ver todos)
+        // Filtro por año: ocultar solo años anteriores (los futuros siempre se muestran)
         const anioCampana = Number(campana.Anios?.years);
-        const mostrarPorAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioCampana === anioActual;
+        const mostrarPorAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioCampana >= anioActual;
         return matchesName && matchesYear && mostrarPorAnio;
     });
 

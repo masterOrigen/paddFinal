@@ -294,7 +294,7 @@ const Contratos = () => {
         const anioContrato = contrato.FechaInicio
             ? parseInt(contrato.FechaInicio.toString().substring(0, 4), 10)
             : null;
-        const matchesAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioContrato === anioActual;
+        const matchesAnio = !ocultarAnteriores || (isAdmin && adminVerTodos) || anioContrato >= anioActual;
 
         return matchesSearch && matchesDateFrom && matchesDateTo && matchesAnio;
     });

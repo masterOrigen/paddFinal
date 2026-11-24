@@ -832,7 +832,7 @@ const Planificacion = () => {
         .from('campana_planes')
         .insert([{
           id_campania: selectedCampana.id_campania,
-          id_plan: planData.id_plan
+          id_plan: planData.id
         }]);
 
       if (relError) throw relError;
@@ -1354,7 +1354,7 @@ const Planificacion = () => {
                             .filter(campana => {
                               if (!ocultarAnteriores || (isAdmin && adminVerTodos)) return true;
                               const anioCampana = campana.Anios?.years ? parseInt(campana.Anios.years, 10) : null;
-                              return anioCampana === anioActual;
+                              return anioCampana >= anioActual;
                             })
                             .map((campana) => (
                             <TableRow
@@ -1756,7 +1756,7 @@ const Planificacion = () => {
                         .filter(plan => {
                           if (!ocultarAnteriores || (isAdmin && adminVerTodos)) return true;
                           const anioPlan = plan.Anios?.years ? parseInt(plan.Anios.years, 10) : null;
-                          return anioPlan === anioActual;
+                          return anioPlan >= anioActual;
                         })
                         .map((plan) => (
                         <TableRow key={plan.id}>

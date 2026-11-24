@@ -28,7 +28,11 @@ import {
   Tooltip,
   IconButton,
   Checkbox,
-  TableSortLabel
+  TableSortLabel,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -53,6 +57,7 @@ const CrearOrden = () => {
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [selectedCampana, setSelectedCampana] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedAnioCampana, setSelectedAnioCampana] = useState('');
   const [planes, setPlanes] = useState([]);
   const [alternativas, setAlternativas] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -264,8 +269,8 @@ const CrearOrden = () => {
 
       if (error) throw error;
 
-      // Filtrar solo las campañas del año actual (comparando el año real, no el id de Anios)
-      const filteredByAnio = (data || []).filter(c => Number(c.Anios?.years) === anioActual);
+      // Mostrar campañas del año actual y de años futuros (se excluyen solo las de años pasados)
+      const filteredByAnio = (data || []).filter(c => Number(c.Anios?.years) >= anioActual);
 
       // Ordenar por nombre
       const sortedData = filteredByAnio.sort((a, b) =>
@@ -286,6 +291,7 @@ const CrearOrden = () => {
   const handleClienteSelect = async (cliente) => {
     try {
       setSelectedCliente(cliente);
+      setSelectedAnioCampana('');
       await fetchCampanas(cliente.id_cliente);
       setOpenClienteModal(false);
       setOpenCampanaModal(true);
@@ -303,6 +309,7 @@ const CrearOrden = () => {
   const handleResetSelection = () => {
     setSelectedCliente(null);
     setSelectedCampana(null);
+    setSelectedAnioCampana('');
     setOpenClienteModal(true);
   };
 
@@ -591,6 +598,18 @@ const handleCrearOrden = async () => {
     cliente.razonSocial?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Años disponibles en las campañas del cliente para poder filtrar
+  const aniosCampanas = [...new Set(
+    campanas.map(c => Number(c.Anios?.years)).filter(y => !Number.isNaN(y))
+  )].sort((a, b) => a - b);
+
+  // Si hay años futuros además del actual, se mostrará el selector de año
+  const mostrarSelectorAnio = aniosCampanas.length > 1;
+
+  const filteredCampanas = campanas.filter(campana =>
+    !selectedAnioCampana || String(campana.Anios?.years) === String(selectedAnioCampana)
+  );
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Modal de Selección de Cliente */}
@@ -707,6 +726,24 @@ const handleCrearOrden = async () => {
               <CircularProgress />
             </Box>
           ) : (
+            <>
+            {mostrarSelectorAnio && (
+              <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+                <InputLabel id="anio-campana-label">Año</InputLabel>
+                <Select
+                  labelId="anio-campana-label"
+                  label="Año"
+                  value={selectedAnioCampana}
+                  onChange={(e) => setSelectedAnioCampana(e.target.value)}
+                  displayEmpty
+                >
+                  <MenuItem value="">Todos los años</MenuItem>
+                  {aniosCampanas.map((anio) => (
+                    <MenuItem key={anio} value={String(anio)}>{anio}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
@@ -727,7 +764,7 @@ const handleCrearOrden = async () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {campanas.map((campana) => (
+                  {filteredCampanas.map((campana) => (
                   <TableRow key={campana.id_campania}>
                     <TableCell>{campana.NombreCampania}</TableCell>
                     <TableCell>{campana.Anios?.years || 'No especificado'}</TableCell>
@@ -747,6 +784,7 @@ const handleCrearOrden = async () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            </>
           )}
         </DialogContent>
         <DialogActions>
