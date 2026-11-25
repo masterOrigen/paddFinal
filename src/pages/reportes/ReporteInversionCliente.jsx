@@ -175,7 +175,7 @@ const ReporteInversionCliente = () => {
                 Grupos (id_grupo, nombre_grupo)
               )
             ),
-            Campania (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
+            Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
               Clientes (id_cliente, nombreCliente, RUT, razonSocial),
               Productos!id_Producto (id, NombreDelProducto),
               Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia, RazonSocial)
@@ -210,6 +210,7 @@ const ReporteInversionCliente = () => {
 
         const { data: batchData, error: batchError } = await query
           .order('fechaCreacion', { ascending: false })
+          .order('id_ordenes_de_comprar', { ascending: false })
           .range(from, from + batchSize - 1);
 
         if (batchError) {
