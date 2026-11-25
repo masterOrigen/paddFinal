@@ -418,7 +418,8 @@ const Planificacion = () => {
           Meses (Id, Nombre),
           plan_alternativas (id_plan)
         `)
-        .eq('id_campania', selectedCampana.id_campania);
+        .eq('id_campania', selectedCampana.id_campania)
+        .order('mes', { ascending: true });
 
       if (error) throw error;
       setPlanes(data || []);
