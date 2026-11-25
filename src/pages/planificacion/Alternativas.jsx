@@ -1683,10 +1683,10 @@ const Alternativas = () => {
   const handleSearchContrato = async () => {
     setLoadingContratos(true);
     try {
-      // Determinar el año en curso y su rango de fechas
-      const anioActual = new Date().getFullYear();
-      const inicioAnio = `${anioActual}-01-01`;
-      const finAnio = `${anioActual}-12-31`;
+      // El rango de fechas debe corresponder al año del plan (no al año en curso)
+      const anioPlan = Number(planInfo?.anio) || new Date().getFullYear();
+      const inicioAnio = `${anioPlan}-01-01`;
+      const finAnio = `${anioPlan}-12-31`;
 
       let query = supabase
         .from('Contratos')
@@ -1702,7 +1702,7 @@ const Alternativas = () => {
         `)
         .eq('IdCliente', clienteId);
 
-      // Filtrar por el año en curso según FechaInicio (solo contratos vigentes de ese año)
+      // Filtrar por el año del plan según FechaInicio (solo contratos vigentes de ese año)
       query = query
         .gte('FechaInicio', inicioAnio)
         .lte('FechaInicio', finAnio);
@@ -1729,7 +1729,7 @@ const Alternativas = () => {
     if (clienteId) {
       handleSearchContrato();
     }
-  }, [clienteId, searchContrato]);
+  }, [clienteId, searchContrato, planInfo?.anio]);
 
   useEffect(() => {
     if (!openContratosModal) {
