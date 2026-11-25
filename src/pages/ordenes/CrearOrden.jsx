@@ -330,7 +330,8 @@ const CrearOrden = () => {
           Meses (Id, Nombre)
         `)
         .eq('id_campania', campaniaId)
-        .eq('estado2', 'aprobado');
+        .eq('estado2', 'aprobado')
+        .order('mes', { ascending: true });
 
       if (error) throw error;
       console.log('Planes cargados:', data);
