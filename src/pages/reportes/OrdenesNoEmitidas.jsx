@@ -123,74 +123,8 @@ const OrdenesNoEmitidas = () => {
       }
 
       // Buscar órdenes que estén anuladas o que hayan sido reemplazadas
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          created_at,
-          numero_correlativo,
-          estado,
-          copia,
-          usuario_registro,
-          orden_remplaza,
-          alternativas_plan_orden,
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto,
-            Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto)
-          ),
-          Contratos (id, NombreContrato, num_contrato, IdProveedor,
-            Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial)
-          ),
-          Soportes (id_soporte, nombreIdentficiador, id_medios,
-            Medios!left (id, NombredelMedio)
-          ),
-          plan!inner (id, nombre_plan, anio, mes,
-            Anios!anio (id, years),
-            Meses (Id, Nombre)
-          )
-        `);
-
-      // Aplicar filtros
-      // Solo filtrar por cliente si no es "Todas las Órdenes"
-      if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
-        query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
-      }
-
-      // Solo filtrar por año si está seleccionado
-      if (filtros.anio) {
-        query = query.eq('plan.anio', filtros.anio);
-      }
-
-      // Aplicar filtro de mes solo si está seleccionado
-      if (filtros.mes) {
-        query = query.eq('plan.mes', filtros.mes);
-      }
-
-      // Filtrar órdenes no emitidas (anuladas o que fueron reemplazadas por otra orden)
-      // Una orden está reemplazada si existe otra orden que la reemplaza
-      query = query.eq('estado', 'anulada');
-
-      const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: false });
-
-      if (error) throw error;
-
-      // Ahora buscar órdenes que fueron reemplazadas
-      // Una orden fue reemplazada si existe otra orden con orden_remplaza apuntando a ella
-      const { data: todasLasOrdenes } = await supabase
-        .from('OrdenesDePublicidad')
-        .select('id_ordenes_de_comprar, orden_remplaza')
-        .not('orden_remplaza', 'is', null);
-
-      // Crear un Set de IDs de órdenes que fueron reemplazadas
-      const ordenesReemplazadasIds = new Set(
-        todasLasOrdenes?.map(o => o.orden_remplaza).filter(Boolean) || []
-      );
-
-      // Buscar las órdenes reemplazadas con sus datos completos
-      let ordenesReemplazadas = [];
-      if (ordenesReemplazadasIds.size > 0) {
-        let queryReemplazadas = supabase
+      const buildQuery = () => {
+        let query = supabase
           .from('OrdenesDePublicidad')
           .select(`
             id_ordenes_de_comprar,
@@ -216,22 +150,138 @@ const OrdenesNoEmitidas = () => {
               Anios!anio (id, years),
               Meses (Id, Nombre)
             )
-          `)
-          .in('id_ordenes_de_comprar', Array.from(ordenesReemplazadasIds));
+          `);
 
-        // Aplicar los mismos filtros
+        // Aplicar filtros
+        // Solo filtrar por cliente si no es "Todas las Órdenes"
         if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
-          queryReemplazadas = queryReemplazadas.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
-        }
-        if (filtros.anio) {
-          queryReemplazadas = queryReemplazadas.eq('plan.anio', filtros.anio);
-        }
-        if (filtros.mes) {
-          queryReemplazadas = queryReemplazadas.eq('plan.mes', filtros.mes);
+          query = query.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
         }
 
-        const { data: dataReemplazadas } = await queryReemplazadas;
-        ordenesReemplazadas = dataReemplazadas || [];
+        // Solo filtrar por año si está seleccionado
+        if (filtros.anio) {
+          query = query.eq('plan.anio', filtros.anio);
+        }
+
+        // Aplicar filtro de mes solo si está seleccionado
+        if (filtros.mes) {
+          query = query.eq('plan.mes', filtros.mes);
+        }
+
+        // Filtrar órdenes no emitidas (anuladas o que fueron reemplazadas por otra orden)
+        // Una orden está reemplazada si existe otra orden que la reemplaza
+        query = query.eq('estado', 'anulada');
+
+        return query;
+      };
+
+      // PostgREST corta cada respuesta en 1000 filas: paginar hasta traer todo
+      const batchSize = 1000;
+      let allAnuladas = [];
+      let fromAnuladas = 0;
+      let hasMoreAnuladas = true;
+
+      while (hasMoreAnuladas) {
+        const { data: batchData, error: batchError } = await buildQuery()
+          .order('fechaCreacion', { ascending: false })
+          .order('id_ordenes_de_comprar', { ascending: false })
+          .range(fromAnuladas, fromAnuladas + batchSize - 1);
+
+        if (batchError) throw batchError;
+
+        const batch = batchData || [];
+        allAnuladas = [...allAnuladas, ...batch];
+
+        if (batch.length < batchSize) hasMoreAnuladas = false;
+        else fromAnuladas += batchSize;
+      }
+
+      const ordenesData = allAnuladas;
+
+      // Ahora buscar órdenes que fueron reemplazadas
+      // Una orden fue reemplazada si existe otra orden con orden_remplaza apuntando a ella
+      const { data: todasLasOrdenes } = await supabase
+        .from('OrdenesDePublicidad')
+        .select('id_ordenes_de_comprar, orden_remplaza')
+        .not('orden_remplaza', 'is', null);
+
+      // Crear un Set de IDs de órdenes que fueron reemplazadas
+      const ordenesReemplazadasIds = new Set(
+        todasLasOrdenes?.map(o => o.orden_remplaza).filter(Boolean) || []
+      );
+
+      // Buscar las órdenes reemplazadas con sus datos completos
+      let ordenesReemplazadas = [];
+      if (ordenesReemplazadasIds.size > 0) {
+        const buildQueryReemplazadas = (idsLote) => {
+          let queryReemplazadas = supabase
+            .from('OrdenesDePublicidad')
+            .select(`
+              id_ordenes_de_comprar,
+              fechaCreacion,
+              created_at,
+              numero_correlativo,
+              estado,
+              copia,
+              usuario_registro,
+              orden_remplaza,
+              alternativas_plan_orden,
+              Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto,
+                Clientes (id_cliente, nombreCliente, RUT, razonSocial),
+                Productos!id_Producto (id, NombreDelProducto)
+              ),
+              Contratos (id, NombreContrato, num_contrato, IdProveedor,
+                Proveedores (id_proveedor, nombreProveedor, rutProveedor, razonSocial)
+              ),
+              Soportes (id_soporte, nombreIdentficiador, id_medios,
+                Medios!left (id, NombredelMedio)
+              ),
+              plan!inner (id, nombre_plan, anio, mes,
+                Anios!anio (id, years),
+                Meses (Id, Nombre)
+              )
+            `)
+            .in('id_ordenes_de_comprar', idsLote);
+
+          // Aplicar los mismos filtros
+          if (filtros.cliente && filtros.cliente.id_cliente !== 'all') {
+            queryReemplazadas = queryReemplazadas.eq('Campania.id_Cliente', filtros.cliente.id_cliente);
+          }
+          if (filtros.anio) {
+            queryReemplazadas = queryReemplazadas.eq('plan.anio', filtros.anio);
+          }
+          if (filtros.mes) {
+            queryReemplazadas = queryReemplazadas.eq('plan.mes', filtros.mes);
+          }
+
+          return queryReemplazadas;
+        };
+
+        // Se consulta en lotes de IDs (evita URLs gigantes) y paginando cada lote,
+        // porque PostgREST corta cada respuesta en 1000 filas.
+        const IN_BATCH_SIZE = 500;
+        const PAGE_SIZE = 1000;
+        const todosLosIds = Array.from(ordenesReemplazadasIds);
+
+        for (let i = 0; i < todosLosIds.length; i += IN_BATCH_SIZE) {
+          const idsLote = todosLosIds.slice(i, i + IN_BATCH_SIZE);
+
+          let from = 0;
+          let hasMore = true;
+
+          while (hasMore) {
+            const { data: batchData } = await buildQueryReemplazadas(idsLote)
+              .order('fechaCreacion', { ascending: false })
+              .order('id_ordenes_de_comprar', { ascending: false })
+              .range(from, from + PAGE_SIZE - 1);
+
+            const batch = batchData || [];
+            ordenesReemplazadas = [...ordenesReemplazadas, ...batch];
+
+            if (batch.length < PAGE_SIZE) hasMore = false;
+            else from += PAGE_SIZE;
+          }
+        }
       }
 
       // Combinar órdenes anuladas y reemplazadas

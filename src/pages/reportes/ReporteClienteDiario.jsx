@@ -218,6 +218,7 @@ const ReporteClienteDiario = () => {
 
         const { data: batchData, error: batchError } = await query
           .order('fechaCreacion', { ascending: true })
+          .order('id_ordenes_de_comprar', { ascending: true })
           .range(from, from + batchSize - 1);
 
         if (batchError) {

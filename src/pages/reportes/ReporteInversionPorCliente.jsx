@@ -86,59 +86,82 @@ const ReporteInversionPorCliente = () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          alternativas_plan_orden,
-          Campania!inner (
-            id_campania,
-            NombreCampania,
-            Presupuesto,
-            Clientes!inner (
-              id_cliente,
-              nombreCliente,
-              RUT
+      const buildQuery = () => {
+        let query = supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            alternativas_plan_orden,
+            Campania!inner (
+              id_campania,
+              NombreCampania,
+              Presupuesto,
+              Clientes!inner (
+                id_cliente,
+                nombreCliente,
+                RUT
+              ),
+              Productos (
+                id,
+                NombreDelProducto
+              )
             ),
-            Productos (
+            plan (
               id,
-              NombreDelProducto
+              nombre_plan,
+              Anios!anio (
+                id,
+                years
+              ),
+              Meses (
+                Id,
+                Nombre
+              )
             )
-          ),
-          plan (
-            id,
-            nombre_plan,
-            Anios!anio (
-              id,
-              years
-            ),
-            Meses (
-              Id,
-              Nombre
-            )
-          )
-        `);
+          `);
 
-      if (filtros.fechaInicio) {
-        query = query.gte('fechaCreacion', filtros.fechaInicio.toISOString());
-      }
-      
-      if (filtros.fechaFin) {
-        query = query.lte('fechaCreacion', filtros.fechaFin.toISOString());
-      }
-      
-      if (filtros.cliente) {
-        query = query.eq('Campania.Clientes.id_cliente', filtros.cliente);
+        if (filtros.fechaInicio) {
+          query = query.gte('fechaCreacion', filtros.fechaInicio.toISOString());
+        }
+        
+        if (filtros.fechaFin) {
+          query = query.lte('fechaCreacion', filtros.fechaFin.toISOString());
+        }
+        
+        if (filtros.cliente) {
+          query = query.eq('Campania.Clientes.id_cliente', filtros.cliente);
+        }
+
+        if (filtros.anio) {
+          query = query.eq('plan.anio', filtros.anio);
+        }
+
+        return query;
+      };
+
+      // PostgREST corta cada respuesta en 1000 filas: paginar hasta traer todo
+      const batchSize = 1000;
+      let allData = [];
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batchData, error: batchError } = await buildQuery()
+          .order('fechaCreacion', { ascending: false })
+          .order('id_ordenes_de_comprar', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (batchError) throw batchError;
+
+        const batch = batchData || [];
+        allData = [...allData, ...batch];
+
+        if (batch.length < batchSize) hasMore = false;
+        else from += batchSize;
       }
 
-      if (filtros.anio) {
-        query = query.eq('plan.anio', filtros.anio);
-      }
-
-      const { data, error } = await query.order('fechaCreacion', { ascending: false });
-
-      if (error) throw error;
+      const data = allData;
 
       // Procesar y agrupar los datos por cliente
       const inversionesPorCliente = data.reduce((acc, orden) => {

@@ -180,62 +180,85 @@ const ReporteOrdenDeCompra = () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          created_at,
-          numero_correlativo,
-          estado,
-          copia,
-          usuario_registro,
-          alternativas_plan_orden,
-          OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
-            Usuarios (id_usuario, Nombre, Email, id_grupo,
-              Grupos (id_grupo, nombre_grupo)
+      const buildQuery = () => {
+        let query = supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            created_at,
+            numero_correlativo,
+            estado,
+            copia,
+            usuario_registro,
+            alternativas_plan_orden,
+            OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
+              Usuarios (id_usuario, Nombre, Email, id_grupo,
+                Grupos (id_grupo, nombre_grupo)
+              )
+            ),
+            Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto,Presupuesto,
+              Clientes (id_cliente, nombreCliente, RUT, razonSocial),
+              Productos!id_Producto (id, NombreDelProducto)
+            ),
+            Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
+              FormaDePago (id, NombreFormadePago),
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor)
+            ),
+            Soportes (id_soporte, nombreIdentficiador),
+            plan (id, nombre_plan, anio, mes,
+              Anios!anio (id, years),
+              Meses (Id, Nombre)
             )
-          ),
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto,Presupuesto,
-            Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto)
-          ),
-          Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
-            FormaDePago (id, NombreFormadePago),
-            Proveedores (id_proveedor, nombreProveedor, rutProveedor)
-          ),
-          Soportes (id_soporte, nombreIdentficiador),
-          plan (id, nombre_plan, anio, mes,
-            Anios!anio (id, years),
-            Meses (Id, Nombre)
-          )
-        `);
+          `);
 
-      // Aplicar filtro de cliente
-      if (filtros.cliente) {
-        query = query.eq('Campania.id_Cliente', filtros.cliente);
+        // Aplicar filtro de cliente
+        if (filtros.cliente) {
+          query = query.eq('Campania.id_Cliente', filtros.cliente);
+        }
+
+        // Aplicar filtro de campaña
+        if (filtros.campania) {
+          query = query.eq('Campania.id_campania', filtros.campania);
+        }
+
+        // Aplicar filtro de fecha inicio
+        if (filtros.fechaInicio) {
+          const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
+          query = query.gte('fechaCreacion', fechaInicioFormateada);
+        }
+
+        // Aplicar filtro de fecha fin
+        if (filtros.fechaFin) {
+          const fechaFinFormateada = format(new Date(filtros.fechaFin), 'yyyy-MM-dd');
+          query = query.lte('fechaCreacion', fechaFinFormateada);
+        }
+
+        return query;
+      };
+
+      // PostgREST corta cada respuesta en 1000 filas: paginar hasta traer todo
+      const batchSize = 1000;
+      let allData = [];
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batchData, error: batchError } = await buildQuery()
+          .order('fechaCreacion', { ascending: false })
+          .order('id_ordenes_de_comprar', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (batchError) throw batchError;
+
+        const batch = batchData || [];
+        allData = [...allData, ...batch];
+
+        if (batch.length < batchSize) hasMore = false;
+        else from += batchSize;
       }
 
-      // Aplicar filtro de campaña
-      if (filtros.campania) {
-        query = query.eq('Campania.id_campania', filtros.campania);
-      }
-
-      // Aplicar filtro de fecha inicio
-      if (filtros.fechaInicio) {
-        const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
-        query = query.gte('fechaCreacion', fechaInicioFormateada);
-      }
-
-      // Aplicar filtro de fecha fin
-      if (filtros.fechaFin) {
-        const fechaFinFormateada = format(new Date(filtros.fechaFin), 'yyyy-MM-dd');
-        query = query.lte('fechaCreacion', fechaFinFormateada);
-      }
-
-      const { data, error } = await query.order('fechaCreacion', { ascending: false });
-
-      if (error) throw error;
+      const data = allData;
       
       setOrdenes(data || []);
     } catch (error) {
@@ -1273,35 +1296,36 @@ const ReporteOrdenDeCompra = () => {
       }
 
       // Obtener todas las órdenes con los filtros aplicados
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          created_at,
-          numero_correlativo,
-          estado,
-          copia,
-          usuario_registro,
-          alternativas_plan_orden,
-          OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
-            Usuarios (id_usuario, Nombre, Email, id_grupo,
-              Grupos (id_grupo, nombre_grupo)
+      const buildQueryExport = () => {
+        let query = supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            created_at,
+            numero_correlativo,
+            estado,
+            copia,
+            usuario_registro,
+            alternativas_plan_orden,
+            OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
+              Usuarios (id_usuario, Nombre, Email, id_grupo,
+                Grupos (id_grupo, nombre_grupo)
+              )
+            ),
+            Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto,
+              Clientes (id_cliente, nombreCliente, RUT, razonSocial),
+              Productos!id_Producto (id, NombreDelProducto)
+            ),
+            Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
+              FormaDePago (id, NombreFormadePago),
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor)
+            ),
+            Soportes (id_soporte, nombreIdentficiador),
+            plan (id, nombre_plan, anio, mes,
+              Anios!anio (id, years),
+              Meses (Id, Nombre)
             )
-          ),
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto,
-            Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto)
-          ),
-          Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
-            FormaDePago (id, NombreFormadePago),
-            Proveedores (id_proveedor, nombreProveedor, rutProveedor)
-          ),
-          Soportes (id_soporte, nombreIdentficiador),
-          plan (id, nombre_plan, anio, mes,
-            Anios!anio (id, years),
-            Meses (Id, Nombre)
-          )
         `);
 
       // Aplicar filtros
@@ -1323,9 +1347,31 @@ const ReporteOrdenDeCompra = () => {
         query = query.lte('fechaCreacion', fechaFinFormateada);
       }
 
-      const { data: ordenes, error } = await query.order('fechaCreacion', { ascending: false });
+        return query;
+      };
 
-      if (error) throw error;
+      // PostgREST corta cada respuesta en 1000 filas: paginar hasta traer todo
+      const batchSize = 1000;
+      let allOrdenes = [];
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batchData, error: batchError } = await buildQueryExport()
+          .order('fechaCreacion', { ascending: false })
+          .order('id_ordenes_de_comprar', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (batchError) throw batchError;
+
+        const batch = batchData || [];
+        allOrdenes = [...allOrdenes, ...batch];
+
+        if (batch.length < batchSize) hasMore = false;
+        else from += batchSize;
+      }
+
+      const ordenes = allOrdenes;
       
       if (ordenes.length === 0) {
         Swal.fire({

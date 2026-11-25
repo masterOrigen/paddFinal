@@ -133,61 +133,86 @@ const InformeInversionClienteBruto = () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          created_at,
-          numero_correlativo,
-          estado,
-          copia,
-          usuario_registro,
-          alternativas_plan_orden,
-          OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
-            Usuarios (id_usuario, Nombre, Email, id_grupo,
-              Grupos (id_grupo, nombre_grupo)
+      const buildQuery = () => {
+        let query = supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            created_at,
+            numero_correlativo,
+            estado,
+            copia,
+            usuario_registro,
+            alternativas_plan_orden,
+            OrdenesUsuarios!left (id_orden_usuario, fecha_asignacion, estado,
+              Usuarios (id_usuario, Nombre, Email, id_grupo,
+                Grupos (id_grupo, nombre_grupo)
+              )
+            ),
+            Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
+              Clientes (id_cliente, nombreCliente, RUT, razonSocial),
+              Productos!id_Producto (id, NombreDelProducto),
+              Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia)
+            ),
+            Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
+              FormaDePago (id, NombreFormadePago),
+              Proveedores (id_proveedor, nombreProveedor, rutProveedor)
+            ),
+            Soportes (id_soporte, nombreIdentficiador),
+            plan (id, nombre_plan, anio, mes,
+              Anios!anio (id, years),
+              Meses (Id, Nombre)
             )
-          ),
-          Campania!inner (id_campania, NombreCampania, id_Cliente, id_Producto, Presupuesto, Id_Agencia,
-            Clientes (id_cliente, nombreCliente, RUT, razonSocial),
-            Productos!id_Producto (id, NombreDelProducto),
-            Agencia:Agencias!Id_Agencia (id, NombreIdentificador, NombreDeFantasia)
-          ),
-          Contratos (id, NombreContrato, num_contrato, id_FormadePago, IdProveedor,
-            FormaDePago (id, NombreFormadePago),
-            Proveedores (id_proveedor, nombreProveedor, rutProveedor)
-          ),
-          Soportes (id_soporte, nombreIdentficiador),
-          plan (id, nombre_plan, anio, mes,
-            Anios!anio (id, years),
-            Meses (Id, Nombre)
-          )
-        `);
+          `);
 
-      if (filtros.cliente) {
-        query = query.eq('Campania.id_Cliente', filtros.cliente);
-      }
-      
-      if (filtros.campana) {
-        query = query.eq('Campania.id_campania', filtros.campana);
+        if (filtros.cliente) {
+          query = query.eq('Campania.id_Cliente', filtros.cliente);
+        }
+        
+        if (filtros.campana) {
+          query = query.eq('Campania.id_campania', filtros.campana);
+        }
+
+        if (filtros.estado) {
+          query = query.eq('estado', filtros.estado);
+        }
+
+        if (filtros.fechaInicio) {
+          const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
+          query = query.gte('fechaCreacion', fechaInicioFormateada);
+        }
+
+        if (filtros.fechaFin) {
+          const fechaFinFormateada = format(new Date(filtros.fechaFin), 'yyyy-MM-dd');
+          query = query.lte('fechaCreacion', fechaFinFormateada);
+        }
+
+        return query;
+      };
+
+      // PostgREST corta cada respuesta en 1000 filas: paginar hasta traer todo
+      const batchSize = 1000;
+      let allOrdenesData = [];
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batchData, error: batchError } = await buildQuery()
+          .order('fechaCreacion', { ascending: false })
+          .order('id_ordenes_de_comprar', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (batchError) throw batchError;
+
+        const batch = batchData || [];
+        allOrdenesData = [...allOrdenesData, ...batch];
+
+        if (batch.length < batchSize) hasMore = false;
+        else from += batchSize;
       }
 
-      if (filtros.estado) {
-        query = query.eq('estado', filtros.estado);
-      }
-
-      if (filtros.fechaInicio) {
-        const fechaInicioFormateada = format(new Date(filtros.fechaInicio), 'yyyy-MM-dd');
-        query = query.gte('fechaCreacion', fechaInicioFormateada);
-      }
-
-      if (filtros.fechaFin) {
-        const fechaFinFormateada = format(new Date(filtros.fechaFin), 'yyyy-MM-dd');
-        query = query.lte('fechaCreacion', fechaFinFormateada);
-      }
-
-      const { data: ordenesData, error } = await query.order('fechaCreacion', { ascending: false });
+      const ordenesData = allOrdenesData;
 
       // Depuración detallada
       if (ordenesData && ordenesData.length > 0) {

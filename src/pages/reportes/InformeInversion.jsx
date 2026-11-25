@@ -121,70 +121,92 @@ const InformeInversion = () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('OrdenesDePublicidad')
-        .select(`
-          id_ordenes_de_comprar,
-          fechaCreacion,
-          numero_correlativo,
-          estado,
-          usuario_registro,
-          alternativas_plan_orden,
-          OrdenesUsuarios (id_orden_usuario, fecha_asignacion, estado,
-            Usuarios (id_usuario, Nombre, Email, id_grupo,
-              Grupos (id_grupo, nombre_grupo)
-            )
-          ),
-          Campania (
-            id_campania,
-            NombreCampania,
-            Clientes (id_cliente, nombreCliente),
-            Productos (id, NombreDelProducto)
-          ),
-          Contratos (
-            id,
-            NombreContrato,
-            num_contrato,
-            Proveedores (id_proveedor, nombreProveedor),
-            Medios (id, NombredelMedio)
-          ),
-          Soportes (id_soporte, nombreIdentficiador),
-          plan (
-            id,
-            nombre_plan,
-            Meses (Id, Nombre)
-          ),
-          campania_temas:Campania (campania_temas(id_temas, Temas(id_tema, NombreTema, Duracion)))
-        `);
+      const buildQuery = () => {
+        let query = supabase
+          .from('OrdenesDePublicidad')
+          .select(`
+            id_ordenes_de_comprar,
+            fechaCreacion,
+            numero_correlativo,
+            estado,
+            usuario_registro,
+            alternativas_plan_orden,
+            OrdenesUsuarios (id_orden_usuario, fecha_asignacion, estado,
+              Usuarios (id_usuario, Nombre, Email, id_grupo,
+                Grupos (id_grupo, nombre_grupo)
+              )
+            ),
+            Campania (
+              id_campania,
+              NombreCampania,
+              Clientes (id_cliente, nombreCliente),
+              Productos (id, NombreDelProducto)
+            ),
+            Contratos (
+              id,
+              NombreContrato,
+              num_contrato,
+              Proveedores (id_proveedor, nombreProveedor),
+              Medios (id, NombredelMedio)
+            ),
+            Soportes (id_soporte, nombreIdentficiador),
+            plan (
+              id,
+              nombre_plan,
+              Meses (Id, Nombre)
+            ),
+            campania_temas:Campania (campania_temas(id_temas, Temas(id_tema, NombreTema, Duracion)))
+          `);
 
-      if (filtros.fechaInicio) {
-        query = query.gte('fechaCreacion', filtros.fechaInicio.toISOString());
-      }
-      
-      if (filtros.fechaFin) {
-        query = query.lte('fechaCreacion', filtros.fechaFin.toISOString());
-      }
-      
-      if (filtros.cliente) {
-        query = query.eq('Campania.Clientes.id_cliente', filtros.cliente);
-      }
-      
-      if (filtros.medio) {
-        query = query.eq('Contratos.Medios.id', filtros.medio);
+        if (filtros.fechaInicio) {
+          query = query.gte('fechaCreacion', filtros.fechaInicio.toISOString());
+        }
+        
+        if (filtros.fechaFin) {
+          query = query.lte('fechaCreacion', filtros.fechaFin.toISOString());
+        }
+        
+        if (filtros.cliente) {
+          query = query.eq('Campania.Clientes.id_cliente', filtros.cliente);
+        }
+        
+        if (filtros.medio) {
+          query = query.eq('Contratos.Medios.id', filtros.medio);
+        }
+
+        if (filtros.proveedor) {
+          query = query.eq('Contratos.Proveedores.id_proveedor', filtros.proveedor);
+        }
+
+        if (filtros.soporte) {
+          query = query.eq('id_soporte', filtros.soporte);
+        }
+
+        return query;
+      };
+
+      // PostgREST corta cada respuesta en 1000 filas: paginar hasta traer todo
+      const batchSize = 1000;
+      let allData = [];
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batchData, error: batchError } = await buildQuery()
+          .order('fechaCreacion', { ascending: false })
+          .order('id_ordenes_de_comprar', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (batchError) throw batchError;
+
+        const batch = batchData || [];
+        allData = [...allData, ...batch];
+
+        if (batch.length < batchSize) hasMore = false;
+        else from += batchSize;
       }
 
-      if (filtros.proveedor) {
-        query = query.eq('Contratos.Proveedores.id_proveedor', filtros.proveedor);
-      }
-
-      if (filtros.soporte) {
-        query = query.eq('id_soporte', filtros.soporte);
-      }
-
-      const { data, error } = await query.order('fechaCreacion', { ascending: false });
-
-      if (error) throw error;
-      setOrdenes(data || []);
+      setOrdenes(allData);
     } catch (error) {
       console.error('Error al buscar órdenes:', error);
     } finally {
